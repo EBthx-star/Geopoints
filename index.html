@@ -732,10 +732,39 @@
         function initMap() {
             map = L.map('map').setView([46.603354, 1.888334], 6);
             
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // Couches de carte disponibles
+            const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 19
-            }).addTo(map);
+            });
+            
+            const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri',
+                maxZoom: 19
+            });
+            
+            const hybridMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri',
+                maxZoom: 19
+            });
+            
+            const labels = L.tileLayer('https://{s}.basemaps.cartocdn.com/only_labels/{z}/{x}/{y}.png', {
+                attribution: '© CARTO',
+                maxZoom: 19,
+                pane: 'shadowPane'
+            });
+            
+            // Ajouter la carte satellite par défaut
+            satelliteMap.addTo(map);
+            
+            // Contrôle de couches (optionnel - pour changer de vue)
+            const baseMaps = {
+                "🛰️ Satellite": satelliteMap,
+                "🗺️ Plan": streetMap,
+                "🌍 Hybride": L.layerGroup([hybridMap, labels])
+            };
+            
+            L.control.layers(baseMaps).addTo(map);
             
             loadPoints();
             locateMe();
