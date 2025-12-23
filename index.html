@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GéoPoints - Mes emplacements</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Application de géolocalisation et gestion de points avec photos et vidéos">
+    <meta name="theme-color" content="#007AFF">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GéoPoints">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23007AFF;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%230051D5;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='200' height='200' rx='40' fill='url(%23grad)'/%3E%3Cg transform='translate(100,100)'%3E%3Ccircle r='55' fill='white' opacity='0.2'/%3E%3Ccircle r='45' fill='white' opacity='0.3'/%3E%3Cpath d='M 0,-50 L 15,-15 L 50,-15 L 22,10 L 35,45 L 0,20 L -35,45 L -22,10 L -50,-15 L -15,-15 Z' fill='white'/%3E%3Ccircle r='12' fill='%23007AFF'/%3E%3C/g%3E%3C/svg%3E">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23007AFF'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle' fill='white'%3E📍%3C/text%3E%3C/svg%3E">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+        }
+        
+        /* Header */
+        header {
+            background: #007AFF;
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        /* Map Container */
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+        
+        /* Controls Panel */
+        .controls {
+            position: absolute;
+            top: 80px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn {
+            background: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 24px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+            background: #f0f0f0;
+        }
+        
+        /* Info Panel */
+        .info-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-height: 40vh;
+            overflow-y: auto;
+            transform: translateY(calc(100% - 60px));
+            transition: transform 0.3s ease;
+        }
+        
+        .info-panel.expanded {
+            transform: translateY(0);
+        }
+        
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        
+        .info-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .expand-icon {
+            font-size: 24px;
+            transition: transform 0.3s;
+        }
+        
+        .info-panel.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+        
+        .point-list {
+            display: none;
+        }
+        
+        .info-panel.expanded .point-list {
+            display: block;
+        }
+        
+        .point-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .point-info {
+            flex: 1;
+        }
+        
+        .point-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .point-coords {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .point-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .point-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+        }
+        
+        .point-btn:active {
+            opacity: 0.6;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background: #007AFF;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #e5e5e5;
+            color: #333;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px 20px;
+            color: #666;
+        }
+        
+        .empty-state p {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        /* Photo Management */
+        .photo-input-wrapper {
+            margin-top: 10px;
+        }
+        
+        .photo-upload-btn {
+            display: inline-block;
+            padding: 10px 16px;
+            background: #007AFF;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .photo-upload-btn input[type="file"] {
+            display: none;
+        }
+        
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .photo-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f0f0f0;
+        }
+        
+        .photo-item img, .photo-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        
+        .photo-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(255,59,48,0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        
+        .photo-count {
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .video-badge {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        /* Photo Viewer Modal */
+        .photo-viewer {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .photo-viewer.active {
+            display: flex;
+        }
+        
+        .photo-viewer img, .photo-viewer video {
+            max-width: 90%;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+        
+        .photo-viewer-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .photo-viewer-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .photo-viewer-prev {
+            left: 20px;
+        }
+        
+        .photo-viewer-next {
+            right: 20px;
+        }
+        
+        .photo-viewer-info {
+            position: absolute;
+            bottom: 20px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .popup-photos {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .popup-photo-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 4px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        
+        .popup-photo-thumb:hover {
+            border-color: #007AFF;
+        }
+        
+        /* Distance Display */
+        .distance-info {
+            position: absolute;
+            bottom: 100px;
+            left: 10px;
+            right: 10px;
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .distance-info.active {
+            display: block;
+        }
+        
+        .distance-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #007AFF;
+        }
+        
+        .distance-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .distance-item:last-child {
+            border-bottom: none;
+        }
+        
+        .distance-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .distance-value {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .distance-close {
+            background: #e5e5e5;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            margin-top: 10px;
+            width: 100%;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .point-distance {
+            font-size: 11px;
+            color: #007AFF;
+            margin-top: 3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .measure-marker {
+            background: #007AFF;
+            color: white;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 4000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 3000;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        /* Custom Leaflet Popup */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+        }
+        
+        .popup-content {
+            min-width: 150px;
+        }
+        
+        .popup-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .popup-description {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <h1>📍 GéoPoints</h1>
+    </header>
+    
+    <!-- Map -->
+    <div id="map"></div>
+    
+    <!-- Controls -->
+    <div class="controls">
+        <button class="btn" onclick="locateMe()" title="Ma position">
+            📍
+        </button>
+        <button class="btn" onclick="toggleAddMode()" id="addBtn" title="Ajouter un point">
+            ➕
+        </button>
+        <button class="btn" onclick="toggleDistanceMode()" id="distanceBtn" title="Mesurer distance">
+            📏
+        </button>
+        <button class="btn" onclick="document.getElementById('photoImportInput').click()" title="Importer des photos/vidéos géolocalisées">
+            📸
+        </button>
+    </div>
+    
+    <!-- Hidden file input for photo/video import -->
+    <input type="file" id="photoImportInput" accept="image/*,video/*" multiple style="display: none;">
+    
+    <!-- Info Panel -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-header" onclick="togglePanel()">
+            <h2>Mes points (<span id="pointCount">0</span>)</h2>
+            <span class="expand-icon">⌃</span>
+        </div>
+        <div class="point-list" id="pointList">
+            <div class="empty-state">
+                <div style="font-size: 48px;">📍</div>
+                <p>Aucun point enregistré.<br>Appuyez sur ➕ ou 📸</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Distance Info Panel -->
+    <div class="distance-info" id="distanceInfo">
+        <div class="distance-header">📏 Mesure de distance</div>
+        <div id="distanceContent"></div>
+        <button class="distance-close" onclick="closeDistanceMode()">Fermer</button>
+    </div>
+    
+    <!-- Modal for adding/editing point -->
+    <div class="modal" id="pointModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Nouveau point</h3>
+            <form id="pointForm">
+                <div class="form-group">
+                    <label for="pointName">Nom du point *</label>
+                    <input type="text" id="pointName" required placeholder="Ex: Bureau, Garage Bernard...">
+                </div>
+                <div class="form-group">
+                    <label for="pointDescription">Description</label>
+                    <textarea id="pointDescription" placeholder="Informations complémentaires..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Photos/Vidéos <span class="photo-count" id="photoCount"></span></label>
+                    <div class="photo-input-wrapper">
+                        <label class="photo-upload-btn">
+                            📷 Ajouter des médias
+                            <input type="file" id="photoInput" accept="image/*,video/*" multiple capture="environment">
+                        </label>
+                    </div>
+                    <div class="photo-grid" id="photoGrid"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="modal-btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="modal-btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Photo Viewer -->
+    <div class="photo-viewer" id="photoViewer">
+        <button class="photo-viewer-close" onclick="closePhotoViewer()">×</button>
+        <button class="photo-viewer-nav photo-viewer-prev" onclick="navigatePhoto(-1)">‹</button>
+        <div id="photoViewerContent"></div>
+        <button class="photo-viewer-nav photo-viewer-next" onclick="navigatePhoto(1)">›</button>
+        <div class="photo-viewer-info" id="photoViewerInfo"></div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Chargement...</div>
+    </div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- EXIF JS for reading GPS data from photos -->
+    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let map;
+        let markers = [];
+        let points = [];
+        let addMode = false;
+        let currentEditIndex = null;
+        let userMarker = null;
+        let tempPhotos = [];
+        let currentPhotoIndex = 0;
+        let currentViewPhotos = [];
+        let distanceMode = false;
+        let selectedPointsForDistance = [];
+        let distanceMarkers = [];
+        let distanceLine = null;
+        let userPosition = null;
+        
+        // Initialisation de la carte
+        function initMap() {
+            map = L.map('map').setView([46.603354, 1.888334], 6);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            loadPoints();
+            locateMe();
+            
+            map.on('click', function(e) {
+                if (addMode) {
+                    openModal(e.latlng);
+                }
+            });
+        }
+        
+        // Géolocalisation
+        function locateMe() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        userPosition = { lat, lng };
+                        map.setView([lat, lng], 15);
+                        
+                        if (userMarker) {
+                            userMarker.setLatLng([lat, lng]);
+                        } else {
+                            userMarker = L.circleMarker([lat, lng], {
+                                radius: 8,
+                                fillColor: '#007AFF',
+                                color: 'white',
+                                weight: 3,
+                                fillOpacity: 1
+                            }).addTo(map);
+                            
+                            userMarker.bindPopup('📍 Vous êtes ici');
+                        }
+                        
+                        showNotification('Position trouvée !');
+                        
+                        if (distanceMode && selectedPointsForDistance.length === 0) {
+                            showDistancesFromUser();
+                        }
+                    },
+                    function(error) {
+                        showNotification('Impossible de vous localiser', 'error');
+                    }
+                );
+            } else {
+                showNotification('Géolocalisation non disponible', 'error');
+            }
+        }
+        
+        // Toggle mode ajout
+        function toggleAddMode() {
+            addMode = !addMode;
+            const btn = document.getElementById('addBtn');
+            
+            if (addMode) {
+                btn.style.background = '#007AFF';
+                btn.style.color = 'white';
+                showNotification('Cliquez sur la carte pour ajouter un point');
+            } else {
+                btn.style.background = 'white';
+                btn.style.color = 'black';
+            }
+        }
+        
+        // Ouvrir le modal
+        function openModal(latlng = null, editIndex = null) {
+            currentEditIndex = editIndex;
+            const modal = document.getElementById('pointModal');
+            const form = document.getElementById('pointForm');
+            const title = document.getElementById('modalTitle');
+            
+            tempPhotos = [];
+            
+            if (editIndex !== null) {
+                const point = points[editIndex];
+                title.textContent = 'Modifier le point';
+                document.getElementById('pointName').value = point.name;
+                document.getElementById('pointDescription').value = point.description || '';
+                
+                if (point.photos && point.photos.length > 0) {
+                    tempPhotos = [...point.photos];
+                }
+            } else {
+                title.textContent = 'Nouveau point';
+                form.reset();
+            }
+            
+            displayTempPhotos();
+            
+            if (latlng) {
+                form.dataset.lat = latlng.lat;
+                form.dataset.lng = latlng.lng;
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        // Fermer le modal
+        function closeModal() {
+            document.getElementById('pointModal').classList.remove('active');
+            document.getElementById('pointForm').reset();
+            currentEditIndex = null;
+            tempPhotos = [];
+            displayTempPhotos();
+            addMode = false;
+            document.getElementById('addBtn').style.background = 'white';
+            document.getElementById('addBtn').style.color = 'black';
+        }
+        
+        // Compresser une image
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        const maxSize = 1200;
+                        if (width > maxSize || height > maxSize) {
+                            if (width > height) {
+                                height = (height / width) * maxSize;
+                                width = maxSize;
+                            } else {
+                                width = (width / height) * maxSize;
+                                height = maxSize;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                        resolve(base64);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Convertir une vidéo en base64
+        function videoToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Gérer l'ajout de photos dans le modal
+        document.getElementById('photoInput').addEventListener('change', async function(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            
+            showNotification('Traitement des médias...');
+            
+            for (const file of files) {
+                try {
+                    if (file.type.startsWith('image/')) {
+                        const compressed = await compressImage(file);
+                        tempPhotos.push({ type: 'image', data: compressed });
+                    } else if (file.type.startsWith('video/')) {
+                        const base64 = await videoToBase64(file);
+                        tempPhotos.push({ type: 'video', data: base64 });
+                    }
+                } catch (error) {
+                    console.error('Erreur traitement:', error);
+                }
+            }
+            
+            displayTempPhotos();
+            showNotification(`${files.length} média(s) ajouté(s)`);
+            e.target.value = '';
+        });
+        
+        // Afficher les photos temporaires dans le modal
+        function displayTempPhotos() {
+            const grid = document.getElementById('photoGrid');
+            const count = document.getElementById('photoCount');
+            
+            count.textContent = tempPhotos.length > 0 ? `(${tempPhotos.length})` : '';
+            
+            grid.innerHTML = tempPhotos.map((media, index) => {
+                const isVideo = media.type === 'video';
+                const content = isVideo 
+                    ? `<video src="${media.data}"></video><span class="video-badge">🎥</span>`
+                    : `<img src="${media.data}" alt="Photo ${index + 1}">`;
+                
+                return `
+                    <div class="photo-item">
+                        ${content}
+                        <button class="photo-remove" onclick="removeTempPhoto(${index})">×</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Supprimer une photo temporaire
+        function removeTempPhoto(index) {
+            tempPhotos.splice(index, 1);
+            displayTempPhotos();
+        }
+        
+        // Visualiser une photo/vidéo
+        function viewPhoto(index, mediaArray) {
+            currentPhotoIndex = index;
+            currentViewPhotos = mediaArray;
+            
+            const viewer = document.getElementById('photoViewer');
+            const content = document.getElementById('photoViewerContent');
+            const info = document.getElementById('photoViewerInfo');
+            
+            const media = mediaArray[index];
+            if (media.type === 'video') {
+                content.innerHTML = `<video src="${media.data}" controls autoplay style="max-width: 90%; max-height: 80vh;"></video>`;
+            } else {
+                content.innerHTML = `<img src="${media.data}" alt="Photo ${index + 1}">`;
+            }
+            
+            info.textContent = `${index + 1} / ${mediaArray.length}`;
+            viewer.classList.add('active');
+        }
+        
+        // Naviguer dans les photos
+        function navigatePhoto(direction) {
+            currentPhotoIndex += direction;
+            
+            if (currentPhotoIndex < 0) {
+                currentPhotoIndex = currentViewPhotos.length - 1;
+            } else if (currentPhotoIndex >= currentViewPhotos.length) {
+                currentPhotoIndex = 0;
+            }
+            
+            const content = document.getElementById('photoViewerContent');
+            const info = document.getElementById('photoViewerInfo');
+            
+            const media = currentViewPhotos[currentPhotoIndex];
+            if (media.type === 'video') {
+                content.innerHTML = `<video src="${media.data}" controls autoplay style="max-width: 90%; max-height: 80vh;"></video>`;
+            } else {
+                content.innerHTML = `<img src="${media.data}" alt="Photo ${currentPhotoIndex + 1}">`;
+            }
+            
+            info.textContent = `${currentPhotoIndex + 1} / ${currentViewPhotos.length}`;
+        }
+        
+        // Fermer le visualiseur
+        function closePhotoViewer() {
+            document.getElementById('photoViewer').classList.remove('active');
+            const content = document.getElementById('photoViewerContent');
+            content.innerHTML = '';
+        }
+        
+        // Soumettre le formulaire
+        document.getElementById('pointForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('pointName').value;
+            const description = document.getElementById('pointDescription').value;
+            
+            if (currentEditIndex !== null) {
+                points[currentEditIndex].name = name;
+                points[currentEditIndex].description = description;
+                points[currentEditIndex].photos = [...tempPhotos];
+                showNotification('Point modifié !');
+            } else {
+                const lat = parseFloat(this.dataset.lat);
+                const lng = parseFloat(this.dataset.lng);
+                
+                const point = {
+                    id: Date.now(),
+                    name: name,
+                    description: description,
+                    lat: lat,
+                    lng: lng,
+                    photos: [...tempPhotos],
+                    createdAt: new Date().toISOString()
+                };
+                
+                points.push(point);
+                showNotification('Point ajouté !');
+            }
+            
+            savePoints();
+            displayPoints();
+            closeModal();
+        });
+        
+        // Sauvegarder les points
+        function savePoints() {
+            localStorage.setItem('geopoints', JSON.stringify(points));
+        }
+        
+        // Charger les points
+        function loadPoints() {
+            const saved = localStorage.getItem('geopoints');
+            if (saved) {
+                points = JSON.parse(saved);
+                displayPoints();
+            }
+        }
+        
+        // ========== IMPORT PHOTOS GÉOLOCALISÉES ==========
+        
+        // Convertir les coordonnées GPS EXIF en décimal
+        function convertDMSToDD(degrees, minutes, seconds, direction) {
+            let dd = degrees + minutes/60 + seconds/3600;
+            if (direction === 'S' || direction === 'W') {
+                dd = dd * -1;
+            }
+            return dd;
+        }
+        
+        // Extraire les coordonnées GPS d'une photo
+        function extractGPSFromPhoto(file) {
+            return new Promise((resolve, reject) => {
+                EXIF.getData(file, function() {
+                    const lat = EXIF.getTag(this, 'GPSLatitude');
+                    const latRef = EXIF.getTag(this, 'GPSLatitudeRef');
+                    const lon = EXIF.getTag(this, 'GPSLongitude');
+                    const lonRef = EXIF.getTag(this, 'GPSLongitudeRef');
+                    const dateTime = EXIF.getTag(this, 'DateTime');
+                    
+                    if (lat && lon && latRef && lonRef) {
+                        const latitude = convertDMSToDD(lat[0], lat[1], lat[2], latRef);
+                        const longitude = convertDMSToDD(lon[0], lon[1], lon[2], lonRef);
+                        resolve({ latitude, longitude, dateTime, hasGPS: true });
+                    } else {
+                        resolve({ hasGPS: false });
+                    }
+                });
+            });
+        }
+        
+        // Gérer l'import de photos géolocalisées
+        document.getElementById('photoImportInput').addEventListener('change', async function(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            
+            showLoading(`Analyse de ${files.length} fichier(s)...`);
+            
+            let imported = 0;
+            let noGPS = 0;
+            
+            for (const file of files) {
+                try {
+                    if (file.type.startsWith('image/')) {
+                        // Extraire les coordonnées GPS
+                        const gpsData = await extractGPSFromPhoto(file);
+                        
+                        if (gpsData.hasGPS) {
+                            // Compresser l'image
+                            const compressed = await compressImage(file);
+                            
+                            // Créer un nouveau point
+                            const fileName = file.name.replace(/\.[^/.]+$/, "");
+                            const point = {
+                                id: Date.now() + imported,
+                                name: fileName,
+                                description: gpsData.dateTime ? `Prise le ${gpsData.dateTime}` : 'Importé depuis photo',
+                                lat: gpsData.latitude,
+                                lng: gpsData.longitude,
+                                photos: [{ type: 'image', data: compressed }],
+                                createdAt: new Date().toISOString()
+                            };
+                            
+                            points.push(point);
+                            imported++;
+                        } else {
+                            noGPS++;
+                        }
+                    } else if (file.type.startsWith('video/')) {
+                        // Les vidéos n'ont généralement pas de GPS EXIF facilement accessible
+                        noGPS++;
+                    }
+                } catch (error) {
+                    console.error('Erreur import:', error);
+                    noGPS++;
+                }
+            }
+            
+            hideLoading();
+            
+            if (imported > 0) {
+                savePoints();
+                displayPoints();
+                map.fitBounds(points.map(p => [p.lat, p.lng]));
+                showNotification(`${imported} point(s) importé(s) !`);
+            }
+            
+            if (noGPS > 0) {
+                setTimeout(() => {
+                    showNotification(`${noGPS} fichier(s) sans GPS`, 'warning');
+                }, 2000);
+            }
+            
+            e.target.value = '';
+        });
+        
+        // Afficher le loading
+        function showLoading(text = 'Chargement...') {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+        
+        // Cacher le loading
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+        
+        // ========== AFFICHAGE DES POINTS ==========
+        
+        // Afficher les points sur la carte et dans la liste
+        function displayPoints() {
+            markers.forEach(marker => marker.remove());
+            markers = [];
+            
+            points.forEach((point, index) => {
+                const marker = L.marker([point.lat, point.lng], {
+                    title: point.name
+                }).addTo(map);
+                
+                marker.on('click', function() {
+                    if (distanceMode) {
+                        selectPointForDistance(index);
+                    }
+                });
+                
+                let distanceHTML = '';
+                if (userPosition) {
+                    const dist = calculateDistance(
+                        userPosition.lat, userPosition.lng,
+                        point.lat, point.lng
+                    );
+                    distanceHTML = `
+                        <div style="font-size: 12px; color: #007AFF; margin-top: 5px;">
+                            📏 ${formatDistance(dist)} de vous
+                        </div>
+                    `;
+                }
+                
+                let photosHTML = '';
+                if (point.photos && point.photos.length > 0) {
+                    photosHTML = `
+                        <div class="popup-photos">
+                            ${point.photos.slice(0, 3).map((media, photoIndex) => {
+                                const isVideo = media.type === 'video';
+                                const element = isVideo 
+                                    ? `<video src="${media.data}" class="popup-photo-thumb" onclick="viewPhoto(${photoIndex}, points[${index}].photos)"></video>`
+                                    : `<img src="${media.data}" class="popup-photo-thumb" onclick="viewPhoto(${photoIndex}, points[${index}].photos)" alt="Photo ${photoIndex + 1}">`;
+                                return element;
+                            }).join('')}
+                            ${point.photos.length > 3 ? `<div style="font-size: 11px; color: #666; padding: 5px;">+${point.photos.length - 3}</div>` : ''}
+                        </div>
+                    `;
+                }
+                
+                const popupContent = `
+                    <div class="popup-content">
+                        <div class="popup-name">${point.name}</div>
+                        ${point.description ? `<div class="popup-description">${point.description}</div>` : ''}
+                        ${distanceHTML}
+                        ${photosHTML}
+                        <div style="font-size: 11px; color: #999; margin-top: 8px;">
+                            ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}
+                        </div>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                markers.push(marker);
+            });
+            
+            updatePointList();
+        }
+        
+        // Mettre à jour la liste des points
+        function updatePointList() {
+            const listContainer = document.getElementById('pointList');
+            document.getElementById('pointCount').textContent = points.length;
+            
+            if (points.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 48px;">📍</div>
+                        <p>Aucun point enregistré.<br>Appuyez sur ➕ ou 📸</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            listContainer.innerHTML = points.map((point, index) => {
+                const photoPreview = point.photos && point.photos.length > 0 
+                    ? `<div style="margin-top: 5px;">
+                         ${point.photos[0].type === 'video' 
+                            ? `<video src="${point.photos[0].data}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover; cursor: pointer;" onclick="viewPhoto(0, points[${index}].photos)"></video>`
+                            : `<img src="${point.photos[0].data}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover; cursor: pointer;" onclick="viewPhoto(0, points[${index}].photos)" alt="Photo">`
+                         }
+                         ${point.photos.length > 1 ? `<span style="font-size: 11px; color: #666; margin-left: 5px;">+${point.photos.length - 1}</span>` : ''}
+                       </div>` 
+                    : '';
+                
+                let distanceDisplay = '';
+                if (userPosition) {
+                    const dist = calculateDistance(
+                        userPosition.lat, userPosition.lng,
+                        point.lat, point.lng
+                    );
+                    distanceDisplay = `<div class="point-distance">📏 ${formatDistance(dist)}</div>`;
+                }
+                
+                return `
+                    <div class="point-item" ${distanceMode ? `onclick="selectPointForDistance(${index})" style="cursor: pointer;"` : ''}>
+                        <div class="point-info">
+                            <div class="point-name">${point.name}</div>
+                            <div class="point-coords">${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}</div>
+                            ${distanceDisplay}
+                            ${photoPreview}
+                        </div>
+                        <div class="point-actions" ${distanceMode ? 'style="display: none;"' : ''}>
+                            <button class="point-btn" onclick="centerOnPoint(${index})" title="Centrer">🎯</button>
+                            <button class="point-btn" onclick="editPoint(${index})" title="Modifier">✏️</button>
+                            <button class="point-btn" onclick="deletePoint(${index})" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Centrer sur un point
+        function centerOnPoint(index) {
+            const point = points[index];
+            map.setView([point.lat, point.lng], 16);
+            markers[index].openPopup();
+        }
+        
+        // Éditer un point
+        function editPoint(index) {
+            openModal(null, index);
+        }
+        
+        // Supprimer un point
+        function deletePoint(index) {
+            if (confirm(`Supprimer "${points[index].name}" ?`)) {
+                points.splice(index, 1);
+                savePoints();
+                displayPoints();
+                showNotification('Point supprimé');
+            }
+        }
+        
+        // Toggle panneau d'information
+        function togglePanel() {
+            document.getElementById('infoPanel').classList.toggle('expanded');
+        }
+        
+        // ========== CALCUL DE DISTANCE ==========
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+        
+        function formatDistance(km) {
+            if (km < 1) {
+                return Math.round(km * 1000) + ' m';
+            } else if (km < 10) {
+                return km.toFixed(2) + ' km';
+            } else {
+                return km.toFixed(1) + ' km';
+            }
+        }
+        
+        function toggleDistanceMode() {
+            distanceMode = !distanceMode;
+            const btn = document.getElementById('distanceBtn');
+            
+            if (distanceMode) {
+                btn.style.background = '#007AFF';
+                btn.style.color = 'white';
+                selectedPointsForDistance = [];
+                clearDistanceMarkers();
+                
+                if (userPosition) {
+                    showDistancesFromUser();
+                } else {
+                    showNotification('Sélectionnez 2 points pour mesurer');
+                }
+                
+                document.getElementById('distanceInfo').classList.add('active');
+            } else {
+                btn.style.background = 'white';
+                btn.style.color = 'black';
+                closeDistanceMode();
+            }
+        }
+        
+        function closeDistanceMode() {
+            distanceMode = false;
+            document.getElementById('distanceBtn').style.background = 'white';
+            document.getElementById('distanceBtn').style.color = 'black';
+            document.getElementById('distanceInfo').classList.remove('active');
+            selectedPointsForDistance = [];
+            clearDistanceMarkers();
+        }
+        
+        function clearDistanceMarkers() {
+            distanceMarkers.forEach(marker => marker.remove());
+            distanceMarkers = [];
+            if (distanceLine) {
+                distanceLine.remove();
+                distanceLine = null;
+            }
+        }
+        
+        function showDistancesFromUser() {
+            if (!userPosition) return;
+            
+            const content = document.getElementById('distanceContent');
+            
+            if (points.length === 0) {
+                content.innerHTML = '<div class="distance-label">Aucun point à mesurer</div>';
+                return;
+            }
+            
+            const pointsWithDistance = points.map((point, index) => {
+                const dist = calculateDistance(
+                    userPosition.lat, userPosition.lng,
+                    point.lat, point.lng
+                );
+                return { index, point, distance: dist };
+            }).sort((a, b) => a.distance - b.distance);
+            
+            content.innerHTML = `
+                <div style="margin-bottom: 10px; font-size: 13px; color: #666;">
+                    Distance depuis votre position :
+                </div>
+                ${pointsWithDistance.map(item => `
+                    <div class="distance-item">
+                        <span class="distance-label">${item.point.name}</span>
+                        <span class="distance-value">${formatDistance(item.distance)}</span>
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        function selectPointForDistance(index) {
+            if (!distanceMode) return;
+            
+            const point = points[index];
+            
+            const existingIndex = selectedPointsForDistance.findIndex(p => p.index === index);
+            if (existingIndex !== -1) {
+                selectedPointsForDistance.splice(existingIndex, 1);
+                clearDistanceMarkers();
+                
+                if (selectedPointsForDistance.length === 1) {
+                    addDistanceMarker(selectedPointsForDistance[0], 1);
+                }
+                updateDistanceDisplay();
+                return;
+            }
+            
+            if (selectedPointsForDistance.length >= 2) {
+                selectedPointsForDistance.shift();
+                clearDistanceMarkers();
+            }
+            
+            selectedPointsForDistance.push({ index, point });
+            
+            selectedPointsForDistance.forEach((item, idx) => {
+                addDistanceMarker(item, idx + 1);
+            });
+            
+            if (selectedPointsForDistance.length === 2) {
+                const p1 = selectedPointsForDistance[0].point;
+                const p2 = selectedPointsForDistance[1].point;
+                
+                distanceLine = L.polyline([
+                    [p1.lat, p1.lng],
+                    [p2.lat, p2.lng]
+                ], {
+                    color: '#007AFF',
+                    weight: 3,
+                    dashArray: '10, 10',
+                    opacity: 0.8
+                }).addTo(map);
+            }
+            
+            updateDistanceDisplay();
+        }
+        
+        function addDistanceMarker(item, number) {
+            const icon = L.divIcon({
+                className: 'measure-marker',
+                html: number,
+                iconSize: [30, 30]
+            });
+            
+            const marker = L.marker([item.point.lat, item.point.lng], { icon }).addTo(map);
+            distanceMarkers.push(marker);
+        }
+        
+        function updateDistanceDisplay() {
+            const content = document.getElementById('distanceContent');
+            
+            if (selectedPointsForDistance.length === 0) {
+                if (userPosition) {
+                    showDistancesFromUser();
+                } else {
+                    content.innerHTML = '<div class="distance-label">Cliquez sur 2 points</div>';
+                }
+                return;
+            }
+            
+            if (selectedPointsForDistance.length === 1) {
+                content.innerHTML = `
+                    <div class="distance-item">
+                        <span class="distance-label">Point 1 :</span>
+                        <span class="distance-value">${selectedPointsForDistance[0].point.name}</span>
+                    </div>
+                    <div class="distance-label" style="margin-top: 10px; font-size: 13px; color: #666;">
+                        Sélectionnez un 2ème point
+                    </div>
+                `;
+                return;
+            }
+            
+            const p1 = selectedPointsForDistance[0].point;
+            const p2 = selectedPointsForDistance[1].point;
+            const dist = calculateDistance(p1.lat, p1.lng, p2.lat, p2.lng);
+            
+            content.innerHTML = `
+                <div class="distance-item">
+                    <span class="distance-label">Point 1 :</span>
+                    <span class="distance-value">${p1.name}</span>
+                </div>
+                <div class="distance-item">
+                    <span class="distance-label">Point 2 :</span>
+                    <span class="distance-value">${p2.name}</span>
+                </div>
+                <div class="distance-item" style="background: #f0f8ff; margin-top: 10px; padding: 12px; border-radius: 8px;">
+                    <span class="distance-label" style="font-weight: 600;">Distance :</span>
+                    <span class="distance-value" style="color: #007AFF; font-size: 18px;">${formatDistance(dist)}</span>
+                </div>
+            `;
+        }
+        
+        // Afficher une notification
+        function showNotification(message, type = 'success') {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.style.background = type === 'error' ? '#ff3b30' : type === 'warning' ? '#ff9500' : 'white';
+            notif.style.color = type === 'error' || type === 'warning' ? 'white' : 'black';
+            notif.classList.add('show');
+            
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 2500);
+        }
+        
+        // Initialiser au chargement
+        window.addEventListener('load', initMap);
+        
+        // ========== PWA SERVICE WORKER ==========
+        
+        // Enregistrer le Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker enregistré:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('Erreur ServiceWorker:', error);
+                    });
+            });
+        }
+        
+        // ========== PWA INSTALLATION ==========
+        
+        let deferredPrompt;
+        let installButton;
+        
+        // Créer le bouton d'installation
+        function createInstallButton() {
+            installButton = document.createElement('div');
+            installButton.id = 'installPrompt';
+            installButton.innerHTML = `
+                <div style="position: fixed; bottom: 80px; left: 10px; right: 10px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; display: flex; align-items: center; gap: 12px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; margin-bottom: 4px;">📲 Installer GéoPoints</div>
+                        <div style="font-size: 13px; color: #666;">Accédez rapidement depuis votre écran d'accueil</div>
+                    </div>
+                    <button onclick="installPWA()" style="background: #007AFF; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">Installer</button>
+                    <button onclick="dismissInstall()" style="background: #e5e5e5; color: #333; border: none; padding: 10px; border-radius: 8px; cursor: pointer;">✕</button>
+                </div>
+            `;
+            document.body.appendChild(installButton);
+        }
+        
+        // Gérer l'événement beforeinstallprompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Empêcher le prompt automatique
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Vérifier si l'utilisateur n'a pas déjà refusé
+            const dismissed = localStorage.getItem('pwa-install-dismissed');
+            if (!dismissed) {
+                createInstallButton();
+            }
+        });
+        
+        // Fonction d'installation
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installée');
+                        showNotification('Application installée ! 🎉');
+                    }
+                    deferredPrompt = null;
+                    if (installButton) {
+                        installButton.remove();
+                    }
+                });
+            }
+        }
+        
+        // Fonction pour rejeter l'installation
+        function dismissInstall() {
+            localStorage.setItem('pwa-install-dismissed', 'true');
+            if (installButton) {
+                installButton.remove();
+            }
+        }
+        
+        // Détecter si l'app est déjà installée
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installée avec succès');
+            showNotification('Application installée ! 🎉');
+            if (installButton) {
+                installButton.remove();
+            }
+        });
+        
+        // Vérifier si l'app tourne en mode standalone (installée)
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            console.log('App lancée en mode standalone');
+        }
+    </script>
+</body>
+</html>
