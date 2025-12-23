@@ -4,7 +4,8 @@ const ASSETS_TO_CACHE = [
   '/index.html',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-  'https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js'
+  'https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js',
+  'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js'
 ];
 
 // Installation - Mise en cache des ressources
