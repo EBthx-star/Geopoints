@@ -632,7 +632,7 @@
     </div>
     
     <!-- Hidden file input for photo/video import -->
-    <input type="file" id="photoImportInput" accept="image/*,video/*" multiple style="display: none;">
+    <input type="file" id="photoImportInput" accept="image/*,video/*,.heic,.heif" multiple style="display: none;">
     
     <!-- Info Panel -->
     <div class="info-panel" id="infoPanel">
@@ -673,7 +673,7 @@
                     <div class="photo-input-wrapper">
                         <label class="photo-upload-btn">
                             📷 Ajouter des médias
-                            <input type="file" id="photoInput" accept="image/*,video/*" multiple capture="environment">
+                            <input type="file" id="photoInput" accept="image/*,video/*,.heic,.heif" multiple capture="environment">
                         </label>
                     </div>
                     <div class="photo-grid" id="photoGrid"></div>
@@ -708,6 +708,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- EXIF JS for reading GPS data from photos -->
     <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
+    <!-- heic2any for HEIC conversion -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     
     <script>
         // Variables globales
@@ -1048,6 +1050,37 @@
         
         // ========== IMPORT PHOTOS GÉOLOCALISÉES ==========
         
+        // Convertir HEIC en JPEG si nécessaire
+        async function convertHeicIfNeeded(file) {
+            const isHeic = file.type === 'image/heic' || 
+                          file.type === 'image/heif' || 
+                          file.name.toLowerCase().endsWith('.heic') || 
+                          file.name.toLowerCase().endsWith('.heif');
+            
+            if (isHeic) {
+                try {
+                    console.log('Conversion HEIC vers JPEG...');
+                    const convertedBlob = await heic2any({
+                        blob: file,
+                        toType: 'image/jpeg',
+                        quality: 0.9
+                    });
+                    
+                    // Créer un nouveau File depuis le Blob
+                    return new File(
+                        [convertedBlob], 
+                        file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+                        { type: 'image/jpeg' }
+                    );
+                } catch (error) {
+                    console.error('Erreur conversion HEIC:', error);
+                    return file; // Retourner le fichier original si échec
+                }
+            }
+            
+            return file; // Pas besoin de conversion
+        }
+        
         // Convertir les coordonnées GPS EXIF en décimal
         function convertDMSToDD(degrees, minutes, seconds, direction) {
             let dd = degrees + minutes/60 + seconds/3600;
@@ -1087,10 +1120,21 @@
             
             let imported = 0;
             let noGPS = 0;
+            let converted = 0;
             
-            for (const file of files) {
+            for (const originalFile of files) {
                 try {
-                    if (file.type.startsWith('image/')) {
+                    if (originalFile.type.startsWith('image/') || 
+                        originalFile.name.toLowerCase().endsWith('.heic') || 
+                        originalFile.name.toLowerCase().endsWith('.heif')) {
+                        
+                        // Convertir HEIC en JPEG si nécessaire
+                        const file = await convertHeicIfNeeded(originalFile);
+                        if (file !== originalFile) {
+                            converted++;
+                            showLoading(`Conversion HEIC ${converted}/${files.length}...`);
+                        }
+                        
                         // Extraire les coordonnées GPS
                         const gpsData = await extractGPSFromPhoto(file);
                         
@@ -1099,7 +1143,7 @@
                             const compressed = await compressImage(file);
                             
                             // Créer un nouveau point
-                            const fileName = file.name.replace(/\.[^/.]+$/, "");
+                            const fileName = originalFile.name.replace(/\.[^/.]+$/, "");
                             const point = {
                                 id: Date.now() + imported,
                                 name: fileName,
@@ -1115,7 +1159,7 @@
                         } else {
                             noGPS++;
                         }
-                    } else if (file.type.startsWith('video/')) {
+                    } else if (originalFile.type.startsWith('video/')) {
                         // Les vidéos n'ont généralement pas de GPS EXIF facilement accessible
                         noGPS++;
                     }
@@ -1131,7 +1175,12 @@
                 savePoints();
                 displayPoints();
                 map.fitBounds(points.map(p => [p.lat, p.lng]));
-                showNotification(`${imported} point(s) importé(s) !`);
+                
+                let message = `${imported} point(s) importé(s) !`;
+                if (converted > 0) {
+                    message += ` (${converted} HEIC converti(s))`;
+                }
+                showNotification(message);
             }
             
             if (noGPS > 0) {
