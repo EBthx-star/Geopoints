@@ -65,6 +65,50 @@ function escapeHtml(s){
 }
 
 /* ===================== Cartes ===================== */
+/* Deux fonds : le plan pour lire les routes et les noms de lieux,
+   le satellite pour le road book. Le choix est mémorisé. */
+const TILES = {
+  plan: {
+    url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attr:'© OpenStreetMap', max:19, label:'Plan'
+  },
+  sat: {
+    url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attr:'Esri, Maxar, Earthstar Geographics', max:19, label:'Satellite'
+  }
+};
+let tileMode = localStorage.getItem('bthx.tiles') || 'plan';
+const tileLayer = { prep:null, book:null };
+const attrCtl   = { prep:null, book:null };
+
+function applyTiles(which){
+  const m = maps[which]; if(!m) return;
+  const t = TILES[tileMode];
+  if(tileLayer[which]) m.removeLayer(tileLayer[which]);
+  tileLayer[which] = L.tileLayer(t.url, {maxZoom:t.max}).addTo(m);
+  tileLayer[which].bringToBack();
+  if(attrCtl[which]){
+    attrCtl[which].addAttribution(t.attr);
+    Object.values(TILES).forEach(o=>{ if(o.attr!==t.attr) attrCtl[which].removeAttribution(o.attr); });
+  }
+}
+function toggleTiles(){
+  tileMode = tileMode === 'plan' ? 'sat' : 'plan';
+  try{ localStorage.setItem('bthx.tiles', tileMode); }catch(e){}
+  ['prep','book'].forEach(applyTiles);
+  syncTileButtons();
+  toast(TILES[tileMode].label);
+}
+function syncTileButtons(){
+  const sat = tileMode === 'sat';
+  ['btnTilePrep','btnTileBook'].forEach(id=>{
+    const b = $(id); if(!b) return;
+    b.textContent = sat ? '🗺️' : '🛰️';
+    b.classList.toggle('on', sat);
+    b.title = sat ? 'Passer au plan' : 'Passer au satellite';
+  });
+}
+
 function initMap(which, elId){
   if(maps[which]) return maps[which];
   // Leaflet vient d'un CDN. S'il n'a pas pu être mis en cache et qu'on est
@@ -80,11 +124,11 @@ function initMap(which, elId){
     return null;
   }
   const m = L.map(elId,{zoomControl:false,attributionControl:false}).setView([-33.92,18.42],9);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(m);
   L.control.zoom({position:'topleft'}).addTo(m);
-  L.control.attribution({position:'bottomright',prefix:false})
-   .addAttribution('© OpenStreetMap').addTo(m);
+  attrCtl[which] = L.control.attribution({position:'bottomright',prefix:false}).addTo(m);
   maps[which] = m;
+  applyTiles(which);
+  syncTileButtons();
   return m;
 }
 function pinIcon(kind){
@@ -680,6 +724,8 @@ function wire(){
     }, err=>{ busy(false); toast('Position refusée'); }, {enableHighAccuracy:true, timeout:12000});
   };
 
+  $('btnTilePrep').onclick = toggleTiles;
+  $('btnTileBook').onclick = toggleTiles;
   $('btnFitPrep').onclick = ()=>fitTo('prep', trip.sites.filter(s=>s.lat!=null));
   $('btnRoutePrep').onclick = e=>{
     if(!maps.prep){ toast('Carte indisponible hors ligne'); return; }

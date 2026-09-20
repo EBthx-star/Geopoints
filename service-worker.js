@@ -31,7 +31,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (e.request.method !== 'GET') return;
-  if (url.includes('tile.openstreetmap.org') || url.includes('router.project-osrm.org')) return;
+  if (url.includes('tile.openstreetmap.org') || url.includes('arcgisonline.com') || url.includes('router.project-osrm.org')) return;
 
   e.respondWith(
     caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
