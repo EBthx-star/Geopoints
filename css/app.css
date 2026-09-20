@@ -266,3 +266,27 @@ body{
   body.printing #printRoot{display:block !important}
   #tabbar,#toast,.busy,.sheet,.sheet-backdrop,.viewer{display:none !important}
 }
+
+/* ---------- Collage d'une confirmation ---------- */
+.menu-btn.wide{flex-direction:row;gap:9px;width:100%;grid-column:1/-1;padding:13px}
+.menu-btn.wide span{font-size:19px}
+#pasteText{min-height:140px;font-size:14px}
+.prop{
+  background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:11px 13px;margin-bottom:8px;display:flex;gap:11px;align-items:flex-start;
+}
+.prop.off{opacity:.45}
+.prop-check{
+  width:24px;height:24px;border-radius:7px;border:2px solid var(--line);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:14px;background:#fff;color:#fff;margin-top:1px;
+}
+.prop.on .prop-check{background:var(--teal);border-color:var(--teal)}
+.prop-body{flex:1;min-width:0}
+.prop-name{font-weight:640;font-size:14px;word-break:break-word}
+.prop-meta{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.prop-note{
+  font-size:12px;color:#555;margin-top:5px;white-space:pre-wrap;
+  max-height:58px;overflow:hidden;border-left:2px solid var(--line);padding-left:8px;
+}
+.prop-empty{text-align:center;padding:18px;color:var(--ink-soft);font-size:13px}

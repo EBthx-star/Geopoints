@@ -658,6 +658,74 @@ async function restore(file){
   }
 }
 
+/* ===================== Coller une confirmation ===================== */
+let pasteProps = [];
+
+function openPaste(){
+  $('pasteText').value = '';
+  pasteProps = [];
+  renderProps();
+  openSheet('paste');
+}
+
+function analysePaste(){
+  const txt = $('pasteText').value;
+  if(txt.trim().length < 20){ toast('Collez d\'abord le texte du mail'); return; }
+  pasteProps = Confirm.analyse(txt).map(p => Object.assign({ keep:true }, p));
+  if(!pasteProps.length){
+    // Rien de reconnu : on propose quand même de garder le texte,
+    // plutôt que de renvoyer l'utilisateur les mains vides.
+    pasteProps = [{
+      keep:true, kind:'etape', name:'Réservation', date:'', lat:null, lon:null,
+      notes: txt.trim().slice(0, 1200)
+    }];
+    toast('Rien reconnu — le texte est gardé en note', 3600);
+  }
+  renderProps();
+}
+
+function renderProps(){
+  const box = $('pasteResult');
+  if(!pasteProps.length){ box.innerHTML = ''; return; }
+
+  box.innerHTML = pasteProps.map((p,i)=>`
+    <div class="prop ${p.keep?'on':'off'}" data-i="${i}">
+      <div class="prop-check">${p.keep?'✓':''}</div>
+      <div class="prop-body">
+        <div class="prop-name">${KIND[p.kind].icon} ${escapeHtml(p.name)}</div>
+        <div class="prop-meta">${KIND[p.kind].label}${p.date?' · '+fmtDate(p.date):' · date à préciser'}${p.lat!=null?' · situé':''}</div>
+        ${p.notes?`<div class="prop-note">${escapeHtml(p.notes.split('\n').slice(0,3).join('\n'))}</div>`:''}
+      </div>
+    </div>`).join('')
+    + `<button class="menu-btn wide" id="btnPasteAdd"><span>➕</span>Ajouter au voyage</button>`;
+
+  box.querySelectorAll('.prop').forEach(el=>{
+    el.onclick = ()=>{
+      const i = +el.dataset.i;
+      pasteProps[i].keep = !pasteProps[i].keep;
+      renderProps();
+    };
+  });
+  $('btnPasteAdd').onclick = addProps;
+}
+
+function addProps(){
+  const gardes = pasteProps.filter(p => p.keep);
+  if(!gardes.length){ toast('Rien de sélectionné'); return; }
+  gardes.forEach(p=>{
+    trip.sites.push({
+      id: uid(), name: p.name, kind: p.kind, date: p.date,
+      lat: p.lat, lon: p.lon, notes: p.notes
+    });
+  });
+  persist();
+  closeSheet('paste');
+  refreshHeader();
+  renderPrep();
+  switchPane('prep');
+  toast(`${gardes.length} entrée${gardes.length>1?'s':''} ajoutée${gardes.length>1?'s':''}`, 3000);
+}
+
 /* ===================== Interface ===================== */
 function refreshHeader(){
   $('tripName').textContent = trip.name || 'BTHX Travel';
@@ -862,6 +930,11 @@ function wire(){
     refreshHeader(); closeSheet('menu'); switchPane('prep');
     toast('Tout a été effacé');
   };
+
+  // Coller une confirmation
+  $('btnPaste').onclick = ()=>{ closeSheet('menu'); openPaste(); };
+  $('btnPasteAnalyse').onclick = analysePaste;
+  $('btnPasteClose').onclick = $('pasteBackdrop').onclick = ()=>closeSheet('paste');
 
   // Éditeur
   $('btnEditSave').onclick = saveEditor;

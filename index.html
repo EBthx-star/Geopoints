@@ -110,6 +110,11 @@
   <div class="menu-row"><label>Du</label><input type="date" id="mStart"></div>
   <div class="menu-row"><label>Au</label><input type="date" id="mEnd"></div>
 
+  <h3>Réservations</h3>
+  <div class="menu-grid">
+    <button class="menu-btn wide" id="btnPaste"><span>📨</span>Coller une confirmation</button>
+  </div>
+
   <h3>Exporter le road book</h3>
   <div class="menu-grid">
     <button class="menu-btn" id="btnExpPdf"><span>🖨️</span>PDF</button>
@@ -132,6 +137,20 @@
   </div>
   <p class="hint" id="storageHint"></p>
   <button class="menu-close" id="btnCloseMenu">Fermer</button>
+</div>
+
+<!-- ======================= COLLER UNE CONFIRMATION ======================= -->
+<div class="sheet-backdrop" id="pasteBackdrop" hidden></div>
+<div class="sheet" id="pasteSheet" hidden>
+  <div class="sheet-handle"></div>
+  <h3>Coller une confirmation</h3>
+  <p class="hint">Ouvrez le mail Air France, Booking ou du loueur, sélectionnez tout,
+  copiez, puis collez ici. Les vols, hôtels et dates reconnus vous sont proposés —
+  vous choisissez ce qui rejoint le voyage. Le texte est conservé en note.</p>
+  <textarea id="pasteText" class="notes-area" placeholder="Collez le mail de confirmation ici…"></textarea>
+  <button class="menu-btn wide" id="btnPasteAnalyse"><span>🔍</span>Analyser</button>
+  <div id="pasteResult"></div>
+  <button class="menu-close" id="btnPasteClose">Fermer</button>
 </div>
 
 <!-- ======================= ÉDITEUR D'ÉTAPE ======================= -->
@@ -173,6 +192,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="./js/exif.js"></script>
+<script src="./js/confirm.js"></script>
 <script src="./js/data.js"></script>
 <script src="./js/app.js"></script>
 </body>

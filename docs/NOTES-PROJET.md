@@ -73,10 +73,51 @@ Repris de la feuille de route Notion, hors périmètre pour Le Cap :
   Rappel de la décision du 3 sept. : surveiller **la variation**, pas le prix —
   Emmanuel est membre Hertz Gold, Avis Preferred et Europcar Privilege, donc
   l'app en anonyme ne verra jamais son tarif réel.
-- **Import des réservations** par partage du mail de confirmation.
+- ~~**Import des réservations**~~ — **fait le 20 sept.** : menu ☰ → *Coller une
+  confirmation*. Voir la section dédiée plus bas.
 - **Synchronisation Mac / web.** Un seul appareil maître pour l'instant.
 - **Application native iPhone et Watch.** Validée comme cible, planifiée après
   Le Cap — voir la section « Cible v2 » ci-dessous.
+
+---
+
+## Réservations : ce qui est possible, ce qui ne l'est pas
+
+Question posée le 20 septembre : « aller chercher les vols sur Air France et les
+réservations sur Booking ». C'est la **réserve n° 1 du 3 septembre**, écartée
+alors avec la mention « à rediscuter si le besoin réapparaît ». Il a réapparu.
+
+### Pourquoi l'app ne peut pas interroger ces sites
+
+1. **Techniquement impossible depuis une page web.** Le navigateur interdit à
+   l'app d'appeler `airfrance.fr` ou `booking.com` (politique d'origine). Ce
+   n'est pas une question d'effort.
+2. **Aucune API grand public « mes réservations »** chez l'un comme chez l'autre.
+3. **Se connecter aux comptes** : contraire aux CGU avec risque de blocage, cassé
+   par la double authentification SMS, et rompu à chaque refonte de leurs sites.
+
+### Ce qui a été retenu : coller la confirmation
+
+Menu ☰ → **📨 Coller une confirmation** (`js/confirm.js`). On copie le texte du
+mail, on le colle, l'app propose ce qu'elle a reconnu, on coche ce qu'on garde.
+
+Reconnu : numéros de vol (AF, KL, SA, BA, LH, EK, QR, TK) avec sens du trajet,
+aéroports situés en coordonnées, dates en toutes lettres ou chiffrées, heures,
+numéros de dossier, noms d'hébergement, arrivée et départ, téléphone.
+
+Trois garde-fous appris des tests : les aéroports se lisent **après** le numéro
+de vol et avant le vol suivant, sinon le retour hérite du trajet aller ; une
+référence doit contenir un chiffre, sinon « Bonjour » passe pour un dossier ; le
+nom d'hôtel s'arrête avant « est confirmée ».
+
+Le texte collé est conservé en note, et rien de reconnu donne quand même une
+entrée : l'utilisateur ne repart jamais les mains vides.
+
+### Ce qui reste ouvert
+
+Claude peut, lui, consulter ces sites dans un navigateur et remplir le voyage —
+ce n'est pas l'app qui interroge Air France, c'est un aller-retour assisté. Non
+fait le 20 sept. : l'extension Chrome n'était pas joignable depuis la session.
 
 ---
 
