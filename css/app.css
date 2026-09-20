@@ -247,3 +247,11 @@ body{
   .map-wrap{height:46vh}
   .list{padding:0 20px 20px}
 }
+
+.map-off{
+  width:100%;height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;
+  background:#e8e4dd;color:var(--ink-soft);font-size:32px;
+}
+.map-off span{font-size:14px;font-weight:600}
+.map-off small{font-size:12px;opacity:.75}

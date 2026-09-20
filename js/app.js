@@ -67,6 +67,18 @@ function escapeHtml(s){
 /* ===================== Cartes ===================== */
 function initMap(which, elId){
   if(maps[which]) return maps[which];
+  // Leaflet vient d'un CDN. S'il n'a pas pu être mis en cache et qu'on est
+  // hors réseau, l'app doit rester utilisable : listes, saisie, exports.
+  // Seules les cartes manquent.
+  if(typeof L === 'undefined'){
+    const el = $(elId);
+    if(el && !el.dataset.off){
+      el.dataset.off = '1';
+      el.innerHTML = '<div class="map-off">🗺️<span>Carte indisponible hors ligne</span>'
+                   + '<small>Les positions sont bien enregistrées</small></div>';
+    }
+    return null;
+  }
   const m = L.map(elId,{zoomControl:false,attributionControl:false}).setView([-33.92,18.42],9);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(m);
   L.control.zoom({position:'topleft'}).addTo(m);
@@ -152,7 +164,7 @@ async function drawRoute(which, pts, infoEl){
 /* ===================== AXE 1 — Préparation ===================== */
 function renderPrep(){
   const m = initMap('prep','mapPrep');
-  setTimeout(()=>m.invalidateSize(),60);
+  if(m) setTimeout(()=>m.invalidateSize(),60);
   clearLayers('prep');
   $('routeInfoPrep').hidden = true;
 
@@ -161,7 +173,7 @@ function renderPrep(){
   $('siteCount').textContent = all.length;
 
   // Marqueurs
-  shown.forEach(s=>{
+  if(m) shown.forEach(s=>{
     if(s.lat==null || s.lon==null) return;
     const mk = L.marker([s.lat,s.lon],{icon:pinIcon(s.kind)}).addTo(m)
       .bindPopup(`<b>${escapeHtml(s.name)}</b><br><small>${fmtDate(s.date)}</small>`);
@@ -224,7 +236,7 @@ function dayList(){
 async function renderBook(){
   const days = dayList();
   const m = initMap('book','mapBook');
-  setTimeout(()=>m.invalidateSize(),60);
+  if(m) setTimeout(()=>m.invalidateSize(),60);
   clearLayers('book');
   $('routeInfoBook').hidden = true;
 
@@ -251,7 +263,7 @@ async function renderBook(){
   const steps = day.steps || [];
   $('stepCount').textContent = steps.length;
 
-  steps.forEach((st,i)=>{
+  if(m) steps.forEach((st,i)=>{
     const mk = L.marker([st.lat,st.lon],{icon:numIcon(i+1)}).addTo(m)
       .bindPopup(`<b>${escapeHtml(st.name||('Étape '+(i+1)))}</b><br><small>${fmtTime(st.t)}</small>`);
     layers.book.markers.push(mk);
@@ -642,7 +654,7 @@ function wire(){
     if(btn){
       const s = trip.sites.find(x=>x.id===btn.dataset.id);
       if(btn.dataset.act==='edit') openEditor(btn.dataset.id);
-      if(btn.dataset.act==='go' && s && s.lat!=null){
+      if(btn.dataset.act==='go' && s && s.lat!=null && maps.prep){
         maps.prep.setView([s.lat,s.lon],14);
         maps.prep.closePopup();
         layers.prep.markers.forEach(m=>{
@@ -670,6 +682,7 @@ function wire(){
 
   $('btnFitPrep').onclick = ()=>fitTo('prep', trip.sites.filter(s=>s.lat!=null));
   $('btnRoutePrep').onclick = e=>{
+    if(!maps.prep){ toast('Carte indisponible hors ligne'); return; }
     routeOn.prep = !routeOn.prep;
     e.currentTarget.classList.toggle('on', routeOn.prep);
     if(routeOn.prep) drawRoute('prep', routePoints(), $('routeInfoPrep'));
@@ -705,6 +718,7 @@ function wire(){
     const days = dayList(); if(days.length) fitTo('book', days[dayIndex].steps||[]);
   };
   $('btnRouteBook').onclick = e=>{
+    if(!maps.book){ toast('Carte indisponible hors ligne'); return; }
     routeOn.book = !routeOn.book;
     e.currentTarget.classList.toggle('on', routeOn.book);
     const days = dayList();
