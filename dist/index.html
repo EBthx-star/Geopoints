@@ -273,6 +273,17 @@ body{
 .map-off span{font-size:14px;font-weight:600}
 .map-off small{font-size:12px;opacity:.75}
 
+/* ---------- Impression du road book ----------
+   Une PWA installée ne peut pas ouvrir de fenêtre : on imprime depuis
+   la page elle-même, en ne laissant visible que #printRoot. */
+#printRoot{display:none}
+@media print{
+  body{overflow:visible;height:auto;display:block}
+  body.printing > *:not(#printRoot){display:none !important}
+  body.printing #printRoot{display:block !important}
+  #tabbar,#toast,.busy,.sheet,.sheet-backdrop,.viewer{display:none !important}
+}
+
 </style>
 </head>
 <body>
@@ -424,6 +435,8 @@ body{
   <img id="viewerImg" alt="">
   <div class="viewer-cap" id="viewerCap"></div>
 </div>
+
+<div id="printRoot"></div>
 
 <div id="toast"></div>
 <div class="busy" id="busy" hidden><div class="spinner"></div><div id="busyText">Traitement…</div></div>
@@ -1336,7 +1349,23 @@ function nearestSite(pt, maxM=800){
 /* ===================== Exports ===================== */
 function bookTitle(){ return trip.name || 'Road book'; }
 
-async function buildBookHtml(embed=true){
+const BOOK_CSS = `
+body{font-family:-apple-system,BlinkMacSystemFont,Georgia,serif;max-width:800px;margin:0 auto;padding:28px 20px;color:#1b1b1b;background:#faf8f4;line-height:1.55}
+h1{color:#1d4e5f;font-size:30px;border-bottom:3px solid #c2853a;padding-bottom:10px;margin-bottom:4px}
+.sub{color:#6b6b6b;font-size:14px;margin-bottom:28px}
+h2{color:#1d4e5f;font-size:21px;margin:34px 0 12px;padding-top:18px;border-top:1px solid #e2ddd4}
+h3{font-size:16px;margin:18px 0 4px;color:#143a47}
+.n{display:inline-flex;width:22px;height:22px;background:#1d4e5f;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-size:12px;margin-right:6px;vertical-align:2px}
+.meta{font-size:12px;color:#6b6b6b;margin:0 0 6px}
+.note,.daynote{font-size:14px;background:#fff;border-left:3px solid #c2853a;padding:9px 13px;border-radius:0 7px 7px 0;margin:8px 0}
+.gal{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.gal img{width:150px;height:150px;object-fit:cover;border-radius:7px}
+@media print{body{background:#fff;padding:0}.day{page-break-inside:avoid}}
+`;
+
+/* Compose le corps du road book. `embed` intègre les photos en base64 :
+   indispensable pour un fichier autonome, coûteux pour l'aperçu. */
+async function buildBookParts(embed = true){
   const days = dayList();
   let body = '';
 
@@ -1351,7 +1380,7 @@ async function buildBookHtml(embed=true){
         body += `<div class="gal">`;
         for(const pid of st.photos.slice(0,8)){
           const blob = await Photos.get(pid);
-          if(blob){ body += `<img src="${await blobToDataUrl(blob)}" alt="">`; }
+          if(blob) body += `<img src="${await blobToDataUrl(blob)}" alt="">`;
         }
         body += `</div>`;
       }
@@ -1360,34 +1389,27 @@ async function buildBookHtml(embed=true){
     body += `</section>`;
   }
 
-  // Les étapes préparées en annexe : c'est la partie utile pour refaire le voyage.
-  let prep = '';
+  // Le carnet d'adresses en annexe : c'est ce qui sert à refaire le voyage.
   const sites = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
   if(sites.length){
-    prep = `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
+    body += `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
       <div class="step"><h3>${KIND[s.kind].icon} ${escapeHtml(s.name)}</h3>
       <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
       ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
   }
 
+  const header = `<h1>${escapeHtml(bookTitle())}</h1>
+<div class="sub">${trip.start?fmtDate(trip.start):''}${trip.end?' → '+fmtDate(trip.end):''} · ${days.length} journée${days.length>1?'s':''}</div>`;
+
+  return { header, body };
+}
+
+async function buildBookHtml(embed=true){
+  const { header, body } = await buildBookParts(embed);
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(bookTitle())}</title><style>
-body{font-family:-apple-system,BlinkMacSystemFont,Georgia,serif;max-width:800px;margin:0 auto;padding:28px 20px;color:#1b1b1b;background:#faf8f4;line-height:1.55}
-h1{color:#1d4e5f;font-size:30px;border-bottom:3px solid #c2853a;padding-bottom:10px;margin-bottom:4px}
-.sub{color:#6b6b6b;font-size:14px;margin-bottom:28px}
-h2{color:#1d4e5f;font-size:21px;margin:34px 0 12px;padding-top:18px;border-top:1px solid #e2ddd4}
-h3{font-size:16px;margin:18px 0 4px;color:#143a47}
-.n{display:inline-flex;width:22px;height:22px;background:#1d4e5f;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-size:12px;margin-right:6px;vertical-align:2px}
-.meta{font-size:12px;color:#6b6b6b;margin:0 0 6px}
-.note,.daynote{font-size:14px;background:#fff;border-left:3px solid #c2853a;padding:9px 13px;border-radius:0 7px 7px 0;margin:8px 0}
-.gal{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
-.gal img{width:150px;height:150px;object-fit:cover;border-radius:7px}
-@media print{body{background:#fff}.day{page-break-inside:avoid}}
-</style></head><body>
-<h1>${escapeHtml(bookTitle())}</h1>
-<div class="sub">${trip.start?fmtDate(trip.start):''}${trip.end?' → '+fmtDate(trip.end):''} · ${days.length} journée${days.length>1?'s':''}</div>
-${body}${prep}
+<title>${escapeHtml(bookTitle())}</title><style>${BOOK_CSS}</style></head><body>
+${header}${body}
 </body></html>`;
 }
 function blobToDataUrl(blob){
@@ -1401,6 +1423,25 @@ function download(name, content, type){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
+/* Sur iPhone, un téléchargement se perd dans Fichiers. La feuille de
+   partage iOS — AirDrop, Messages, Mail, Enregistrer dans Fichiers,
+   Imprimer — répond d'un seul geste à « enregistrer », « publier » et
+   « partager ». On retombe sur le téléchargement là où elle n'existe pas. */
+async function shareFile(filename, content, mime, title){
+  const blob = content instanceof Blob ? content : new Blob([content], {type:mime});
+  try{
+    const file = new File([blob], filename, {type:mime});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title: title || bookTitle() });
+      return 'partagé';
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return 'annulé';   // l'utilisateur a fermé la feuille
+  }
+  download(filename, blob, mime);
+  return 'téléchargé';
+}
+
 function buildMarkdown(){
   const days = dayList();
   let md = `# ${bookTitle()}\n\n`;
@@ -1429,21 +1470,26 @@ function buildMarkdown(){
   }
   return md;
 }
+/* Une PWA installée ne peut pas ouvrir de fenêtre : window.open est
+   bloqué. On imprime donc depuis la page elle-même, en masquant tout
+   sauf le road book le temps de l'impression. */
 async function exportPdf(){
   busy(true,'Préparation du document…');
-  const html = await buildBookHtml(true);
+  const { header, body } = await buildBookParts(true);
+  const root = $('printRoot');
+  root.innerHTML = `<style>${BOOK_CSS}</style>${header}${body}`;
   busy(false);
-  const w = window.open('', '_blank');
-  if(!w){
-    // Safari bloque parfois l'ouverture : on retombe sur le téléchargement.
-    download(`${bookTitle()}.html`, html, 'text/html');
-    toast('Fichier téléchargé — ouvrez-le puis Partager › Imprimer', 4800);
-    return;
-  }
-  w.document.write(html);
-  w.document.close();
-  setTimeout(()=>{ w.focus(); w.print(); }, 700);
-  toast('Dans la fenêtre d\'impression : Enregistrer en PDF', 4200);
+
+  document.body.classList.add('printing');
+  const done = ()=>{
+    document.body.classList.remove('printing');
+    root.innerHTML = '';
+    window.removeEventListener('afterprint', done);
+  };
+  window.addEventListener('afterprint', done);
+  setTimeout(()=>{ window.print(); }, 300);
+  setTimeout(done, 60000);          // filet de sécurité si afterprint ne vient pas
+  toast('Choisissez « PDF » dans la fenêtre d\'impression', 4200);
 }
 
 /* ===================== Sauvegarde / restauration ===================== */
@@ -1458,8 +1504,8 @@ async function backup(){
   busy(false);
   const payload = { version:1, savedAt:new Date().toISOString(), trip, images:imgs };
   const name = `bthx-${(trip.name||'voyage').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.json`;
-  download(name, JSON.stringify(payload), 'application/json');
-  toast('Sauvegarde téléchargée', 3000);
+  const how = await shareFile(name, JSON.stringify(payload), 'application/json', 'Sauvegarde ' + bookTitle());
+  if(how !== 'annulé') toast(`Sauvegarde ${how}`, 3200);
 }
 async function restore(file){
   busy(true,'Restauration…');
@@ -1648,22 +1694,28 @@ function wire(){
     };
   });
 
-  $('btnExpPdf').onclick  = exportPdf;
+  $('btnExpPdf').onclick  = ()=>{ closeSheet('menu'); exportPdf(); };
   $('btnExpHtml').onclick = async ()=>{
+    closeSheet('menu');
     busy(true,'Construction de la page…');
     const html = await buildBookHtml(true);
     busy(false);
-    download(`${bookTitle()}.html`, html, 'text/html');
-    toast('Page web téléchargée', 3000);
+    const how = await shareFile(`${bookTitle()}.html`, html, 'text/html');
+    if(how !== 'annulé') toast(`Road book ${how}`, 3000);
   };
   $('btnExpMd').onclick = async ()=>{
+    closeSheet('menu');
     const md = buildMarkdown();
-    try{ await navigator.clipboard.writeText(md); toast('Copié — collez dans Notion', 3600); }
-    catch(e){ toast('Fichier téléchargé pour Notion', 3200); }
-    download(`${bookTitle()}.md`, md, 'text/markdown');
+    // Le presse-papiers d'abord : c'est ce qui se colle directement dans Notion.
+    let copied = false;
+    try{ await navigator.clipboard.writeText(md); copied = true; }catch(e){}
+    const how = await shareFile(`${bookTitle()}.md`, md, 'text/markdown');
+    if(how !== 'annulé'){
+      toast(copied ? 'Copié — collez dans Notion' : `Markdown ${how}`, 3600);
+    }
   };
 
-  $('btnBackup').onclick  = backup;
+  $('btnBackup').onclick  = ()=>{ closeSheet('menu'); backup(); };
   $('btnRestore').onclick = ()=>$('restoreInput').click();
   $('restoreInput').onchange = e=>{ if(e.target.files[0]) restore(e.target.files[0]); e.target.value=''; };
 

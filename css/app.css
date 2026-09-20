@@ -255,3 +255,14 @@ body{
 }
 .map-off span{font-size:14px;font-weight:600}
 .map-off small{font-size:12px;opacity:.75}
+
+/* ---------- Impression du road book ----------
+   Une PWA installée ne peut pas ouvrir de fenêtre : on imprime depuis
+   la page elle-même, en ne laissant visible que #printRoot. */
+#printRoot{display:none}
+@media print{
+  body{overflow:visible;height:auto;display:block}
+  body.printing > *:not(#printRoot){display:none !important}
+  body.printing #printRoot{display:block !important}
+  #tabbar,#toast,.busy,.sheet,.sheet-backdrop,.viewer{display:none !important}
+}
