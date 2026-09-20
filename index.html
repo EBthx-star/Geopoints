@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>BTHX Travel</title>
+
+<meta name="description" content="Préparation de voyage et road book privé">
+<meta name="theme-color" content="#1d4e5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BTHX Travel">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon.svg">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="./css/app.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="title-wrap">
+    <h1 id="tripName">BTHX Travel</h1>
+    <div class="subtitle" id="tripDates">—</div>
+  </div>
+  <button class="icon-btn" id="btnMenu" aria-label="Menu">☰</button>
+</header>
+
+<!-- ======================= AXE 1 — PRÉPARATION ======================= -->
+<section class="pane" id="pane-prep">
+  <div class="map-wrap">
+    <div id="mapPrep"></div>
+    <div class="map-tools">
+      <button class="map-btn" id="btnFitPrep" title="Tout voir">⤢</button>
+      <button class="map-btn" id="btnRoutePrep" title="Tracer la route">🛣️</button>
+    </div>
+    <div class="route-info" id="routeInfoPrep" hidden></div>
+  </div>
+
+  <div class="list-wrap">
+    <div class="list-head">
+      <h2>Étapes du voyage <span class="count" id="siteCount">0</span></h2>
+      <div class="list-head-actions">
+        <button class="mini-btn" id="btnAddSite">+ Étape</button>
+        <button class="mini-btn" id="btnHere">📍 Ici</button>
+      </div>
+    </div>
+    <div class="filters" id="siteFilters">
+      <button class="chip active" data-kind="all">Tout</button>
+      <button class="chip" data-kind="etape">Étapes</button>
+      <button class="chip" data-kind="hotel">Hôtels</button>
+      <button class="chip" data-kind="table">Tables</button>
+      <button class="chip" data-kind="site">À voir</button>
+    </div>
+    <div id="siteList" class="list"></div>
+  </div>
+</section>
+
+<!-- ======================= AXE 2 — ROAD BOOK ======================= -->
+<section class="pane" id="pane-book" hidden>
+  <div class="day-bar">
+    <button class="day-nav" id="btnPrevDay">‹</button>
+    <div class="day-label">
+      <div id="dayTitle">Aucune journée</div>
+      <div class="subtitle" id="daySub">Importez vos photos pour commencer</div>
+    </div>
+    <button class="day-nav" id="btnNextDay">›</button>
+  </div>
+
+  <div class="map-wrap">
+    <div id="mapBook"></div>
+    <div class="map-tools">
+      <button class="map-btn" id="btnFitBook" title="Tout voir">⤢</button>
+      <button class="map-btn" id="btnRouteBook" title="Tracer la route">🛣️</button>
+    </div>
+    <div class="route-info" id="routeInfoBook" hidden></div>
+  </div>
+
+  <div class="list-wrap">
+    <div class="list-head">
+      <h2>Journée <span class="count" id="stepCount">0</span></h2>
+      <div class="list-head-actions">
+        <button class="mini-btn primary" id="btnImport">📷 Importer</button>
+      </div>
+    </div>
+    <input type="file" id="photoInput" accept="image/*,.heic,.HEIC" multiple hidden>
+    <textarea id="dayNote" class="day-note" placeholder="Note de la journée — collez ici ce que vous voulez, elle part dans le road book."></textarea>
+    <div id="stepList" class="list"></div>
+  </div>
+</section>
+
+<!-- ======================= BARRE D'ONGLETS ======================= -->
+<nav id="tabbar">
+  <button class="tab active" data-pane="prep">
+    <span class="tab-icon">🗺️</span><span class="tab-label">Préparation</span>
+  </button>
+  <button class="tab" data-pane="book">
+    <span class="tab-icon">📖</span><span class="tab-label">Road book</span>
+  </button>
+</nav>
+
+<!-- ======================= MENU ======================= -->
+<div class="sheet-backdrop" id="menuBackdrop" hidden></div>
+<div class="sheet" id="menuSheet" hidden>
+  <div class="sheet-handle"></div>
+  <h3>Voyage</h3>
+  <div class="menu-row"><label>Nom</label><input type="text" id="mName"></div>
+  <div class="menu-row"><label>Du</label><input type="date" id="mStart"></div>
+  <div class="menu-row"><label>Au</label><input type="date" id="mEnd"></div>
+
+  <h3>Exporter le road book</h3>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnExpPdf"><span>🖨️</span>PDF</button>
+    <button class="menu-btn" id="btnExpHtml"><span>🌐</span>Page web</button>
+    <button class="menu-btn" id="btnExpMd"><span>📝</span>Notion</button>
+  </div>
+
+  <h3>Sauvegarde</h3>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnBackup"><span>💾</span>Sauvegarder</button>
+    <button class="menu-btn" id="btnRestore"><span>♻️</span>Restaurer</button>
+  </div>
+  <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+  <p class="hint" id="backupHint">Faites une sauvegarde une fois par semaine : Safari peut purger les données d'un site.</p>
+
+  <h3>Données</h3>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap</button>
+    <button class="menu-btn danger" id="btnWipe"><span>🗑️</span>Tout effacer</button>
+  </div>
+  <p class="hint" id="storageHint"></p>
+  <button class="menu-close" id="btnCloseMenu">Fermer</button>
+</div>
+
+<!-- ======================= ÉDITEUR D'ÉTAPE ======================= -->
+<div class="sheet-backdrop" id="editBackdrop" hidden></div>
+<div class="sheet" id="editSheet" hidden>
+  <div class="sheet-handle"></div>
+  <h3 id="editTitle">Étape</h3>
+  <div class="menu-row"><label>Nom</label><input type="text" id="eName" placeholder="Nom du lieu"></div>
+  <div class="menu-row"><label>Type</label>
+    <select id="eKind">
+      <option value="etape">Étape</option>
+      <option value="hotel">Hôtel</option>
+      <option value="table">Table</option>
+      <option value="site">À voir</option>
+    </select>
+  </div>
+  <div class="menu-row"><label>Date</label><input type="date" id="eDate"></div>
+  <div class="menu-row"><label>Lat</label><input type="number" step="0.000001" id="eLat" placeholder="-33.9249"></div>
+  <div class="menu-row"><label>Lon</label><input type="number" step="0.000001" id="eLon" placeholder="18.4241"></div>
+  <textarea id="eNotes" class="notes-area" placeholder="Notes libres — adresse, téléphone, ce qu'il faut réserver, ce qu'on a aimé. Collez ce que vous voulez."></textarea>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnEditSave"><span>✔️</span>Enregistrer</button>
+    <button class="menu-btn danger" id="btnEditDelete"><span>🗑️</span>Supprimer</button>
+  </div>
+  <button class="menu-close" id="btnEditCancel">Annuler</button>
+</div>
+
+<!-- ======================= VISIONNEUSE PHOTO ======================= -->
+<div class="viewer" id="viewer" hidden>
+  <button class="viewer-close" id="viewerClose">✕</button>
+  <img id="viewerImg" alt="">
+  <div class="viewer-cap" id="viewerCap"></div>
+</div>
+
+<div id="toast"></div>
+<div class="busy" id="busy" hidden><div class="spinner"></div><div id="busyText">Traitement…</div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./js/exif.js"></script>
+<script src="./js/data.js"></script>
+<script src="./js/app.js"></script>
+</body>
+</html>

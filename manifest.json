@@ -1,0 +1,14 @@
+{
+  "name": "BTHX Travel",
+  "short_name": "BTHX Travel",
+  "description": "Préparation de voyage et road book privé",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f1ec",
+  "theme_color": "#1d4e5f",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
