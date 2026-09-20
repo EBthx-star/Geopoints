@@ -36,6 +36,7 @@ Depuis la note *Géo point* :
 | Horizon | Utilisable **dès Le Cap** (22 sept.) | Périmètre serré assumé : importer, situer, tracer, annoter, exporter. |
 | Tracé routier | **OSRM public**, profil voiture, segment par segment, avec cache | Gratuit, sans clé. Bascule possible vers OpenRouteService si les quotas coincent. |
 | Bibliothèque EXIF | **Écrite sur mesure** (`js/exif.js`) | Les CDN et npm étaient inaccessibles au moment du développement. Au final c'est le bon choix : zéro dépendance réseau pour la fonction la plus critique du voyage. |
+| Fond de carte | Bascule **plan / satellite** (Esri World Imagery, sans clé), choix mémorisé | Le satellite sert le road book, le plan reste meilleur pour lire routes et noms de lieux sur la Route 62. |
 | Exports | PDF **et** page web **et** Markdown pour Notion | Les trois ont été demandés. |
 | Sauvegarde | Export JSON complet, photos comprises | Safari purge les données d'un site après inactivité. Seul recours. |
 
@@ -74,6 +75,62 @@ Repris de la feuille de route Notion, hors périmètre pour Le Cap :
   l'app en anonyme ne verra jamais son tarif réel.
 - **Import des réservations** par partage du mail de confirmation.
 - **Synchronisation Mac / web.** Un seul appareil maître pour l'instant.
+- **Application native iPhone et Watch.** Validée comme cible, planifiée après
+  Le Cap — voir la section « Cible v2 » ci-dessous.
+
+---
+
+## Cible v2 — application native iPhone et Watch
+
+Validé le 20 septembre 2026. **Décision de calendrier : après Le Cap, pas avant.**
+Dix-huit jours d'usage réel diront ce qui manque, ce qui sert et ce qui ne sert
+jamais. Coder trois semaines avant ce retour d'expérience, c'est construire sur
+des suppositions.
+
+### Pourquoi le natif, et pas un emballage de la PWA
+
+Emballer la page actuelle dans une coquille `WKWebView` demanderait quelques
+jours, mais conserverait le défaut de fond — la sélection manuelle des photos
+chaque soir — et Apple refuse régulièrement les apps qui ne sont qu'un site web
+emballé (guideline 4.2).
+
+Le vrai gain est **PhotoKit** : l'accès direct à la photothèque. Le soir, on
+ouvre l'app et la journée est déjà reconstituée, sans rien sélectionner. C'est
+la v1 « rituel du soir » telle qu'elle était écrite dans *TRAVEL – BTHX family*,
+et qu'une page web ne peut structurellement pas tenir.
+
+### La Watch
+
+watchOS n'a pas de navigateur : aucune page web ne peut y tourner. Une app Watch
+suppose donc obligatoirement une app iPhone native dont elle est l'extension.
+
+Sa fonction utile est la **capture sur le terrain**, pas la consultation — un
+road book ne se lit pas sur 40 mm :
+- marquer un point au poignet à l'arrêt, sans sortir le téléphone
+- dicter une note de trois secondes devant un point de vue
+- voir la prochaine étape
+
+À confirmer au retour du Cap : c'est précisément le genre de besoin que le
+terrain valide ou invalide.
+
+### Ce qui se reporte du travail actuel
+
+Le JavaScript ne se porte pas, mais ce n'est pas l'essentiel :
+- le modèle de données (voyage, étapes, journées, regroupements)
+- l'algorithme de regroupement des photos en étapes (300 m / 1 h)
+- le rapprochement d'une étape avec le carnet d'adresses (800 m)
+- la charte teal / ocre et la structure à deux axes
+- l'itinéraire du Cap
+- **et surtout les décisions produit validées à l'usage**
+
+`js/exif.js` devient inutile : PhotoKit livre coordonnées et horodatage
+directement.
+
+### Coût à assumer
+
+Xcode, un compte développeur Apple à 99 €/an, et plusieurs semaines. Le compte
+gratuit permet d'installer sur son propre appareil, mais l'app **expire au bout
+de sept jours** — disqualifiant pour un voyage de dix-huit.
 
 ---
 
