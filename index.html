@@ -1,1799 +1,1677 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GéoPoints - Mes emplacements</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="description" content="Application de géolocalisation et gestion de points avec photos et vidéos">
-    <meta name="theme-color" content="#007AFF">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="GéoPoints">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23007AFF;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%230051D5;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='200' height='200' rx='40' fill='url(%23grad)'/%3E%3Cg transform='translate(100,100)'%3E%3Ccircle r='55' fill='white' opacity='0.2'/%3E%3Ccircle r='45' fill='white' opacity='0.3'/%3E%3Cpath d='M 0,-50 L 15,-15 L 50,-15 L 22,10 L 35,45 L 0,20 L -35,45 L -22,10 L -50,-15 L -15,-15 Z' fill='white'/%3E%3Ccircle r='12' fill='%23007AFF'/%3E%3C/g%3E%3C/svg%3E">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23007AFF'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle' fill='white'%3E📍%3C/text%3E%3C/svg%3E">
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background: #f5f5f5;
-        }
-        
-        /* Header */
-        header {
-            background: #007AFF;
-            color: white;
-            padding: 15px 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-        
-        h1 {
-            font-size: 20px;
-            font-weight: 600;
-        }
-        
-        /* Map Container */
-        #map {
-            flex: 1;
-            width: 100%;
-        }
-        
-        /* Controls Panel */
-        .controls {
-            position: absolute;
-            top: 80px;
-            right: 10px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .btn {
-            background: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            cursor: pointer;
-            font-size: 24px;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        
-        .btn:active {
-            transform: scale(0.95);
-            background: #f0f0f0;
-        }
-        
-        /* Info Panel */
-        .info-panel {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-radius: 20px 20px 0 0;
-            padding: 20px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-            max-height: 40vh;
-            overflow-y: auto;
-            transform: translateY(calc(100% - 60px));
-            transition: transform 0.3s ease;
-        }
-        
-        .info-panel.expanded {
-            transform: translateY(0);
-        }
-        
-        .info-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            cursor: pointer;
-        }
-        
-        .info-header h2 {
-            font-size: 18px;
-            font-weight: 600;
-        }
-        
-        .expand-icon {
-            font-size: 24px;
-            transition: transform 0.3s;
-        }
-        
-        .info-panel.expanded .expand-icon {
-            transform: rotate(180deg);
-        }
-        
-        .point-list {
-            display: none;
-        }
-        
-        .info-panel.expanded .point-list {
-            display: block;
-        }
-        
-        .point-item {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .point-info {
-            flex: 1;
-        }
-        
-        .point-name {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
-        .point-coords {
-            font-size: 12px;
-            color: #666;
-        }
-        
-        .point-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .point-btn {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 4px;
-        }
-        
-        .point-btn:active {
-            opacity: 0.6;
-        }
-        
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            width: 90%;
-            max-width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .modal h3 {
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            font-size: 14px;
-        }
-        
-        input, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            font-family: inherit;
-        }
-        
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .modal-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        
-        .btn-primary {
-            background: #007AFF;
-            color: white;
-        }
-        
-        .btn-secondary {
-            background: #e5e5e5;
-            color: #333;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 30px 20px;
-            color: #666;
-        }
-        
-        .empty-state p {
-            margin-top: 10px;
-            font-size: 14px;
-        }
-        
-        /* Photo Management */
-        .photo-input-wrapper {
-            margin-top: 10px;
-        }
-        
-        .photo-upload-btn {
-            display: inline-block;
-            padding: 10px 16px;
-            background: #007AFF;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        .photo-upload-btn input[type="file"] {
-            display: none;
-        }
-        
-        .photo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .photo-item {
-            position: relative;
-            aspect-ratio: 1;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #f0f0f0;
-        }
-        
-        .photo-item img, .photo-item video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            cursor: pointer;
-        }
-        
-        .photo-remove {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            background: rgba(255,59,48,0.9);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-        }
-        
-        .photo-count {
-            display: inline-block;
-            margin-left: 5px;
-            font-size: 12px;
-            color: #666;
-        }
-        
-        .video-badge {
-            position: absolute;
-            top: 4px;
-            left: 4px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 11px;
-        }
-        
-        /* Photo Viewer Modal */
-        .photo-viewer {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.95);
-            z-index: 3000;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-        
-        .photo-viewer.active {
-            display: flex;
-        }
-        
-        .photo-viewer img, .photo-viewer video {
-            max-width: 90%;
-            max-height: 80vh;
-            object-fit: contain;
-        }
-        
-        .photo-viewer-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        
-        .photo-viewer-nav {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        
-        .photo-viewer-prev {
-            left: 20px;
-        }
-        
-        .photo-viewer-next {
-            right: 20px;
-        }
-        
-        .photo-viewer-info {
-            position: absolute;
-            bottom: 20px;
-            color: white;
-            font-size: 14px;
-        }
-        
-        .popup-photos {
-            display: flex;
-            gap: 5px;
-            margin-top: 8px;
-            flex-wrap: wrap;
-        }
-        
-        .popup-photo-thumb {
-            width: 60px;
-            height: 60px;
-            border-radius: 4px;
-            object-fit: cover;
-            cursor: pointer;
-            border: 2px solid transparent;
-            position: relative;
-        }
-        
-        .popup-photo-thumb:hover {
-            border-color: #007AFF;
-        }
-        
-        /* Distance Display */
-        .distance-info {
-            position: absolute;
-            bottom: 100px;
-            left: 10px;
-            right: 10px;
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            z-index: 1000;
-            display: none;
-        }
-        
-        .distance-info.active {
-            display: block;
-        }
-        
-        .distance-header {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #007AFF;
-        }
-        
-        .distance-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .distance-item:last-child {
-            border-bottom: none;
-        }
-        
-        .distance-label {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .distance-value {
-            font-weight: 600;
-            font-size: 14px;
-            color: #333;
-        }
-        
-        .distance-close {
-            background: #e5e5e5;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            margin-top: 10px;
-            width: 100%;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        
-        .point-distance {
-            font-size: 11px;
-            color: #007AFF;
-            margin-top: 3px;
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-        }
-        
-        .measure-marker {
-            background: #007AFF;
-            color: white;
-            border: 3px solid white;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        
-        /* Distance labels on lines */
-        .distance-label-on-line {
-            background: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #007AFF;
-            border: 2px solid #007AFF;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            white-space: nowrap;
-        }
-        
-        /* Loading Overlay */
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 4000;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            color: white;
-        }
-        
-        .loading-overlay.active {
-            display: flex;
-        }
-        
-        .spinner {
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
-            margin-top: 20px;
-            font-size: 16px;
-        }
-        
-        /* Notification */
-        .notification {
-            position: fixed;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            z-index: 3000;
-            opacity: 0;
-            transition: all 0.3s;
-        }
-        
-        .notification.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
-        
-        /* Custom Leaflet Popup */
-        .leaflet-popup-content-wrapper {
-            border-radius: 8px;
-        }
-        
-        .popup-content {
-            min-width: 150px;
-        }
-        
-        .popup-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .popup-description {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 8px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>BTHX Travel</title>
+
+<meta name="description" content="Préparation de voyage et road book privé">
+<meta name="theme-color" content="#1d4e5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BTHX Travel">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%0A%20%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22110%22%20fill%3D%22%231d4e5f%22/%3E%0A%20%20%3Cpath%20d%3D%22M120%20360%20Q200%20250%20256%20300%20Q312%20350%20392%20180%22%20stroke%3D%22%23c2853a%22%20stroke-width%3D%2222%22%0A%20%20%20%20%20%20%20%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-dasharray%3D%224%2040%22/%3E%0A%20%20%3Ccircle%20cx%3D%22120%22%20cy%3D%22360%22%20r%3D%2230%22%20fill%3D%22%23fff%22/%3E%0A%20%20%3Cpath%20d%3D%22M392%20130%20a46%2046%200%200%201%2046%2046%20c0%2034%20-46%2084%20-46%2084%20s-46%20-50%20-46%20-84%20a46%2046%200%200%201%2046%20-46z%22%20fill%3D%22%23fff%22/%3E%0A%20%20%3Ccircle%20cx%3D%22392%22%20cy%3D%22176%22%20r%3D%2217%22%20fill%3D%22%231d4e5f%22/%3E%0A%3C/svg%3E%0A">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+/* BTHX Travel — palette du road book Le Cap : teal #1d4e5f / ocre #c2853a */
+:root{
+  --teal:#1d4e5f; --teal-dk:#143a47; --ocre:#c2853a; --ocre-lt:#e0a558;
+  --bg:#f4f1ec; --card:#ffffff; --ink:#1b1b1b; --ink-soft:#6b6b6b;
+  --line:#e2ddd4; --danger:#c0392b;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --tabbar-h:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--ink);
+  display:flex;flex-direction:column;
+  font-size:16px;line-height:1.4;
+}
+
+/* ---------- Barre du haut ---------- */
+#topbar{
+  background:var(--teal);color:#fff;
+  padding:calc(var(--safe-top) + 10px) 16px 10px;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+  box-shadow:0 2px 10px rgba(0,0,0,.15);z-index:500;
+}
+.title-wrap{flex:1;min-width:0}
+#topbar h1{font-size:18px;font-weight:650;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#topbar .subtitle{font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{
+  background:rgba(255,255,255,.18);border:none;color:#fff;
+  width:40px;height:40px;border-radius:12px;font-size:20px;flex-shrink:0;
+}
+.icon-btn:active{transform:scale(.94)}
+
+/* ---------- Panneaux ---------- */
+.pane{flex:1;display:flex;flex-direction:column;min-height:0;padding-bottom:calc(var(--tabbar-h) + var(--safe-bot))}
+.pane[hidden]{display:none}
+
+.map-wrap{position:relative;height:38vh;min-height:200px;flex-shrink:0;background:#ddd}
+#mapPrep,#mapBook{width:100%;height:100%}
+.map-tools{position:absolute;right:10px;top:10px;z-index:450;display:flex;flex-direction:column;gap:8px}
+.map-btn{
+  width:42px;height:42px;border:none;border-radius:12px;background:#fff;
+  font-size:19px;box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+.map-btn:active{transform:scale(.94)}
+.map-btn.on{background:var(--ocre);color:#fff}
+.route-info{
+  position:absolute;left:10px;bottom:10px;z-index:450;
+  background:rgba(29,78,95,.92);color:#fff;padding:7px 13px;border-radius:20px;
+  font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+
+/* ---------- Listes ---------- */
+.list-wrap{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+.list-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 16px 8px;flex-shrink:0;
+}
+.list-head h2{font-size:15px;font-weight:650;color:var(--teal)}
+.count{
+  display:inline-block;background:var(--ocre);color:#fff;
+  border-radius:11px;padding:1px 9px;font-size:12px;margin-left:5px;vertical-align:1px;
+}
+.list-head-actions{display:flex;gap:8px}
+.mini-btn{
+  border:1px solid var(--line);background:#fff;color:var(--teal);
+  padding:7px 13px;border-radius:10px;font-size:13px;font-weight:600;
+}
+.mini-btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.mini-btn:active{transform:scale(.95)}
+
+.filters{display:flex;gap:7px;padding:0 16px 10px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.chip{
+  border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+  padding:5px 13px;border-radius:15px;font-size:13px;white-space:nowrap;flex-shrink:0;
+}
+.chip.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+.list{flex:1;overflow-y:auto;padding:0 12px 20px;-webkit-overflow-scrolling:touch}
+
+.item{
+  background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:9px;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;gap:12px;align-items:flex-start;
+}
+.item.active{box-shadow:0 0 0 2px var(--ocre),0 1px 4px rgba(0,0,0,.06)}
+.item-badge{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  background:#f0ece5;
+}
+.item-body{flex:1;min-width:0}
+.item-title{font-weight:640;font-size:15px;display:flex;align-items:center;gap:7px}
+.item-meta{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.item-notes{
+  font-size:13px;color:#444;margin-top:6px;white-space:pre-wrap;word-break:break-word;
+  border-left:3px solid var(--line);padding-left:9px;
+}
+.item-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.act{background:none;border:none;font-size:17px;padding:3px;opacity:.65}
+.act:active{opacity:1}
+.seq{
+  background:var(--teal);color:#fff;border-radius:50%;
+  width:21px;height:21px;font-size:11px;display:inline-flex;
+  align-items:center;justify-content:center;flex-shrink:0;font-weight:700;
+}
+
+.thumbs{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.thumbs::-webkit-scrollbar{display:none}
+.thumbs img{
+  width:64px;height:64px;object-fit:cover;border-radius:9px;flex-shrink:0;background:#e8e4dd;
+}
+.thumb-missing{
+  width:64px;height:64px;border-radius:9px;flex-shrink:0;background:#e8e4dd;
+  display:flex;align-items:center;justify-content:center;font-size:22px;color:#aaa;
+}
+
+.empty{text-align:center;padding:36px 24px;color:var(--ink-soft)}
+.empty-icon{font-size:46px;margin-bottom:12px;opacity:.5}
+.empty p{font-size:14px;line-height:1.6}
+
+/* ---------- Road book : barre de jour ---------- */
+.day-bar{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;flex-shrink:0;
+  background:var(--card);border-bottom:1px solid var(--line);
+}
+.day-nav{
+  width:38px;height:38px;border:1px solid var(--line);background:#fff;
+  border-radius:11px;font-size:21px;color:var(--teal);flex-shrink:0;
+}
+.day-nav:disabled{opacity:.3}
+.day-label{flex:1;text-align:center;min-width:0}
+#dayTitle{font-weight:650;font-size:15px;color:var(--teal)}
+.day-label .subtitle{font-size:12px;color:var(--ink-soft)}
+
+.day-note{
+  margin:0 12px 10px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;
+  background:#fff;font-family:inherit;font-size:14px;resize:none;min-height:62px;
+  flex-shrink:0;line-height:1.45;
+}
+.day-note:focus{outline:2px solid var(--ocre);outline-offset:-1px}
+
+/* ---------- Barre d'onglets ---------- */
+#tabbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:600;
+  height:calc(var(--tabbar-h) + var(--safe-bot));
+  padding-bottom:var(--safe-bot);
+  background:rgba(255,255,255,.96);backdrop-filter:blur(12px);
+  border-top:1px solid var(--line);display:flex;
+}
+.tab{
+  flex:1;background:none;border:none;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;color:var(--ink-soft);
+}
+.tab.active{color:var(--teal)}
+.tab-icon{font-size:22px;line-height:1}
+.tab-label{font-size:11px;font-weight:600}
+
+/* ---------- Feuilles modales ---------- */
+.sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:900}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:901;
+  background:var(--bg);border-radius:20px 20px 0 0;
+  padding:8px 18px calc(18px + var(--safe-bot));
+  max-height:88vh;overflow-y:auto;box-shadow:0 -4px 24px rgba(0,0,0,.2);
+}
+.sheet-handle{width:38px;height:4px;background:var(--line);border-radius:2px;margin:6px auto 14px}
+.sheet h3{font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-soft);margin:16px 0 9px}
+.sheet h3:first-of-type{margin-top:0}
+.menu-row{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.menu-row label{width:52px;font-size:13px;color:var(--ink-soft);flex-shrink:0}
+.menu-row input,.menu-row select{
+  flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+  font-size:16px;font-family:inherit;background:#fff;min-width:0;
+}
+.notes-area{
+  width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:12px;
+  font-family:inherit;font-size:15px;min-height:110px;resize:vertical;margin:9px 0;background:#fff;
+}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.menu-grid:has(> :nth-child(2):last-child){grid-template-columns:1fr 1fr}
+.menu-btn{
+  background:#fff;border:1px solid var(--line);border-radius:13px;padding:13px 6px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  font-size:12px;font-weight:600;color:var(--teal);
+}
+.menu-btn span{font-size:22px}
+.menu-btn:active{transform:scale(.95)}
+.menu-btn.danger{color:var(--danger)}
+.menu-close{
+  width:100%;margin-top:16px;padding:13px;border:none;border-radius:13px;
+  background:var(--teal);color:#fff;font-size:15px;font-weight:650;
+}
+.hint{font-size:12px;color:var(--ink-soft);margin-top:9px;line-height:1.5}
+
+/* ---------- Visionneuse ---------- */
+.viewer{position:fixed;inset:0;background:#000;z-index:950;display:flex;align-items:center;justify-content:center}
+.viewer[hidden]{display:none}
+.viewer img{max-width:100%;max-height:82vh;object-fit:contain}
+.viewer-close{
+  position:absolute;top:calc(var(--safe-top) + 12px);right:14px;
+  width:42px;height:42px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.2);color:#fff;font-size:20px;
+}
+.viewer-cap{
+  position:absolute;bottom:calc(var(--safe-bot) + 20px);left:0;right:0;
+  text-align:center;color:#fff;font-size:13px;padding:0 20px;opacity:.85;
+}
+
+/* ---------- Toast / busy ---------- */
+#toast{
+  position:fixed;left:50%;bottom:calc(var(--tabbar-h) + var(--safe-bot) + 18px);
+  transform:translateX(-50%) translateY(24px);
+  background:var(--teal-dk);color:#fff;padding:11px 19px;border-radius:24px;
+  font-size:14px;font-weight:600;z-index:980;opacity:0;pointer-events:none;
+  transition:opacity .22s,transform .22s;max-width:88vw;text-align:center;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.busy{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:990;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff;
+}
+.busy[hidden]{display:none}
+.spinner{
+  width:42px;height:42px;border:4px solid rgba(255,255,255,.25);
+  border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Marqueurs de carte ---------- */
+.pin{
+  display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:50% 50% 50% 4px;
+  transform:rotate(-45deg);border:2px solid #fff;
+  box-shadow:0 2px 5px rgba(0,0,0,.35);font-size:13px;
+}
+.pin > *{transform:rotate(45deg)}
+.pin-etape{background:var(--teal)}
+.pin-hotel{background:var(--ocre)}
+.pin-table{background:#8e5a3c}
+.pin-site{background:#4a7c59}
+.pin-photo{background:var(--teal);border-radius:50%;transform:none}
+.pin-photo > *{transform:none}
+
+@media (min-width:820px){
+  .map-wrap{height:46vh}
+  .list{padding:0 20px 20px}
+}
+
+.map-off{
+  width:100%;height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;
+  background:#e8e4dd;color:var(--ink-soft);font-size:32px;
+}
+.map-off span{font-size:14px;font-weight:600}
+.map-off small{font-size:12px;opacity:.75}
+
+</style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <h1>📍 GéoPoints</h1>
-    </header>
-    
-    <!-- Map -->
-    <div id="map"></div>
-    
-    <!-- Controls -->
-    <div class="controls">
-        <button class="btn" onclick="locateMe()" title="Ma position">
-            📍
-        </button>
-        <button class="btn" onclick="toggleAddMode()" id="addBtn" title="Ajouter un point">
-            ➕
-        </button>
-        <button class="btn" onclick="toggleDistanceMode()" id="distanceBtn" title="Mesurer distance">
-            📏
-        </button>
-        <button class="btn" onclick="document.getElementById('photoImportInput').click()" title="Importer des photos/vidéos géolocalisées">
-            📸
-        </button>
-        <button class="btn" onclick="toggleDistanceLines()" id="linesBtn" title="Afficher/Masquer les lignes de distance">
-            📐
-        </button>
+
+<header id="topbar">
+  <div class="title-wrap">
+    <h1 id="tripName">BTHX Travel</h1>
+    <div class="subtitle" id="tripDates">—</div>
+  </div>
+  <button class="icon-btn" id="btnMenu" aria-label="Menu">☰</button>
+</header>
+
+<!-- ======================= AXE 1 — PRÉPARATION ======================= -->
+<section class="pane" id="pane-prep">
+  <div class="map-wrap">
+    <div id="mapPrep"></div>
+    <div class="map-tools">
+      <button class="map-btn" id="btnFitPrep" title="Tout voir">⤢</button>
+      <button class="map-btn" id="btnRoutePrep" title="Tracer la route">🛣️</button>
     </div>
-    
-    <!-- Hidden file input for photo/video import -->
-    <input type="file" id="photoImportInput" accept="image/*,video/*,.heic,.heif" multiple style="display: none;">
-    
-    <!-- Info Panel -->
-    <div class="info-panel" id="infoPanel">
-        <div class="info-header" onclick="togglePanel()">
-            <h2>Mes points (<span id="pointCount">0</span>)</h2>
-            <span class="expand-icon">⌃</span>
+    <div class="route-info" id="routeInfoPrep" hidden></div>
+  </div>
+
+  <div class="list-wrap">
+    <div class="list-head">
+      <h2>Étapes du voyage <span class="count" id="siteCount">0</span></h2>
+      <div class="list-head-actions">
+        <button class="mini-btn" id="btnAddSite">+ Étape</button>
+        <button class="mini-btn" id="btnHere">📍 Ici</button>
+      </div>
+    </div>
+    <div class="filters" id="siteFilters">
+      <button class="chip active" data-kind="all">Tout</button>
+      <button class="chip" data-kind="etape">Étapes</button>
+      <button class="chip" data-kind="hotel">Hôtels</button>
+      <button class="chip" data-kind="table">Tables</button>
+      <button class="chip" data-kind="site">À voir</button>
+    </div>
+    <div id="siteList" class="list"></div>
+  </div>
+</section>
+
+<!-- ======================= AXE 2 — ROAD BOOK ======================= -->
+<section class="pane" id="pane-book" hidden>
+  <div class="day-bar">
+    <button class="day-nav" id="btnPrevDay">‹</button>
+    <div class="day-label">
+      <div id="dayTitle">Aucune journée</div>
+      <div class="subtitle" id="daySub">Importez vos photos pour commencer</div>
+    </div>
+    <button class="day-nav" id="btnNextDay">›</button>
+  </div>
+
+  <div class="map-wrap">
+    <div id="mapBook"></div>
+    <div class="map-tools">
+      <button class="map-btn" id="btnFitBook" title="Tout voir">⤢</button>
+      <button class="map-btn" id="btnRouteBook" title="Tracer la route">🛣️</button>
+    </div>
+    <div class="route-info" id="routeInfoBook" hidden></div>
+  </div>
+
+  <div class="list-wrap">
+    <div class="list-head">
+      <h2>Journée <span class="count" id="stepCount">0</span></h2>
+      <div class="list-head-actions">
+        <button class="mini-btn primary" id="btnImport">📷 Importer</button>
+      </div>
+    </div>
+    <input type="file" id="photoInput" accept="image/*,.heic,.HEIC" multiple hidden>
+    <textarea id="dayNote" class="day-note" placeholder="Note de la journée — collez ici ce que vous voulez, elle part dans le road book."></textarea>
+    <div id="stepList" class="list"></div>
+  </div>
+</section>
+
+<!-- ======================= BARRE D'ONGLETS ======================= -->
+<nav id="tabbar">
+  <button class="tab active" data-pane="prep">
+    <span class="tab-icon">🗺️</span><span class="tab-label">Préparation</span>
+  </button>
+  <button class="tab" data-pane="book">
+    <span class="tab-icon">📖</span><span class="tab-label">Road book</span>
+  </button>
+</nav>
+
+<!-- ======================= MENU ======================= -->
+<div class="sheet-backdrop" id="menuBackdrop" hidden></div>
+<div class="sheet" id="menuSheet" hidden>
+  <div class="sheet-handle"></div>
+  <h3>Voyage</h3>
+  <div class="menu-row"><label>Nom</label><input type="text" id="mName"></div>
+  <div class="menu-row"><label>Du</label><input type="date" id="mStart"></div>
+  <div class="menu-row"><label>Au</label><input type="date" id="mEnd"></div>
+
+  <h3>Exporter le road book</h3>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnExpPdf"><span>🖨️</span>PDF</button>
+    <button class="menu-btn" id="btnExpHtml"><span>🌐</span>Page web</button>
+    <button class="menu-btn" id="btnExpMd"><span>📝</span>Notion</button>
+  </div>
+
+  <h3>Sauvegarde</h3>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnBackup"><span>💾</span>Sauvegarder</button>
+    <button class="menu-btn" id="btnRestore"><span>♻️</span>Restaurer</button>
+  </div>
+  <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+  <p class="hint" id="backupHint">Faites une sauvegarde une fois par semaine : Safari peut purger les données d'un site.</p>
+
+  <h3>Données</h3>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap</button>
+    <button class="menu-btn danger" id="btnWipe"><span>🗑️</span>Tout effacer</button>
+  </div>
+  <p class="hint" id="storageHint"></p>
+  <button class="menu-close" id="btnCloseMenu">Fermer</button>
+</div>
+
+<!-- ======================= ÉDITEUR D'ÉTAPE ======================= -->
+<div class="sheet-backdrop" id="editBackdrop" hidden></div>
+<div class="sheet" id="editSheet" hidden>
+  <div class="sheet-handle"></div>
+  <h3 id="editTitle">Étape</h3>
+  <div class="menu-row"><label>Nom</label><input type="text" id="eName" placeholder="Nom du lieu"></div>
+  <div class="menu-row"><label>Type</label>
+    <select id="eKind">
+      <option value="etape">Étape</option>
+      <option value="hotel">Hôtel</option>
+      <option value="table">Table</option>
+      <option value="site">À voir</option>
+    </select>
+  </div>
+  <div class="menu-row"><label>Date</label><input type="date" id="eDate"></div>
+  <div class="menu-row"><label>Lat</label><input type="number" step="0.000001" id="eLat" placeholder="-33.9249"></div>
+  <div class="menu-row"><label>Lon</label><input type="number" step="0.000001" id="eLon" placeholder="18.4241"></div>
+  <textarea id="eNotes" class="notes-area" placeholder="Notes libres — adresse, téléphone, ce qu'il faut réserver, ce qu'on a aimé. Collez ce que vous voulez."></textarea>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnEditSave"><span>✔️</span>Enregistrer</button>
+    <button class="menu-btn danger" id="btnEditDelete"><span>🗑️</span>Supprimer</button>
+  </div>
+  <button class="menu-close" id="btnEditCancel">Annuler</button>
+</div>
+
+<!-- ======================= VISIONNEUSE PHOTO ======================= -->
+<div class="viewer" id="viewer" hidden>
+  <button class="viewer-close" id="viewerClose">✕</button>
+  <img id="viewerImg" alt="">
+  <div class="viewer-cap" id="viewerCap"></div>
+</div>
+
+<div id="toast"></div>
+<div class="busy" id="busy" hidden><div class="spinner"></div><div id="busyText">Traitement…</div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* BTHX Travel — lecture des métadonnées photo, sans dépendance.
+   ------------------------------------------------------------------
+   Extrait la position GPS et la date de prise de vue depuis :
+     • JPEG  — segment APP1 / Exif
+     • HEIC  — item « Exif » du conteneur ISOBMFF (format natif iPhone)
+   Aucune bibliothèque externe : l'app doit fonctionner sans réseau.
+*/
+
+const Exif = (() => {
+
+  /* ---------- Lecture bas niveau ---------- */
+  class Reader {
+    constructor(buf, le = false){ this.v = new DataView(buf); this.le = le; }
+    u8 (o){ return this.v.getUint8(o); }
+    u16(o){ return this.v.getUint16(o, this.le); }
+    u32(o){ return this.v.getUint32(o, this.le); }
+    i32(o){ return this.v.getInt32(o, this.le); }
+    str(o, n){
+      let s = '';
+      for(let i=0;i<n;i++){ const c = this.v.getUint8(o+i); if(c===0) break; s += String.fromCharCode(c); }
+      return s;
+    }
+    get size(){ return this.v.byteLength; }
+  }
+
+  const TYPE_SIZE = {1:1, 2:1, 3:2, 4:4, 5:8, 6:1, 7:1, 8:2, 9:4, 10:8, 11:4, 12:8};
+
+  /* ---------- Parcours d'un IFD TIFF ---------- */
+  function readIFD(r, tiffStart, ifdOffset, wanted){
+    const out = {};
+    const base = tiffStart + ifdOffset;
+    if(base + 2 > r.size) return out;
+
+    const count = r.u16(base);
+    for(let i=0;i<count;i++){
+      const e = base + 2 + i*12;
+      if(e + 12 > r.size) break;
+
+      const tag  = r.u16(e);
+      if(!wanted.includes(tag)) continue;
+
+      const type = r.u16(e+2);
+      const num  = r.u32(e+4);
+      const sz   = (TYPE_SIZE[type] || 1) * num;
+      const at   = sz > 4 ? tiffStart + r.u32(e+8) : e + 8;
+      if(at + sz > r.size) continue;
+
+      out[tag] = readValue(r, at, type, num);
+    }
+    return out;
+  }
+
+  function readValue(r, at, type, num){
+    switch(type){
+      case 2: return r.str(at, num);                               // ASCII
+      case 3: return num === 1 ? r.u16(at)
+                               : Array.from({length:num}, (_,k)=>r.u16(at+k*2));
+      case 4: return num === 1 ? r.u32(at)
+                               : Array.from({length:num}, (_,k)=>r.u32(at+k*4));
+      case 5: {                                                    // RATIONAL
+        const one = k => { const d = r.u32(at+k*8+4); return d ? r.u32(at+k*8)/d : 0; };
+        return num === 1 ? one(0) : Array.from({length:num}, (_,k)=>one(k));
+      }
+      case 10: {                                                   // SRATIONAL
+        const one = k => { const d = r.i32(at+k*8+4); return d ? r.i32(at+k*8)/d : 0; };
+        return num === 1 ? one(0) : Array.from({length:num}, (_,k)=>one(k));
+      }
+      default: return r.u8(at);
+    }
+  }
+
+  /* ---------- Bloc TIFF -> {lat, lon, date} ---------- */
+  function parseTiff(buf, tiffStart){
+    const head = new Reader(buf);
+    if(tiffStart + 8 > head.size) return null;
+
+    const order = head.u16(tiffStart);                 // 0x4949 = II, 0x4D4D = MM
+    if(order !== 0x4949 && order !== 0x4D4D) return null;
+
+    const r = new Reader(buf, order === 0x4949);
+    if(r.u16(tiffStart + 2) !== 42) return null;
+
+    const ifd0 = readIFD(r, tiffStart, r.u32(tiffStart + 4), [0x8769, 0x8825, 0x0132]);
+    const res  = { lat:null, lon:null, date:null };
+
+    // Date de prise de vue
+    if(ifd0[0x8769]){
+      const ex = readIFD(r, tiffStart, ifd0[0x8769], [0x9003, 0x9004]);
+      const d  = ex[0x9003] || ex[0x9004];
+      if(d) res.date = parseExifDate(d);
+    }
+    if(!res.date && ifd0[0x0132]) res.date = parseExifDate(ifd0[0x0132]);
+
+    // Position
+    if(ifd0[0x8825]){
+      const g = readIFD(r, tiffStart, ifd0[0x8825], [0x0001, 0x0002, 0x0003, 0x0004]);
+      const lat = dms(g[0x0002], g[0x0001]);
+      const lon = dms(g[0x0004], g[0x0003]);
+      if(lat !== null && lon !== null && (lat !== 0 || lon !== 0)){
+        res.lat = lat; res.lon = lon;
+      }
+    }
+    return res;
+  }
+
+  function dms(parts, ref){
+    if(!Array.isArray(parts) || parts.length < 3) return null;
+    const [d, m, s] = parts;
+    let v = Math.abs(d) + (m || 0)/60 + (s || 0)/3600;
+    if(ref === 'S' || ref === 'W') v = -v;
+    return isFinite(v) ? v : null;
+  }
+
+  // "2026:09:22 14:03:51" — heure locale de la prise de vue
+  function parseExifDate(s){
+    const m = String(s).trim().match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+    if(!m) return null;
+    const d = new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
+    return isNaN(d) ? null : d;
+  }
+
+  /* ---------- JPEG : trouver le segment APP1 ---------- */
+  function fromJpeg(buf){
+    const r = new Reader(buf);
+    if(r.size < 4 || r.u16(0) !== 0xFFD8) return null;       // pas un JPEG
+
+    let o = 2;
+    while(o + 4 < r.size){
+      if(r.u8(o) !== 0xFF) { o++; continue; }                // resynchronisation
+      const marker = r.u8(o + 1);
+      if(marker === 0xD8 || marker === 0x01 || (marker >= 0xD0 && marker <= 0xD7)){ o += 2; continue; }
+      if(marker === 0xDA || marker === 0xD9) break;          // début des données image
+
+      const len = r.u16(o + 2);
+      if(len < 2) break;
+
+      if(marker === 0xE1 && r.str(o + 4, 4) === 'Exif'){
+        return parseTiff(buf, o + 10);                        // "Exif\0\0" = 6 octets
+      }
+      o += 2 + len;
+    }
+    return null;
+  }
+
+  /* ---------- HEIC : item « Exif » du conteneur ISOBMFF ---------- */
+  function fromHeic(buf){
+    const r = new Reader(buf);                                // ISOBMFF = big endian
+    const meta = findBox(r, 0, r.size, 'meta');
+    if(!meta) return null;
+
+    // 'meta' est une FullBox : 4 octets de version/flags avant ses enfants.
+    const inner = meta.start + 4;
+    const iinf  = findBox(r, inner, meta.end, 'iinf');
+    const iloc  = findBox(r, inner, meta.end, 'iloc');
+    if(!iinf || !iloc) return null;
+
+    const exifId = findExifItemId(r, iinf);
+    if(exifId === null) return null;
+
+    const loc = findItemLocation(r, iloc, exifId);
+    if(!loc || loc.offset + loc.length > r.size) return null;
+
+    // L'item Exif commence par un offset 32 bits vers l'en-tête TIFF.
+    const skip = r.u32(loc.offset);
+    let tiff = loc.offset + 4 + skip;
+    if(r.str(tiff, 4) === 'Exif') tiff += 6;                  // certains encodeurs gardent la signature
+    return parseTiff(buf, tiff);
+  }
+
+  function findBox(r, from, to, name){
+    let o = from;
+    while(o + 8 <= to){
+      let size = r.u32(o);
+      const type = r.str(o + 4, 4);
+      let head = 8;
+      if(size === 1){                                          // taille 64 bits
+        if(o + 16 > to) return null;
+        const hi = r.u32(o + 8), lo = r.u32(o + 12);
+        size = hi * 4294967296 + lo; head = 16;
+      } else if(size === 0){
+        size = to - o;
+      }
+      if(size < head) return null;
+      if(type === name) return { start: o + head, end: Math.min(o + size, to) };
+      o += size;
+    }
+    return null;
+  }
+
+  function findExifItemId(r, iinf){
+    const ver = r.u8(iinf.start);
+    let o = iinf.start + 4;
+    let count;
+    if(ver === 0){ count = r.u16(o); o += 2; }
+    else         { count = r.u32(o); o += 4; }
+
+    for(let i=0;i<count && o + 8 <= iinf.end;i++){
+      const size = r.u32(o);
+      if(size < 8) break;
+      if(r.str(o + 4, 4) === 'infe'){
+        const iv = r.u8(o + 8);
+        let p = o + 12;                                        // après version/flags
+        let id;
+        if(iv >= 2){
+          if(iv === 2){ id = r.u16(p); p += 2; } else { id = r.u32(p); p += 4; }
+          p += 2;                                              // protection_index
+          if(r.str(p, 4) === 'Exif') return id;
+        }
+      }
+      o += size;
+    }
+    return null;
+  }
+
+  function findItemLocation(r, iloc, wantId){
+    const ver = r.u8(iloc.start);
+    let o = iloc.start + 4;
+
+    const b1 = r.u8(o), b2 = r.u8(o + 1); o += 2;
+    const offSize = b1 >> 4, lenSize = b1 & 15;
+    const baseSize = b2 >> 4, idxSize = b2 & 15;
+
+    let count;
+    if(ver < 2){ count = r.u16(o); o += 2; }
+    else       { count = r.u32(o); o += 4; }
+
+    const readN = (at, n) => {
+      if(n === 0) return 0;
+      if(n === 4) return r.u32(at);
+      if(n === 8) return r.u32(at) * 4294967296 + r.u32(at + 4);
+      if(n === 2) return r.u16(at);
+      return r.u8(at);
+    };
+
+    for(let i=0;i<count;i++){
+      let id;
+      if(ver < 2){ id = r.u16(o); o += 2; } else { id = r.u32(o); o += 4; }
+      if(ver === 1 || ver === 2) o += 2;                        // construction_method
+      o += 2;                                                   // data_reference_index
+
+      const base = readN(o, baseSize); o += baseSize;
+      const extents = r.u16(o); o += 2;
+
+      for(let e=0;e<extents;e++){
+        if((ver === 1 || ver === 2) && idxSize > 0) o += idxSize;
+        const off = readN(o, offSize); o += offSize;
+        const len = readN(o, lenSize); o += lenSize;
+        if(id === wantId && e === 0) return { offset: base + off, length: len };
+      }
+    }
+    return null;
+  }
+
+  /* ---------- API ---------- */
+  // On ne lit que le début du fichier : l'Exif y est toujours, et cela
+  // évite de charger 5 Mo par photo en mémoire.
+  const HEAD_BYTES = 3 * 1024 * 1024;
+
+  async function parse(file){
+    try{
+      const slice = file.slice(0, Math.min(file.size, HEAD_BYTES));
+      const buf   = await slice.arrayBuffer();
+      return fromJpeg(buf) || fromHeic(buf) || null;
+    }catch(e){
+      console.warn('Exif', file && file.name, e);
+      return null;
+    }
+  }
+
+  return { parse };
+})();
+
+</script>
+<script>
+/* BTHX Travel — données de référence et stockage
+   ------------------------------------------------------------------
+   L'itinéraire Le Cap 2026 reprend la boucle arrêtée dans le road book :
+   côte à l'aller (Garden Route), retour par la Route 62 / Klein Karoo.
+   Les coordonnées sont un point de départ : chaque étape reste éditable.
+*/
+
+const CAPE_TRIP = {
+  name: "Le Cap & Western Cape",
+  start: "2026-09-22",
+  end: "2026-10-10",
+  sites: [
+    // ---- Semaine 1 — réservée ----
+    { name:"Blue Peter Hotel — Bloubergstrand", kind:"hotel", lat:-33.80670, lon:18.46940, date:"2026-09-22",
+      notes:"+27 21 554 1956\nBase des premières nuits, vue sur Table Mountain depuis la plage.\nÀ proximité : Petiscos (peri-peri), Ons Huisie." },
+    { name:"Le Cap — V&A / Oranjezicht Market", kind:"site", lat:-33.92490, lon:18.42410, date:"2026-09-23",
+      notes:"Oranjezicht City Farm Market le samedi matin (V&A).\nSturk's Tobacconists — la référence historique en ville." },
+    { name:"Bonne Esperance Guest House — Stellenbosch", kind:"hotel", lat:-33.93210, lon:18.86020, date:"2026-09-24",
+      notes:"+27 21 887 0225\nDorp Street à deux pas, Stellenbosch Tobacconist dans la rue." },
+    { name:"Tokara", kind:"table", lat:-33.91790, lon:18.92030, date:"2026-09-24",
+      notes:"Winelands. Vue sur la vallée, cuisine sud-africaine. Réserver." },
+    { name:"Overture", kind:"table", lat:-33.96860, lon:18.85240, date:"2026-09-25",
+      notes:"Hidden Valley. Table de référence des Winelands. Réserver largement à l'avance." },
+    { name:"Babylonstoren — Simondium", kind:"site", lat:-33.82670, lon:18.92670, date:"2026-09-25",
+      notes:"Jardin potager historique, ferme et cave. Repéré via l'email Air France." },
+    { name:"Simon's Town Quayside Hotel", kind:"hotel", lat:-34.19280, lon:18.43260, date:"2026-09-26",
+      notes:"+27 21 786 3838\nSur le port. Manchots de Boulders à côté, Cap de Bonne-Espérance au sud." },
+    { name:"Harbour House — Kalk Bay", kind:"table", lat:-34.12760, lon:18.44850, date:"2026-09-26",
+      notes:"Poisson, les pieds au-dessus de l'eau. Bertha's juste à côté à Simon's Town." },
+    { name:"11 Westcliff — Hermanus", kind:"hotel", lat:-34.41870, lon:19.23450, date:"2026-09-28",
+      notes:"+27 82 758 6889\nSaison des baleines : observation depuis la falaise du Cliff Path." },
+    { name:"Creation Wines — Hemel-en-Aarde", kind:"table", lat:-34.34280, lon:19.33360, date:"2026-09-28",
+      notes:"Accords mets-vins dans la vallée Hemel-en-Aarde. Réserver." },
+    { name:"Bientang's Cave — Hermanus", kind:"table", lat:-34.41940, lon:19.24040, date:"2026-09-29",
+      notes:"Restaurant dans une grotte au ras des vagues. Baleines depuis la table en saison.\nAutres : Perlemoen Seafront, Fick's Pool, The Rock, La Pentola." },
+    { name:"Oceans Guest House — Struisbaai", kind:"hotel", lat:-34.79750, lon:20.05220, date:"2026-09-30",
+      notes:"+27 60 980 0664\nLe port aux raies. Cap Agulhas à 5 min : le vrai point le plus austral de l'Afrique." },
+    { name:"Cap Agulhas", kind:"site", lat:-34.83330, lon:20.00000, date:"2026-10-01",
+      notes:"Pointe sud de l'Afrique, séparation des deux océans. Phare de 1848." },
+
+    // ---- Semaine 2 — à réserver ----
+    { name:"Gondwana Game Reserve — safari", kind:"hotel", lat:-34.08042, lon:21.91110, date:"2026-10-02",
+      notes:"+27 44 333 0200\nUNE nuit, pas plus. Réserve privée sans paludisme, Big Five dans le fynbos.\nDrive de l'après-midi + drive du matin.\n⚠️ À RÉSERVER" },
+    { name:"Knysna", kind:"etape", lat:-34.07870, lon:23.06250, date:"2026-10-03",
+      notes:"2 nuits. Lagune, les Heads, huîtres au port, Featherbed en bateau, forêt ancienne.\n⚠️ HÉBERGEMENT À RÉSERVER" },
+    { name:"Plettenberg Bay", kind:"etape", lat:-34.05940, lon:23.37830, date:"2026-10-05",
+      notes:"2 nuits. Point de demi-tour.\nRando de Robberg, plages, baleines et dauphins en bateau.\nTsitsikamma (pont de Storms River) en excursion.\n⚠️ HÉBERGEMENT À RÉSERVER" },
+    { name:"Oudtshoorn — Klein Karoo", kind:"etape", lat:-33.59060, lon:22.20140, date:"2026-10-07",
+      notes:"2 nuits. Retour par l'intérieur via l'Outeniqua Pass.\nAutruches, suricates à l'aube.\n⚠️ HÉBERGEMENT À RÉSERVER" },
+    { name:"Grottes de Cango", kind:"site", lat:-33.39250, lon:22.21470, date:"2026-10-07",
+      notes:"À 30 min d'Oudtshoorn. Réserver le créneau de visite." },
+    { name:"Col du Swartberg", kind:"site", lat:-33.35000, lon:22.03330, date:"2026-10-08",
+      notes:"Col de gravier de 1583 m, un des plus beaux du monde. Praticable en voiture de tourisme par temps sec.\nDescente sur Prince Albert de l'autre côté." },
+    { name:"Prince Albert", kind:"site", lat:-33.22640, lon:22.02810, date:"2026-10-08",
+      notes:"Village du Grand Karoo au pied du Swartberg. Architecture cape dutch, figues et olives." },
+    { name:"Calitzdorp", kind:"site", lat:-33.52970, lon:21.68860, date:"2026-10-08",
+      notes:"Capitale sud-africaine du porto. Dégustation sur la Route 62." },
+    { name:"Montagu — Route 62", kind:"etape", lat:-33.78660, lon:20.12160, date:"2026-10-09",
+      notes:"Dernière étape avant le retour au Cap. Sources chaudes, passe de Cogmanskloof.\n⚠️ HÉBERGEMENT À RÉSERVER" },
+    { name:"Retour Le Cap", kind:"etape", lat:-33.92490, lon:18.42410, date:"2026-10-10",
+      notes:"Retour obligatoire au Cap (pas d'open-jaw). Restitution du véhicule Hertz." }
+  ]
+};
+
+/* ==================================================================
+   Stockage
+   - localStorage : le dossier de voyage (léger, texte)
+   - IndexedDB    : les photos (vignettes JPEG), qui feraient exploser
+                    le quota de localStorage
+   ================================================================== */
+
+const LS_KEY = 'bthx.trip.v1';
+
+const Store = {
+  load(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ console.warn('load', e); return null; }
+  },
+  save(trip){
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify(trip));
+      return true;
+    }catch(e){
+      console.warn('save', e);
+      return false; // quota — l'appelant prévient l'utilisateur
+    }
+  },
+  clear(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
+};
+
+/* ---- IndexedDB pour les images ---- */
+const Photos = (() => {
+  const DB='bthx-photos', STORE='img'; let dbp=null;
+
+  function open(){
+    if(dbp) return dbp;
+    dbp = new Promise((res,rej)=>{
+      const r = indexedDB.open(DB,1);
+      r.onupgradeneeded = ()=>{
+        const db = r.result;
+        if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+      };
+      r.onsuccess = ()=>res(r.result);
+      r.onerror  = ()=>rej(r.error);
+    });
+    return dbp;
+  }
+  async function tx(mode){
+    const db = await open();
+    return db.transaction(STORE, mode).objectStore(STORE);
+  }
+  return {
+    async put(id, blob){
+      const s = await tx('readwrite');
+      return new Promise((res,rej)=>{ const r=s.put(blob,id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+    },
+    async get(id){
+      const s = await tx('readonly');
+      return new Promise((res)=>{ const r=s.get(id); r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null); });
+    },
+    async del(id){
+      const s = await tx('readwrite');
+      return new Promise((res)=>{ const r=s.delete(id); r.onsuccess=()=>res(); r.onerror=()=>res(); });
+    },
+    async clear(){
+      const s = await tx('readwrite');
+      return new Promise((res)=>{ const r=s.clear(); r.onsuccess=()=>res(); r.onerror=()=>res(); });
+    },
+    async keys(){
+      const s = await tx('readonly');
+      return new Promise((res)=>{ const r=s.getAllKeys(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); });
+    }
+  };
+})();
+
+/* ---- Cache des itinéraires routiers (OSRM) ----
+   Indispensable hors ligne : une fois un segment calculé, il ne
+   redemande plus rien au réseau. */
+const RouteCache = {
+  key(a,b){ return `${a.lat.toFixed(4)},${a.lon.toFixed(4)}>${b.lat.toFixed(4)},${b.lon.toFixed(4)}`; },
+  get(a,b){
+    try{ const v = localStorage.getItem('bthx.route.'+this.key(a,b)); return v?JSON.parse(v):null; }
+    catch(e){ return null; }
+  },
+  set(a,b,val){
+    try{ localStorage.setItem('bthx.route.'+this.key(a,b), JSON.stringify(val)); }catch(e){}
+  }
+};
+
+</script>
+<script>
+/* BTHX Travel — logique applicative
+   Deux axes : Préparation (étapes du voyage) et Road book (journées reconstituées). */
+
+'use strict';
+
+/* ===================== État ===================== */
+let trip = Store.load() || { name:"Nouveau voyage", start:"", end:"", sites:[], days:[] };
+if(!trip.days) trip.days = [];
+if(!trip.sites) trip.sites = [];
+
+let pane       = 'prep';
+let kindFilter = 'all';
+let dayIndex   = 0;
+let editingId  = null;
+const maps     = { prep:null, book:null };
+const layers   = { prep:{markers:[],route:null}, book:{markers:[],route:null} };
+const routeOn  = { prep:false, book:false };
+const urlCache = new Map();   // id photo -> objectURL
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const $   = id => document.getElementById(id);
+
+/* ===================== Utilitaires ===================== */
+function toast(msg, ms=2200){
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms);
+}
+function busy(on, text='Traitement…'){
+  $('busyText').textContent = text;
+  $('busy').hidden = !on;
+}
+function persist(){
+  if(!Store.save(trip)){
+    toast('⚠️ Sauvegarde impossible — mémoire pleine. Exportez puis effacez.', 5000);
+  }
+}
+function fmtDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso + (iso.length===10 ? 'T12:00:00' : ''));
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+}
+function fmtTime(ts){
+  if(!ts) return '';
+  return new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+function km(m){ return m>=1000 ? (m/1000).toFixed(m>=10000?0:1)+' km' : Math.round(m)+' m'; }
+function dur(s){
+  const h = Math.floor(s/3600), m = Math.round((s%3600)/60);
+  return h ? `${h} h ${String(m).padStart(2,'0')}` : `${m} min`;
+}
+function haversine(a,b){
+  const R=6371000, r=Math.PI/180;
+  const dLat=(b.lat-a.lat)*r, dLon=(b.lon-a.lon)*r;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+const KIND = {
+  etape:{icon:'📍',label:'Étape'}, hotel:{icon:'🛏️',label:'Hôtel'},
+  table:{icon:'🍽️',label:'Table'}, site:{icon:'⭐',label:'À voir'}
+};
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ===================== Cartes ===================== */
+function initMap(which, elId){
+  if(maps[which]) return maps[which];
+  // Leaflet vient d'un CDN. S'il n'a pas pu être mis en cache et qu'on est
+  // hors réseau, l'app doit rester utilisable : listes, saisie, exports.
+  // Seules les cartes manquent.
+  if(typeof L === 'undefined'){
+    const el = $(elId);
+    if(el && !el.dataset.off){
+      el.dataset.off = '1';
+      el.innerHTML = '<div class="map-off">🗺️<span>Carte indisponible hors ligne</span>'
+                   + '<small>Les positions sont bien enregistrées</small></div>';
+    }
+    return null;
+  }
+  const m = L.map(elId,{zoomControl:false,attributionControl:false}).setView([-33.92,18.42],9);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(m);
+  L.control.zoom({position:'topleft'}).addTo(m);
+  L.control.attribution({position:'bottomright',prefix:false})
+   .addAttribution('© OpenStreetMap').addTo(m);
+  maps[which] = m;
+  return m;
+}
+function pinIcon(kind){
+  return L.divIcon({
+    className:'', html:`<div class="pin pin-${kind}"><span>${KIND[kind]?KIND[kind].icon:'📍'}</span></div>`,
+    iconSize:[28,28], iconAnchor:[14,28]
+  });
+}
+function numIcon(n){
+  return L.divIcon({
+    className:'', html:`<div class="pin pin-photo"><span>${n}</span></div>`,
+    iconSize:[28,28], iconAnchor:[14,14]
+  });
+}
+function clearLayers(which){
+  const m = maps[which]; if(!m) return;
+  layers[which].markers.forEach(x=>m.removeLayer(x));
+  layers[which].markers = [];
+  if(layers[which].route){ m.removeLayer(layers[which].route); layers[which].route=null; }
+}
+function fitTo(which, pts){
+  const m = maps[which]; if(!m || !pts.length) return;
+  if(pts.length===1) m.setView([pts[0].lat,pts[0].lon],13);
+  else m.fitBounds(L.latLngBounds(pts.map(p=>[p.lat,p.lon])),{padding:[36,36],maxZoom:14});
+}
+
+/* ---- Itinéraire routier via OSRM, segment par segment, avec cache ---- */
+async function routeSegment(a,b){
+  const hit = RouteCache.get(a,b);
+  if(hit) return hit;
+  const url = `https://router.project-osrm.org/route/v1/driving/`
+            + `${a.lon},${a.lat};${b.lon},${b.lat}?overview=full&geometries=geojson`;
+  try{
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(res.status);
+    const j = await res.json();
+    if(!j.routes || !j.routes.length) throw new Error('no route');
+    const r = j.routes[0];
+    const out = {
+      coords: r.geometry.coordinates.map(c=>[c[1],c[0]]),
+      distance: r.distance, duration: r.duration, real: true
+    };
+    RouteCache.set(a,b,out);
+    return out;
+  }catch(e){
+    // Hors ligne, ou pas de route (piste de réserve, traversée maritime) :
+    // on relie en ligne droite plutôt que de ne rien montrer.
+    return { coords:[[a.lat,a.lon],[b.lat,b.lon]], distance:haversine(a,b), duration:0, real:false };
+  }
+}
+async function drawRoute(which, pts, infoEl){
+  const m = maps[which]; if(!m) return;
+  if(layers[which].route){ m.removeLayer(layers[which].route); layers[which].route=null; }
+  if(pts.length < 2){ infoEl.hidden = true; return; }
+
+  busy(true,'Calcul de l\'itinéraire…');
+  const group = L.layerGroup().addTo(m);
+  let totD=0, totT=0, approx=false;
+
+  for(let i=0;i<pts.length-1;i++){
+    const seg = await routeSegment(pts[i], pts[i+1]);
+    totD += seg.distance; totT += seg.duration;
+    if(!seg.real) approx = true;
+    L.polyline(seg.coords, {
+      color: seg.real ? '#1d4e5f' : '#c2853a',
+      weight: 4, opacity: .8,
+      dashArray: seg.real ? null : '7,7'
+    }).addTo(group);
+  }
+  layers[which].route = group;
+  busy(false);
+
+  infoEl.hidden = false;
+  infoEl.textContent = `${km(totD)}${totT?' · '+dur(totT):''}${approx?' · partiel':''}`;
+}
+
+/* ===================== AXE 1 — Préparation ===================== */
+function renderPrep(){
+  const m = initMap('prep','mapPrep');
+  if(m) setTimeout(()=>m.invalidateSize(),60);
+  clearLayers('prep');
+  $('routeInfoPrep').hidden = true;
+
+  const all = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  const shown = kindFilter==='all' ? all : all.filter(s=>s.kind===kindFilter);
+  $('siteCount').textContent = all.length;
+
+  // Marqueurs
+  if(m) shown.forEach(s=>{
+    if(s.lat==null || s.lon==null) return;
+    const mk = L.marker([s.lat,s.lon],{icon:pinIcon(s.kind)}).addTo(m)
+      .bindPopup(`<b>${escapeHtml(s.name)}</b><br><small>${fmtDate(s.date)}</small>`);
+    mk.on('click', ()=>highlight(s.id));
+    layers.prep.markers.push(mk);
+  });
+
+  // Liste
+  const list = $('siteList');
+  if(!shown.length){
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🗺️</div>
+      <p>Aucune étape.<br>Ajoutez-en une, ou chargez l'itinéraire du Cap depuis le menu.</p></div>`;
+  } else {
+    let seq = 0;
+    list.innerHTML = shown.map(s=>{
+      const isStop = s.kind==='etape' || s.kind==='hotel';
+      if(isStop) seq++;
+      return `<div class="item" id="site-${s.id}" data-id="${s.id}">
+        <div class="item-badge">${KIND[s.kind].icon}</div>
+        <div class="item-body">
+          <div class="item-title">
+            ${isStop?`<span class="seq">${seq}</span>`:''}${escapeHtml(s.name)}
+          </div>
+          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}</div>
+          ${s.notes?`<div class="item-notes">${escapeHtml(s.notes)}</div>`:''}
         </div>
-        <div class="point-list" id="pointList">
-            <div class="empty-state">
-                <div style="font-size: 48px;">📍</div>
-                <p>Aucun point enregistré.<br>Appuyez sur ➕ ou 📸</p>
-            </div>
+        <div class="item-actions">
+          <button class="act" data-act="edit" data-id="${s.id}">✏️</button>
+          <button class="act" data-act="go"   data-id="${s.id}">🔍</button>
         </div>
-    </div>
-    
-    <!-- Distance Info Panel -->
-    <div class="distance-info" id="distanceInfo">
-        <div class="distance-header">📏 Mesure de distance</div>
-        <div id="distanceContent"></div>
-        <button class="distance-close" onclick="closeDistanceMode()">Fermer</button>
-    </div>
-    
-    <!-- Modal for adding/editing point -->
-    <div class="modal" id="pointModal">
-        <div class="modal-content">
-            <h3 id="modalTitle">Nouveau point</h3>
-            <form id="pointForm">
-                <div class="form-group">
-                    <label for="pointName">Nom du point *</label>
-                    <input type="text" id="pointName" required placeholder="Ex: Bureau, Garage Bernard...">
-                </div>
-                <div class="form-group">
-                    <label for="pointDescription">Description</label>
-                    <textarea id="pointDescription" placeholder="Informations complémentaires..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Photos/Vidéos <span class="photo-count" id="photoCount"></span></label>
-                    <div class="photo-input-wrapper">
-                        <label class="photo-upload-btn">
-                            📷 Ajouter des médias
-                            <input type="file" id="photoInput" accept="image/*,video/*,.heic,.heif" multiple capture="environment">
-                        </label>
-                    </div>
-                    <div class="photo-grid" id="photoGrid"></div>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="modal-btn btn-secondary" onclick="closeModal()">Annuler</button>
-                    <button type="submit" class="modal-btn btn-primary">Enregistrer</button>
-                </div>
-            </form>
+      </div>`;
+    }).join('');
+  }
+
+  // Au premier affichage, on cadre sur l'ensemble du voyage.
+  if(!renderPrep._fitted && shown.some(s=>s.lat!=null)){
+    renderPrep._fitted = true;
+    setTimeout(()=>fitTo('prep', shown.filter(s=>s.lat!=null)), 180);
+  }
+
+  if(routeOn.prep) drawRoute('prep', routePoints(), $('routeInfoPrep'));
+}
+function routePoints(){
+  // L'itinéraire suit les étapes et les hôtels dans l'ordre des dates :
+  // les tables et les visites ne détournent pas le tracé.
+  return trip.sites
+    .filter(s=>(s.kind==='etape'||s.kind==='hotel') && s.lat!=null && s.lon!=null)
+    .sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+}
+function highlight(id){
+  document.querySelectorAll('.item.active').forEach(e=>e.classList.remove('active'));
+  const el = $('site-'+id);
+  if(el){ el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'center'}); }
+}
+
+/* ===================== AXE 2 — Road book ===================== */
+function dayList(){
+  return trip.days.slice().sort((a,b)=>a.date.localeCompare(b.date));
+}
+async function renderBook(){
+  const days = dayList();
+  const m = initMap('book','mapBook');
+  if(m) setTimeout(()=>m.invalidateSize(),60);
+  clearLayers('book');
+  $('routeInfoBook').hidden = true;
+
+  if(!days.length){
+    $('dayTitle').textContent = 'Aucune journée';
+    $('daySub').textContent   = 'Importez vos photos pour commencer';
+    $('stepCount').textContent = 0;
+    $('dayNote').value = '';
+    $('btnPrevDay').disabled = $('btnNextDay').disabled = true;
+    $('stepList').innerHTML = `<div class="empty"><div class="empty-icon">📖</div>
+      <p>Le soir, importez les photos de la journée.<br>
+      L'app lit leurs coordonnées et reconstitue le trajet.</p></div>`;
+    return;
+  }
+
+  dayIndex = Math.max(0, Math.min(dayIndex, days.length-1));
+  const day = days[dayIndex];
+  $('btnPrevDay').disabled = dayIndex===0;
+  $('btnNextDay').disabled = dayIndex===days.length-1;
+  $('dayTitle').textContent = fmtDate(day.date);
+  $('daySub').textContent   = `Jour ${dayIndex+1} / ${days.length} · ${day.photos.length} photo${day.photos.length>1?'s':''}`;
+  $('dayNote').value = day.note || '';
+
+  const steps = day.steps || [];
+  $('stepCount').textContent = steps.length;
+
+  if(m) steps.forEach((st,i)=>{
+    const mk = L.marker([st.lat,st.lon],{icon:numIcon(i+1)}).addTo(m)
+      .bindPopup(`<b>${escapeHtml(st.name||('Étape '+(i+1)))}</b><br><small>${fmtTime(st.t)}</small>`);
+    layers.book.markers.push(mk);
+  });
+  fitTo('book', steps);
+
+  const list = $('stepList');
+  if(!steps.length){
+    list.innerHTML = `<div class="empty"><div class="empty-icon">📍</div>
+      <p>Aucune photo géolocalisée pour ce jour.<br>
+      Vérifiez : Réglages › Confidentialité › Service de localisation › Appareil photo.</p></div>`;
+  } else {
+    list.innerHTML = steps.map((st,i)=>`
+      <div class="item" data-step="${i}">
+        <div class="item-badge"><span class="seq">${i+1}</span></div>
+        <div class="item-body">
+          <div class="item-title">${escapeHtml(st.name || 'Étape '+(i+1))}</div>
+          <div class="item-meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${st.photos.length} photo${st.photos.length>1?'s':''}</div>
+          ${st.note?`<div class="item-notes">${escapeHtml(st.note)}</div>`:''}
+          <div class="thumbs" id="th-${i}"></div>
         </div>
-    </div>
-    
-    <!-- Photo Viewer -->
-    <div class="photo-viewer" id="photoViewer">
-        <button class="photo-viewer-close" onclick="closePhotoViewer()">×</button>
-        <button class="photo-viewer-nav photo-viewer-prev" onclick="navigatePhoto(-1)">‹</button>
-        <div id="photoViewerContent"></div>
-        <button class="photo-viewer-nav photo-viewer-next" onclick="navigatePhoto(1)">›</button>
-        <div class="photo-viewer-info" id="photoViewerInfo"></div>
-    </div>
-    
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-        <div class="loading-text" id="loadingText">Chargement...</div>
-    </div>
-    
-    <!-- Notification -->
-    <div class="notification" id="notification"></div>
-    
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- EXIF JS for reading GPS data from photos -->
-    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
-    <!-- heic2any for HEIC conversion -->
-    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
-    
-    <script>
-        // Variables globales
-        let map;
-        let markers = [];
-        let points = [];
-        let addMode = false;
-        let currentEditIndex = null;
-        let userMarker = null;
-        let tempPhotos = [];
-        let currentPhotoIndex = 0;
-        let currentViewPhotos = [];
-        let distanceMode = false;
-        let selectedPointsForDistance = [];
-        let distanceMarkers = [];
-        let distanceLine = null;
-        let userPosition = null;
-        let userToPointsLines = []; // Lignes de la position utilisateur vers chaque point
-        let showDistanceLines = false; // Toggle pour afficher/masquer les lignes
-        
-        // Initialisation de la carte
-        function initMap() {
-            map = L.map('map').setView([46.603354, 1.888334], 6);
-            
-            // Couches de carte disponibles
-            const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19
-            });
-            
-            const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '© Esri',
-                maxZoom: 19
-            });
-            
-            const hybridMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '© Esri',
-                maxZoom: 19
-            });
-            
-            const labels = L.tileLayer('https://{s}.basemaps.cartocdn.com/only_labels/{z}/{x}/{y}.png', {
-                attribution: '© CARTO',
-                maxZoom: 19,
-                pane: 'shadowPane'
-            });
-            
-            // Ajouter la carte satellite par défaut
-            satelliteMap.addTo(map);
-            
-            // Contrôle de couches (optionnel - pour changer de vue)
-            const baseMaps = {
-                "🛰️ Satellite": satelliteMap,
-                "🗺️ Plan": streetMap,
-                "🌍 Hybride": L.layerGroup([hybridMap, labels])
-            };
-            
-            L.control.layers(baseMaps).addTo(map);
-            
-            loadPoints();
-            locateMe();
-            
-            map.on('click', function(e) {
-                if (addMode) {
-                    openModal(e.latlng);
-                }
-            });
+        <div class="item-actions">
+          <button class="act" data-act="rename" data-step="${i}">✏️</button>
+        </div>
+      </div>`).join('');
+    steps.forEach((st,i)=>loadThumbs(i, st));
+  }
+
+  if(routeOn.book) drawRoute('book', steps, $('routeInfoBook'));
+}
+async function loadThumbs(i, step){
+  const box = $('th-'+i); if(!box) return;
+  for(const pid of step.photos.slice(0,12)){
+    let url = urlCache.get(pid);
+    if(!url){
+      const blob = await Photos.get(pid);
+      if(blob){ url = URL.createObjectURL(blob); urlCache.set(pid,url); }
+    }
+    if(url){
+      const img = document.createElement('img');
+      img.src = url; img.loading='lazy';
+      img.onclick = ()=>openViewer(url, `${step.name||''} · ${fmtTime(step.t)}`);
+      box.appendChild(img);
+    } else {
+      const d = document.createElement('div');
+      d.className='thumb-missing'; d.textContent='📷';
+      box.appendChild(d);
+    }
+  }
+}
+function openViewer(url, cap){
+  $('viewerImg').src = url;
+  $('viewerCap').textContent = cap || '';
+  $('viewer').hidden = false;
+}
+
+/* ===================== Import des photos ===================== */
+async function importPhotos(files){
+  if(!files || !files.length) return;
+  const total = files.length;
+  let ok=0, noGeo=0;
+  const fresh = [];
+
+  for(let i=0;i<total;i++){
+    busy(true, `Lecture ${i+1} / ${total}…`);
+    const f = files[i];
+    let gps=null, when=null;
+    const ex = await Exif.parse(f);
+    if(ex){
+      if(ex.lat!=null && ex.lon!=null) gps = {lat:ex.lat, lon:ex.lon};
+      when = ex.date;
+    }
+
+    if(!when) when = f.lastModified ? new Date(f.lastModified) : new Date();
+    if(!gps){ noGeo++; continue; }   // sans coordonnées, la photo ne situe rien
+
+    const id = uid();
+    const thumb = await makeThumb(f);          // peut être null (HEIC non décodable ici)
+    if(thumb) await Photos.put(id, thumb);
+    fresh.push({ id, t:+new Date(when), lat:gps.lat, lon:gps.lon, name:f.name });
+    ok++;
+  }
+
+  if(fresh.length) mergeIntoDays(fresh);
+  busy(false);
+
+  let msg = `${ok} photo${ok>1?'s':''} ajoutée${ok>1?'s':''}`;
+  if(noGeo) msg += ` · ${noGeo} sans position`;
+  toast(msg, 3600);
+  persist();
+  if(pane==='book') renderBook();
+}
+
+function makeThumb(file, max=1400, q=.78){
+  return new Promise(res=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      const sc = Math.min(1, max/Math.max(img.width,img.height));
+      const c = document.createElement('canvas');
+      c.width  = Math.round(img.width*sc);
+      c.height = Math.round(img.height*sc);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=>res(b), 'image/jpeg', q);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+
+/* Regroupe les photos en journées, puis en étapes.
+   Nouvelle étape dès qu'on s'éloigne de 300 m, ou après une heure sur place. */
+function mergeIntoDays(fresh){
+  const byDay = {};
+  fresh.forEach(p=>{
+    const d = new Date(p.t);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    (byDay[key] = byDay[key] || []).push(p);
+  });
+
+  Object.keys(byDay).forEach(date=>{
+    let day = trip.days.find(d=>d.date===date);
+    if(!day){ day = {date, photos:[], note:'', steps:[], raw:[]}; trip.days.push(day); }
+    if(!day.raw) day.raw = [];
+
+    byDay[date].forEach(p=>{
+      if(!day.raw.some(x=>x.id===p.id)) day.raw.push(p);
+      if(!day.photos.includes(p.id)) day.photos.push(p.id);
+    });
+    day.raw.sort((a,b)=>a.t-b.t);
+    day.steps = clusterSteps(day.raw, day.steps);
+  });
+}
+function clusterSteps(raw, previous=[]){
+  const named = {};
+  previous.forEach(s=>{ if(s.name || s.note) named[s.key] = {name:s.name, note:s.note}; });
+
+  const out = [];
+  raw.forEach(p=>{
+    const last = out[out.length-1];
+    if(last && haversine(last, p) < 300 && (p.t - last.tEnd) < 3600000){
+      last.photos.push(p.id);
+      last.tEnd = p.t;
+      last.lat = (last.lat*(last.photos.length-1) + p.lat)/last.photos.length;
+      last.lon = (last.lon*(last.photos.length-1) + p.lon)/last.photos.length;
+    } else {
+      out.push({ key:p.id, lat:p.lat, lon:p.lon, t:p.t, tEnd:p.t, photos:[p.id], name:'', note:'' });
+    }
+  });
+  out.forEach(s=>{ if(named[s.key]){ s.name = named[s.key].name; s.note = named[s.key].note; } });
+  return out;
+}
+
+/* Rapproche une étape du road book d'un lieu préparé (même nom proposé) */
+function nearestSite(pt, maxM=800){
+  let best=null, bd=maxM;
+  trip.sites.forEach(s=>{
+    if(s.lat==null) return;
+    const d = haversine(s,pt);
+    if(d<bd){ bd=d; best=s; }
+  });
+  return best;
+}
+
+/* ===================== Exports ===================== */
+function bookTitle(){ return trip.name || 'Road book'; }
+
+async function buildBookHtml(embed=true){
+  const days = dayList();
+  let body = '';
+
+  for(const [di,day] of days.entries()){
+    body += `<section class="day"><h2>Jour ${di+1} — ${fmtDate(day.date)}</h2>`;
+    if(day.note) body += `<p class="daynote">${escapeHtml(day.note).replace(/\n/g,'<br>')}</p>`;
+    for(const [si,st] of (day.steps||[]).entries()){
+      body += `<div class="step"><h3><span class="n">${si+1}</span> ${escapeHtml(st.name || 'Étape '+(si+1))}</h3>`;
+      body += `<p class="meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}</p>`;
+      if(st.note) body += `<p class="note">${escapeHtml(st.note).replace(/\n/g,'<br>')}</p>`;
+      if(embed){
+        body += `<div class="gal">`;
+        for(const pid of st.photos.slice(0,8)){
+          const blob = await Photos.get(pid);
+          if(blob){ body += `<img src="${await blobToDataUrl(blob)}" alt="">`; }
         }
-        
-        // Géolocalisation
-        function locateMe() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        
-                        userPosition = { lat, lng };
-                        map.setView([lat, lng], 15);
-                        
-                        if (userMarker) {
-                            userMarker.setLatLng([lat, lng]);
-                        } else {
-                            userMarker = L.circleMarker([lat, lng], {
-                                radius: 8,
-                                fillColor: '#007AFF',
-                                color: 'white',
-                                weight: 3,
-                                fillOpacity: 1
-                            }).addTo(map);
-                            
-                            userMarker.bindPopup('📍 Vous êtes ici');
-                        }
-                        
-                        showNotification('Position trouvée !');
-                        
-                        // Si les lignes de distance sont activées, les redessiner
-                        if (showDistanceLines) {
-                            drawDistanceLines();
-                        }
-                        
-                        if (distanceMode && selectedPointsForDistance.length === 0) {
-                            showDistancesFromUser();
-                        }
-                    },
-                    function(error) {
-                        showNotification('Impossible de vous localiser', 'error');
-                    }
-                );
-            } else {
-                showNotification('Géolocalisation non disponible', 'error');
-            }
-        }
-        
-        // Toggle mode ajout
-        function toggleAddMode() {
-            addMode = !addMode;
-            const btn = document.getElementById('addBtn');
-            
-            if (addMode) {
-                btn.style.background = '#007AFF';
-                btn.style.color = 'white';
-                showNotification('Cliquez sur la carte pour ajouter un point');
-            } else {
-                btn.style.background = 'white';
-                btn.style.color = 'black';
-            }
-        }
-        
-        // Ouvrir le modal
-        function openModal(latlng = null, editIndex = null) {
-            currentEditIndex = editIndex;
-            const modal = document.getElementById('pointModal');
-            const form = document.getElementById('pointForm');
-            const title = document.getElementById('modalTitle');
-            
-            tempPhotos = [];
-            
-            if (editIndex !== null) {
-                const point = points[editIndex];
-                title.textContent = 'Modifier le point';
-                document.getElementById('pointName').value = point.name;
-                document.getElementById('pointDescription').value = point.description || '';
-                
-                if (point.photos && point.photos.length > 0) {
-                    tempPhotos = [...point.photos];
-                }
-            } else {
-                title.textContent = 'Nouveau point';
-                form.reset();
-            }
-            
-            displayTempPhotos();
-            
-            if (latlng) {
-                form.dataset.lat = latlng.lat;
-                form.dataset.lng = latlng.lng;
-            }
-            
-            modal.classList.add('active');
-        }
-        
-        // Fermer le modal
-        function closeModal() {
-            document.getElementById('pointModal').classList.remove('active');
-            document.getElementById('pointForm').reset();
-            currentEditIndex = null;
-            tempPhotos = [];
-            displayTempPhotos();
-            addMode = false;
-            document.getElementById('addBtn').style.background = 'white';
-            document.getElementById('addBtn').style.color = 'black';
-        }
-        
-        // Compresser une image
-        function compressImage(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        const maxSize = 1200;
-                        if (width > maxSize || height > maxSize) {
-                            if (width > height) {
-                                height = (height / width) * maxSize;
-                                width = maxSize;
-                            } else {
-                                width = (width / height) * maxSize;
-                                height = maxSize;
-                            }
-                        }
-                        
-                        canvas.width = width;
-                        canvas.height = height;
-                        
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        const base64 = canvas.toDataURL('image/jpeg', 0.8);
-                        resolve(base64);
-                    };
-                    img.src = e.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-        
-        // Convertir une vidéo en base64
-        function videoToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-        
-        // Gérer l'ajout de photos dans le modal
-        document.getElementById('photoInput').addEventListener('change', async function(e) {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) return;
-            
-            showNotification('Traitement des médias...');
-            
-            for (const originalFile of files) {
-                try {
-                    if (originalFile.type.startsWith('image/') || 
-                        originalFile.name.toLowerCase().endsWith('.heic') || 
-                        originalFile.name.toLowerCase().endsWith('.heif')) {
-                        
-                        // Convertir HEIC en JPEG si nécessaire
-                        const file = await convertHeicIfNeeded(originalFile);
-                        
-                        const compressed = await compressImage(file);
-                        tempPhotos.push({ type: 'image', data: compressed });
-                    } else if (originalFile.type.startsWith('video/')) {
-                        const base64 = await videoToBase64(originalFile);
-                        tempPhotos.push({ type: 'video', data: base64 });
-                    }
-                } catch (error) {
-                    console.error('Erreur traitement:', error);
-                }
-            }
-            
-            displayTempPhotos();
-            showNotification(`${files.length} média(s) ajouté(s)`);
-            e.target.value = '';
+        body += `</div>`;
+      }
+      body += `</div>`;
+    }
+    body += `</section>`;
+  }
+
+  // Les étapes préparées en annexe : c'est la partie utile pour refaire le voyage.
+  let prep = '';
+  const sites = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  if(sites.length){
+    prep = `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
+      <div class="step"><h3>${KIND[s.kind].icon} ${escapeHtml(s.name)}</h3>
+      <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
+      ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
+  }
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(bookTitle())}</title><style>
+body{font-family:-apple-system,BlinkMacSystemFont,Georgia,serif;max-width:800px;margin:0 auto;padding:28px 20px;color:#1b1b1b;background:#faf8f4;line-height:1.55}
+h1{color:#1d4e5f;font-size:30px;border-bottom:3px solid #c2853a;padding-bottom:10px;margin-bottom:4px}
+.sub{color:#6b6b6b;font-size:14px;margin-bottom:28px}
+h2{color:#1d4e5f;font-size:21px;margin:34px 0 12px;padding-top:18px;border-top:1px solid #e2ddd4}
+h3{font-size:16px;margin:18px 0 4px;color:#143a47}
+.n{display:inline-flex;width:22px;height:22px;background:#1d4e5f;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-size:12px;margin-right:6px;vertical-align:2px}
+.meta{font-size:12px;color:#6b6b6b;margin:0 0 6px}
+.note,.daynote{font-size:14px;background:#fff;border-left:3px solid #c2853a;padding:9px 13px;border-radius:0 7px 7px 0;margin:8px 0}
+.gal{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.gal img{width:150px;height:150px;object-fit:cover;border-radius:7px}
+@media print{body{background:#fff}.day{page-break-inside:avoid}}
+</style></head><body>
+<h1>${escapeHtml(bookTitle())}</h1>
+<div class="sub">${trip.start?fmtDate(trip.start):''}${trip.end?' → '+fmtDate(trip.end):''} · ${days.length} journée${days.length>1?'s':''}</div>
+${body}${prep}
+</body></html>`;
+}
+function blobToDataUrl(blob){
+  return new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(blob); });
+}
+function download(name, content, type){
+  const blob = content instanceof Blob ? content : new Blob([content],{type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+function buildMarkdown(){
+  const days = dayList();
+  let md = `# ${bookTitle()}\n\n`;
+  if(trip.start) md += `${fmtDate(trip.start)}${trip.end?' → '+fmtDate(trip.end):''}\n\n`;
+
+  days.forEach((day,di)=>{
+    md += `## Jour ${di+1} — ${fmtDate(day.date)}\n\n`;
+    if(day.note) md += `${day.note}\n\n`;
+    (day.steps||[]).forEach((st,si)=>{
+      md += `### ${si+1}. ${st.name || 'Étape '+(si+1)}\n`;
+      md += `*${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · [${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}](https://maps.google.com/?q=${st.lat},${st.lon}) · ${st.photos.length} photo(s)*\n\n`;
+      if(st.note) md += `${st.note}\n\n`;
+    });
+  });
+
+  const sites = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  if(sites.length){
+    md += `\n## Carnet d'adresses\n\n`;
+    sites.forEach(s=>{
+      md += `### ${KIND[s.kind].icon} ${s.name}\n`;
+      md += `*${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}`;
+      if(s.lat!=null) md += ` · [carte](https://maps.google.com/?q=${s.lat},${s.lon})`;
+      md += `*\n\n`;
+      if(s.notes) md += `${s.notes}\n\n`;
+    });
+  }
+  return md;
+}
+async function exportPdf(){
+  busy(true,'Préparation du document…');
+  const html = await buildBookHtml(true);
+  busy(false);
+  const w = window.open('', '_blank');
+  if(!w){
+    // Safari bloque parfois l'ouverture : on retombe sur le téléchargement.
+    download(`${bookTitle()}.html`, html, 'text/html');
+    toast('Fichier téléchargé — ouvrez-le puis Partager › Imprimer', 4800);
+    return;
+  }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); }, 700);
+  toast('Dans la fenêtre d\'impression : Enregistrer en PDF', 4200);
+}
+
+/* ===================== Sauvegarde / restauration ===================== */
+async function backup(){
+  busy(true,'Constitution de la sauvegarde…');
+  const imgs = {};
+  const keys = await Photos.keys();
+  for(const k of keys){
+    const b = await Photos.get(k);
+    if(b) imgs[k] = await blobToDataUrl(b);
+  }
+  busy(false);
+  const payload = { version:1, savedAt:new Date().toISOString(), trip, images:imgs };
+  const name = `bthx-${(trip.name||'voyage').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.json`;
+  download(name, JSON.stringify(payload), 'application/json');
+  toast('Sauvegarde téléchargée', 3000);
+}
+async function restore(file){
+  busy(true,'Restauration…');
+  try{
+    const data = JSON.parse(await file.text());
+    if(!data.trip) throw new Error('format');
+    trip = data.trip;
+    if(!trip.days) trip.days=[]; if(!trip.sites) trip.sites=[];
+    await Photos.clear(); urlCache.clear();
+    if(data.images){
+      for(const [id,dataUrl] of Object.entries(data.images)){
+        const blob = await (await fetch(dataUrl)).blob();
+        await Photos.put(id, blob);
+      }
+    }
+    persist();
+    busy(false);
+    refreshHeader(); renderPrep(); renderBook();
+    toast('Sauvegarde restaurée', 3000);
+  }catch(e){
+    busy(false);
+    toast('Fichier illisible', 3200);
+  }
+}
+
+/* ===================== Interface ===================== */
+function refreshHeader(){
+  $('tripName').textContent = trip.name || 'BTHX Travel';
+  const d = [trip.start?fmtDate(trip.start):'', trip.end?fmtDate(trip.end):''].filter(Boolean).join(' → ');
+  $('tripDates').textContent = d || `${trip.sites.length} étape${trip.sites.length>1?'s':''} · ${trip.days.length} journée${trip.days.length>1?'s':''}`;
+}
+function switchPane(p){
+  pane = p;
+  $('pane-prep').hidden = p!=='prep';
+  $('pane-book').hidden = p!=='book';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.pane===p));
+  if(p==='prep') renderPrep(); else renderBook();
+}
+function openSheet(which){
+  $(which+'Backdrop').hidden = false;
+  $(which+'Sheet').hidden = false;
+}
+function closeSheet(which){
+  $(which+'Backdrop').hidden = true;
+  $(which+'Sheet').hidden = true;
+}
+function openEditor(id){
+  editingId = id;
+  const s = id ? trip.sites.find(x=>x.id===id) : null;
+  $('editTitle').textContent = s ? 'Modifier l\'étape' : 'Nouvelle étape';
+  $('eName').value  = s?s.name:'';
+  $('eKind').value  = s?s.kind:'etape';
+  $('eDate').value  = s?(s.date||''):'';
+  $('eLat').value   = s&&s.lat!=null?s.lat:'';
+  $('eLon').value   = s&&s.lon!=null?s.lon:'';
+  $('eNotes').value = s?(s.notes||''):'';
+  $('btnEditDelete').style.display = s ? '' : 'none';
+  openSheet('edit');
+}
+function saveEditor(){
+  const name = $('eName').value.trim();
+  if(!name){ toast('Il faut un nom'); return; }
+  const rec = {
+    name,
+    kind:  $('eKind').value,
+    date:  $('eDate').value || '',
+    lat:   $('eLat').value===''?null:parseFloat($('eLat').value),
+    lon:   $('eLon').value===''?null:parseFloat($('eLon').value),
+    notes: $('eNotes').value
+  };
+  if(editingId){
+    const s = trip.sites.find(x=>x.id===editingId);
+    Object.assign(s, rec);
+  } else {
+    trip.sites.push(Object.assign({id:uid()}, rec));
+  }
+  persist(); closeSheet('edit'); refreshHeader(); renderPrep();
+  toast('Étape enregistrée');
+}
+
+/* ===================== Branchements ===================== */
+function wire(){
+  // Onglets
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchPane(t.dataset.pane));
+
+  // Filtres
+  $('siteFilters').onclick = e=>{
+    const c = e.target.closest('.chip'); if(!c) return;
+    document.querySelectorAll('#siteFilters .chip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active'); kindFilter = c.dataset.kind; renderPrep();
+  };
+
+  // Liste des étapes
+  $('siteList').onclick = e=>{
+    const btn = e.target.closest('[data-act]');
+    if(btn){
+      const s = trip.sites.find(x=>x.id===btn.dataset.id);
+      if(btn.dataset.act==='edit') openEditor(btn.dataset.id);
+      if(btn.dataset.act==='go' && s && s.lat!=null && maps.prep){
+        maps.prep.setView([s.lat,s.lon],14);
+        maps.prep.closePopup();
+        layers.prep.markers.forEach(m=>{
+          if(Math.abs(m.getLatLng().lat-s.lat)<1e-6) m.openPopup();
         });
-        
-        // Afficher les photos temporaires dans le modal
-        function displayTempPhotos() {
-            const grid = document.getElementById('photoGrid');
-            const count = document.getElementById('photoCount');
-            
-            count.textContent = tempPhotos.length > 0 ? `(${tempPhotos.length})` : '';
-            
-            grid.innerHTML = tempPhotos.map((media, index) => {
-                const isVideo = media.type === 'video';
-                const content = isVideo 
-                    ? `<video src="${media.data}"></video><span class="video-badge">🎥</span>`
-                    : `<img src="${media.data}" alt="Photo ${index + 1}">`;
-                
-                return `
-                    <div class="photo-item">
-                        ${content}
-                        <button class="photo-remove" onclick="removeTempPhoto(${index})">×</button>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        // Supprimer une photo temporaire
-        function removeTempPhoto(index) {
-            tempPhotos.splice(index, 1);
-            displayTempPhotos();
-        }
-        
-        // Visualiser une photo/vidéo
-        function viewPhoto(index, mediaArray) {
-            currentPhotoIndex = index;
-            currentViewPhotos = mediaArray;
-            
-            const viewer = document.getElementById('photoViewer');
-            const content = document.getElementById('photoViewerContent');
-            const info = document.getElementById('photoViewerInfo');
-            
-            const media = mediaArray[index];
-            if (media.type === 'video') {
-                content.innerHTML = `<video src="${media.data}" controls autoplay style="max-width: 90%; max-height: 80vh;"></video>`;
-            } else {
-                content.innerHTML = `<img src="${media.data}" alt="Photo ${index + 1}">`;
-            }
-            
-            info.textContent = `${index + 1} / ${mediaArray.length}`;
-            viewer.classList.add('active');
-        }
-        
-        // Naviguer dans les photos
-        function navigatePhoto(direction) {
-            currentPhotoIndex += direction;
-            
-            if (currentPhotoIndex < 0) {
-                currentPhotoIndex = currentViewPhotos.length - 1;
-            } else if (currentPhotoIndex >= currentViewPhotos.length) {
-                currentPhotoIndex = 0;
-            }
-            
-            const content = document.getElementById('photoViewerContent');
-            const info = document.getElementById('photoViewerInfo');
-            
-            const media = currentViewPhotos[currentPhotoIndex];
-            if (media.type === 'video') {
-                content.innerHTML = `<video src="${media.data}" controls autoplay style="max-width: 90%; max-height: 80vh;"></video>`;
-            } else {
-                content.innerHTML = `<img src="${media.data}" alt="Photo ${currentPhotoIndex + 1}">`;
-            }
-            
-            info.textContent = `${currentPhotoIndex + 1} / ${currentViewPhotos.length}`;
-        }
-        
-        // Fermer le visualiseur
-        function closePhotoViewer() {
-            document.getElementById('photoViewer').classList.remove('active');
-            const content = document.getElementById('photoViewerContent');
-            content.innerHTML = '';
-        }
-        
-        // Soumettre le formulaire
-        document.getElementById('pointForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById('pointName').value;
-            const description = document.getElementById('pointDescription').value;
-            
-            if (currentEditIndex !== null) {
-                points[currentEditIndex].name = name;
-                points[currentEditIndex].description = description;
-                points[currentEditIndex].photos = [...tempPhotos];
-                showNotification('Point modifié !');
-            } else {
-                const lat = parseFloat(this.dataset.lat);
-                const lng = parseFloat(this.dataset.lng);
-                
-                const point = {
-                    id: Date.now(),
-                    name: name,
-                    description: description,
-                    lat: lat,
-                    lng: lng,
-                    photos: [...tempPhotos],
-                    createdAt: new Date().toISOString()
-                };
-                
-                points.push(point);
-                showNotification('Point ajouté !');
-            }
-            
-            savePoints();
-            displayPoints();
-            closeModal();
-        });
-        
-        // Sauvegarder les points
-        function savePoints() {
-            localStorage.setItem('geopoints', JSON.stringify(points));
-        }
-        
-        // Charger les points
-        function loadPoints() {
-            const saved = localStorage.getItem('geopoints');
-            if (saved) {
-                points = JSON.parse(saved);
-                displayPoints();
-            }
-        }
-        
-        // ========== IMPORT PHOTOS GÉOLOCALISÉES ==========
-        
-        // Convertir HEIC en JPEG si nécessaire
-        async function convertHeicIfNeeded(file) {
-            const isHeic = file.type === 'image/heic' || 
-                          file.type === 'image/heif' || 
-                          file.name.toLowerCase().endsWith('.heic') || 
-                          file.name.toLowerCase().endsWith('.heif');
-            
-            if (isHeic) {
-                try {
-                    console.log('Conversion HEIC vers JPEG...');
-                    const convertedBlob = await heic2any({
-                        blob: file,
-                        toType: 'image/jpeg',
-                        quality: 0.9
-                    });
-                    
-                    // Créer un nouveau File depuis le Blob
-                    return new File(
-                        [convertedBlob], 
-                        file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
-                        { type: 'image/jpeg' }
-                    );
-                } catch (error) {
-                    console.error('Erreur conversion HEIC:', error);
-                    return file; // Retourner le fichier original si échec
-                }
-            }
-            
-            return file; // Pas besoin de conversion
-        }
-        
-        // Convertir les coordonnées GPS EXIF en décimal
-        function convertDMSToDD(degrees, minutes, seconds, direction) {
-            let dd = degrees + minutes/60 + seconds/3600;
-            if (direction === 'S' || direction === 'W') {
-                dd = dd * -1;
-            }
-            return dd;
-        }
-        
-        // Extraire les coordonnées GPS d'une photo
-        function extractGPSFromPhoto(file) {
-            return new Promise((resolve, reject) => {
-                EXIF.getData(file, function() {
-                    const lat = EXIF.getTag(this, 'GPSLatitude');
-                    const latRef = EXIF.getTag(this, 'GPSLatitudeRef');
-                    const lon = EXIF.getTag(this, 'GPSLongitude');
-                    const lonRef = EXIF.getTag(this, 'GPSLongitudeRef');
-                    const dateTime = EXIF.getTag(this, 'DateTime');
-                    
-                    if (lat && lon && latRef && lonRef) {
-                        const latitude = convertDMSToDD(lat[0], lat[1], lat[2], latRef);
-                        const longitude = convertDMSToDD(lon[0], lon[1], lon[2], lonRef);
-                        resolve({ latitude, longitude, dateTime, hasGPS: true });
-                    } else {
-                        resolve({ hasGPS: false });
-                    }
-                });
-            });
-        }
-        
-        // Gérer l'import de photos géolocalisées
-        document.getElementById('photoImportInput').addEventListener('change', async function(e) {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) return;
-            
-            showLoading(`Analyse de ${files.length} fichier(s)...`);
-            
-            let imported = 0;
-            let noGPS = 0;
-            let converted = 0;
-            
-            for (const originalFile of files) {
-                try {
-                    if (originalFile.type.startsWith('image/') || 
-                        originalFile.name.toLowerCase().endsWith('.heic') || 
-                        originalFile.name.toLowerCase().endsWith('.heif')) {
-                        
-                        // Convertir HEIC en JPEG si nécessaire
-                        const file = await convertHeicIfNeeded(originalFile);
-                        if (file !== originalFile) {
-                            converted++;
-                            showLoading(`Conversion HEIC ${converted}/${files.length}...`);
-                        }
-                        
-                        // Extraire les coordonnées GPS
-                        const gpsData = await extractGPSFromPhoto(file);
-                        
-                        if (gpsData.hasGPS) {
-                            // Compresser l'image
-                            const compressed = await compressImage(file);
-                            
-                            // Créer un nouveau point
-                            const fileName = originalFile.name.replace(/\.[^/.]+$/, "");
-                            const point = {
-                                id: Date.now() + imported,
-                                name: fileName,
-                                description: gpsData.dateTime ? `Prise le ${gpsData.dateTime}` : 'Importé depuis photo',
-                                lat: gpsData.latitude,
-                                lng: gpsData.longitude,
-                                photos: [{ type: 'image', data: compressed }],
-                                createdAt: new Date().toISOString()
-                            };
-                            
-                            points.push(point);
-                            imported++;
-                        } else {
-                            noGPS++;
-                        }
-                    } else if (originalFile.type.startsWith('video/')) {
-                        // Les vidéos n'ont généralement pas de GPS EXIF facilement accessible
-                        noGPS++;
-                    }
-                } catch (error) {
-                    console.error('Erreur import:', error);
-                    noGPS++;
-                }
-            }
-            
-            hideLoading();
-            
-            if (imported > 0) {
-                savePoints();
-                displayPoints();
-                map.fitBounds(points.map(p => [p.lat, p.lng]));
-                
-                let message = `${imported} point(s) importé(s) !`;
-                if (converted > 0) {
-                    message += ` (${converted} HEIC converti(s))`;
-                }
-                showNotification(message);
-            }
-            
-            if (noGPS > 0) {
-                setTimeout(() => {
-                    showNotification(`${noGPS} fichier(s) sans GPS`, 'warning');
-                }, 2000);
-            }
-            
-            e.target.value = '';
-        });
-        
-        // Afficher le loading
-        function showLoading(text = 'Chargement...') {
-            document.getElementById('loadingText').textContent = text;
-            document.getElementById('loadingOverlay').classList.add('active');
-        }
-        
-        // Cacher le loading
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('active');
-        }
-        
-        // ========== AFFICHAGE DES POINTS ==========
-        
-        // Afficher les points sur la carte et dans la liste
-        function displayPoints() {
-            markers.forEach(marker => marker.remove());
-            markers = [];
-            
-            points.forEach((point, index) => {
-                const marker = L.marker([point.lat, point.lng], {
-                    title: point.name
-                }).addTo(map);
-                
-                marker.on('click', function() {
-                    if (distanceMode) {
-                        selectPointForDistance(index);
-                    }
-                });
-                
-                let distanceHTML = '';
-                if (userPosition) {
-                    const dist = calculateDistance(
-                        userPosition.lat, userPosition.lng,
-                        point.lat, point.lng
-                    );
-                    distanceHTML = `
-                        <div style="font-size: 12px; color: #007AFF; margin-top: 5px;">
-                            📏 ${formatDistance(dist)} de vous
-                        </div>
-                    `;
-                }
-                
-                let photosHTML = '';
-                if (point.photos && point.photos.length > 0) {
-                    photosHTML = `
-                        <div class="popup-photos">
-                            ${point.photos.slice(0, 3).map((media, photoIndex) => {
-                                const isVideo = media.type === 'video';
-                                const element = isVideo 
-                                    ? `<video src="${media.data}" class="popup-photo-thumb" onclick="viewPhoto(${photoIndex}, points[${index}].photos)"></video>`
-                                    : `<img src="${media.data}" class="popup-photo-thumb" onclick="viewPhoto(${photoIndex}, points[${index}].photos)" alt="Photo ${photoIndex + 1}">`;
-                                return element;
-                            }).join('')}
-                            ${point.photos.length > 3 ? `<div style="font-size: 11px; color: #666; padding: 5px;">+${point.photos.length - 3}</div>` : ''}
-                        </div>
-                    `;
-                }
-                
-                const popupContent = `
-                    <div class="popup-content">
-                        <div class="popup-name">${point.name}</div>
-                        ${point.description ? `<div class="popup-description">${point.description}</div>` : ''}
-                        ${distanceHTML}
-                        ${photosHTML}
-                        <div style="font-size: 11px; color: #999; margin-top: 8px;">
-                            ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}
-                        </div>
-                    </div>
-                `;
-                
-                marker.bindPopup(popupContent);
-                markers.push(marker);
-            });
-            
-            updatePointList();
-            
-            // Redessiner les lignes de distance si elles sont activées
-            if (showDistanceLines && userPosition) {
-                drawDistanceLines();
-            }
-        }
-        
-        // Mettre à jour la liste des points
-        function updatePointList() {
-            const listContainer = document.getElementById('pointList');
-            document.getElementById('pointCount').textContent = points.length;
-            
-            if (points.length === 0) {
-                listContainer.innerHTML = `
-                    <div class="empty-state">
-                        <div style="font-size: 48px;">📍</div>
-                        <p>Aucun point enregistré.<br>Appuyez sur ➕ ou 📸</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            listContainer.innerHTML = points.map((point, index) => {
-                const photoPreview = point.photos && point.photos.length > 0 
-                    ? `<div style="margin-top: 5px;">
-                         ${point.photos[0].type === 'video' 
-                            ? `<video src="${point.photos[0].data}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover; cursor: pointer;" onclick="viewPhoto(0, points[${index}].photos)"></video>`
-                            : `<img src="${point.photos[0].data}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover; cursor: pointer;" onclick="viewPhoto(0, points[${index}].photos)" alt="Photo">`
-                         }
-                         ${point.photos.length > 1 ? `<span style="font-size: 11px; color: #666; margin-left: 5px;">+${point.photos.length - 1}</span>` : ''}
-                       </div>` 
-                    : '';
-                
-                let distanceDisplay = '';
-                if (userPosition) {
-                    const dist = calculateDistance(
-                        userPosition.lat, userPosition.lng,
-                        point.lat, point.lng
-                    );
-                    distanceDisplay = `<div class="point-distance">📏 ${formatDistance(dist)}</div>`;
-                }
-                
-                return `
-                    <div class="point-item" ${distanceMode ? `onclick="selectPointForDistance(${index})" style="cursor: pointer;"` : ''}>
-                        <div class="point-info">
-                            <div class="point-name">${point.name}</div>
-                            <div class="point-coords">${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}</div>
-                            ${distanceDisplay}
-                            ${photoPreview}
-                        </div>
-                        <div class="point-actions" ${distanceMode ? 'style="display: none;"' : ''}>
-                            <button class="point-btn" onclick="centerOnPoint(${index})" title="Centrer">🎯</button>
-                            <button class="point-btn" onclick="editPoint(${index})" title="Modifier">✏️</button>
-                            <button class="point-btn" onclick="deletePoint(${index})" title="Supprimer">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        // Centrer sur un point
-        function centerOnPoint(index) {
-            const point = points[index];
-            map.setView([point.lat, point.lng], 16);
-            markers[index].openPopup();
-        }
-        
-        // Éditer un point
-        function editPoint(index) {
-            openModal(null, index);
-        }
-        
-        // Supprimer un point
-        function deletePoint(index) {
-            if (confirm(`Supprimer "${points[index].name}" ?`)) {
-                points.splice(index, 1);
-                savePoints();
-                displayPoints();
-                showNotification('Point supprimé');
-            }
-        }
-        
-        // Toggle panneau d'information
-        function togglePanel() {
-            document.getElementById('infoPanel').classList.toggle('expanded');
-        }
-        
-        // ========== CALCUL DE DISTANCE ==========
-        
-        // Toggle affichage des lignes de distance
-        function toggleDistanceLines() {
-            showDistanceLines = !showDistanceLines;
-            const btn = document.getElementById('linesBtn');
-            
-            if (showDistanceLines) {
-                btn.style.background = '#007AFF';
-                btn.style.color = 'white';
-                if (userPosition && points.length > 0) {
-                    drawDistanceLines();
-                } else if (!userPosition) {
-                    showNotification('Géolocalisez-vous d\'abord (📍)');
-                    showDistanceLines = false;
-                    btn.style.background = 'white';
-                    btn.style.color = 'black';
-                } else {
-                    showNotification('Aucun point à relier');
-                    showDistanceLines = false;
-                    btn.style.background = 'white';
-                    btn.style.color = 'black';
-                }
-            } else {
-                btn.style.background = 'white';
-                btn.style.color = 'black';
-                clearDistanceLines();
-            }
-        }
-        
-        // Dessiner les lignes de distance depuis la position utilisateur
-        function drawDistanceLines() {
-            if (!userPosition || points.length === 0) return;
-            
-            clearDistanceLines();
-            
-            points.forEach((point, index) => {
-                const dist = calculateDistance(
-                    userPosition.lat, userPosition.lng,
-                    point.lat, point.lng
-                );
-                
-                // Créer la ligne
-                const line = L.polyline([
-                    [userPosition.lat, userPosition.lng],
-                    [point.lat, point.lng]
-                ], {
-                    color: '#007AFF',
-                    weight: 2,
-                    opacity: 0.6,
-                    dashArray: '5, 10'
-                }).addTo(map);
-                
-                // Calculer le point milieu pour placer le label
-                const midLat = (userPosition.lat + point.lat) / 2;
-                const midLng = (userPosition.lng + point.lng) / 2;
-                
-                // Créer le label de distance
-                const distanceLabel = L.marker([midLat, midLng], {
-                    icon: L.divIcon({
-                        className: 'distance-label-on-line',
-                        html: formatDistance(dist),
-                        iconSize: [60, 24],
-                        iconAnchor: [30, 12]
-                    })
-                }).addTo(map);
-                
-                userToPointsLines.push({ line, label: distanceLabel });
-            });
-            
-            showNotification(`${points.length} ligne(s) tracée(s)`);
-        }
-        
-        // Effacer les lignes de distance
-        function clearDistanceLines() {
-            userToPointsLines.forEach(item => {
-                item.line.remove();
-                item.label.remove();
-            });
-            userToPointsLines = [];
-        }
-        
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-        
-        function formatDistance(km) {
-            if (km < 1) {
-                return Math.round(km * 1000) + ' m';
-            } else if (km < 10) {
-                return km.toFixed(2) + ' km';
-            } else {
-                return km.toFixed(1) + ' km';
-            }
-        }
-        
-        function toggleDistanceMode() {
-            distanceMode = !distanceMode;
-            const btn = document.getElementById('distanceBtn');
-            
-            if (distanceMode) {
-                btn.style.background = '#007AFF';
-                btn.style.color = 'white';
-                selectedPointsForDistance = [];
-                clearDistanceMarkers();
-                
-                if (userPosition) {
-                    showDistancesFromUser();
-                } else {
-                    showNotification('Sélectionnez 2 points pour mesurer');
-                }
-                
-                document.getElementById('distanceInfo').classList.add('active');
-            } else {
-                btn.style.background = 'white';
-                btn.style.color = 'black';
-                closeDistanceMode();
-            }
-        }
-        
-        function closeDistanceMode() {
-            distanceMode = false;
-            document.getElementById('distanceBtn').style.background = 'white';
-            document.getElementById('distanceBtn').style.color = 'black';
-            document.getElementById('distanceInfo').classList.remove('active');
-            selectedPointsForDistance = [];
-            clearDistanceMarkers();
-        }
-        
-        function clearDistanceMarkers() {
-            distanceMarkers.forEach(marker => marker.remove());
-            distanceMarkers = [];
-            if (distanceLine) {
-                distanceLine.remove();
-                distanceLine = null;
-            }
-        }
-        
-        function showDistancesFromUser() {
-            if (!userPosition) return;
-            
-            const content = document.getElementById('distanceContent');
-            
-            if (points.length === 0) {
-                content.innerHTML = '<div class="distance-label">Aucun point à mesurer</div>';
-                return;
-            }
-            
-            const pointsWithDistance = points.map((point, index) => {
-                const dist = calculateDistance(
-                    userPosition.lat, userPosition.lng,
-                    point.lat, point.lng
-                );
-                return { index, point, distance: dist };
-            }).sort((a, b) => a.distance - b.distance);
-            
-            content.innerHTML = `
-                <div style="margin-bottom: 10px; font-size: 13px; color: #666;">
-                    Distance depuis votre position :
-                </div>
-                ${pointsWithDistance.map(item => `
-                    <div class="distance-item">
-                        <span class="distance-label">${item.point.name}</span>
-                        <span class="distance-value">${formatDistance(item.distance)}</span>
-                    </div>
-                `).join('')}
-            `;
-        }
-        
-        function selectPointForDistance(index) {
-            if (!distanceMode) return;
-            
-            const point = points[index];
-            
-            const existingIndex = selectedPointsForDistance.findIndex(p => p.index === index);
-            if (existingIndex !== -1) {
-                selectedPointsForDistance.splice(existingIndex, 1);
-                clearDistanceMarkers();
-                
-                if (selectedPointsForDistance.length === 1) {
-                    addDistanceMarker(selectedPointsForDistance[0], 1);
-                }
-                updateDistanceDisplay();
-                return;
-            }
-            
-            if (selectedPointsForDistance.length >= 2) {
-                selectedPointsForDistance.shift();
-                clearDistanceMarkers();
-            }
-            
-            selectedPointsForDistance.push({ index, point });
-            
-            selectedPointsForDistance.forEach((item, idx) => {
-                addDistanceMarker(item, idx + 1);
-            });
-            
-            if (selectedPointsForDistance.length === 2) {
-                const p1 = selectedPointsForDistance[0].point;
-                const p2 = selectedPointsForDistance[1].point;
-                
-                distanceLine = L.polyline([
-                    [p1.lat, p1.lng],
-                    [p2.lat, p2.lng]
-                ], {
-                    color: '#007AFF',
-                    weight: 3,
-                    dashArray: '10, 10',
-                    opacity: 0.8
-                }).addTo(map);
-            }
-            
-            updateDistanceDisplay();
-        }
-        
-        function addDistanceMarker(item, number) {
-            const icon = L.divIcon({
-                className: 'measure-marker',
-                html: number,
-                iconSize: [30, 30]
-            });
-            
-            const marker = L.marker([item.point.lat, item.point.lng], { icon }).addTo(map);
-            distanceMarkers.push(marker);
-        }
-        
-        function updateDistanceDisplay() {
-            const content = document.getElementById('distanceContent');
-            
-            if (selectedPointsForDistance.length === 0) {
-                if (userPosition) {
-                    showDistancesFromUser();
-                } else {
-                    content.innerHTML = '<div class="distance-label">Cliquez sur 2 points</div>';
-                }
-                return;
-            }
-            
-            if (selectedPointsForDistance.length === 1) {
-                content.innerHTML = `
-                    <div class="distance-item">
-                        <span class="distance-label">Point 1 :</span>
-                        <span class="distance-value">${selectedPointsForDistance[0].point.name}</span>
-                    </div>
-                    <div class="distance-label" style="margin-top: 10px; font-size: 13px; color: #666;">
-                        Sélectionnez un 2ème point
-                    </div>
-                `;
-                return;
-            }
-            
-            const p1 = selectedPointsForDistance[0].point;
-            const p2 = selectedPointsForDistance[1].point;
-            const dist = calculateDistance(p1.lat, p1.lng, p2.lat, p2.lng);
-            
-            content.innerHTML = `
-                <div class="distance-item">
-                    <span class="distance-label">Point 1 :</span>
-                    <span class="distance-value">${p1.name}</span>
-                </div>
-                <div class="distance-item">
-                    <span class="distance-label">Point 2 :</span>
-                    <span class="distance-value">${p2.name}</span>
-                </div>
-                <div class="distance-item" style="background: #f0f8ff; margin-top: 10px; padding: 12px; border-radius: 8px;">
-                    <span class="distance-label" style="font-weight: 600;">Distance :</span>
-                    <span class="distance-value" style="color: #007AFF; font-size: 18px;">${formatDistance(dist)}</span>
-                </div>
-            `;
-        }
-        
-        // Afficher une notification
-        function showNotification(message, type = 'success') {
-            const notif = document.getElementById('notification');
-            notif.textContent = message;
-            notif.style.background = type === 'error' ? '#ff3b30' : type === 'warning' ? '#ff9500' : 'white';
-            notif.style.color = type === 'error' || type === 'warning' ? 'white' : 'black';
-            notif.classList.add('show');
-            
-            setTimeout(() => {
-                notif.classList.remove('show');
-            }, 2500);
-        }
-        
-        // Initialiser au chargement
-        window.addEventListener('load', initMap);
-        
-        // ========== PWA SERVICE WORKER ==========
-        
-        // Enregistrer le Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker enregistré:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('Erreur ServiceWorker:', error);
-                    });
-            });
-        }
-        
-        // ========== PWA INSTALLATION ==========
-        
-        let deferredPrompt;
-        let installButton;
-        
-        // Créer le bouton d'installation
-        function createInstallButton() {
-            installButton = document.createElement('div');
-            installButton.id = 'installPrompt';
-            installButton.innerHTML = `
-                <div style="position: fixed; bottom: 80px; left: 10px; right: 10px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; display: flex; align-items: center; gap: 12px;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; margin-bottom: 4px;">📲 Installer GéoPoints</div>
-                        <div style="font-size: 13px; color: #666;">Accédez rapidement depuis votre écran d'accueil</div>
-                    </div>
-                    <button onclick="installPWA()" style="background: #007AFF; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">Installer</button>
-                    <button onclick="dismissInstall()" style="background: #e5e5e5; color: #333; border: none; padding: 10px; border-radius: 8px; cursor: pointer;">✕</button>
-                </div>
-            `;
-            document.body.appendChild(installButton);
-        }
-        
-        // Gérer l'événement beforeinstallprompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Empêcher le prompt automatique
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            // Vérifier si l'utilisateur n'a pas déjà refusé
-            const dismissed = localStorage.getItem('pwa-install-dismissed');
-            if (!dismissed) {
-                createInstallButton();
-            }
-        });
-        
-        // Fonction d'installation
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('PWA installée');
-                        showNotification('Application installée ! 🎉');
-                    }
-                    deferredPrompt = null;
-                    if (installButton) {
-                        installButton.remove();
-                    }
-                });
-            }
-        }
-        
-        // Fonction pour rejeter l'installation
-        function dismissInstall() {
-            localStorage.setItem('pwa-install-dismissed', 'true');
-            if (installButton) {
-                installButton.remove();
-            }
-        }
-        
-        // Détecter si l'app est déjà installée
-        window.addEventListener('appinstalled', () => {
-            console.log('PWA installée avec succès');
-            showNotification('Application installée ! 🎉');
-            if (installButton) {
-                installButton.remove();
-            }
-        });
-        
-        // Vérifier si l'app tourne en mode standalone (installée)
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            console.log('App lancée en mode standalone');
-        }
-    </script>
+      }
+      return;
+    }
+    const it = e.target.closest('.item');
+    if(it) highlight(it.dataset.id);
+  };
+
+  $('btnAddSite').onclick = ()=>openEditor(null);
+  $('btnHere').onclick = ()=>{
+    if(!navigator.geolocation){ toast('Localisation indisponible'); return; }
+    busy(true,'Localisation…');
+    navigator.geolocation.getCurrentPosition(pos=>{
+      busy(false);
+      openEditor(null);
+      $('eLat').value = pos.coords.latitude.toFixed(6);
+      $('eLon').value = pos.coords.longitude.toFixed(6);
+      $('eDate').value = new Date().toISOString().slice(0,10);
+    }, err=>{ busy(false); toast('Position refusée'); }, {enableHighAccuracy:true, timeout:12000});
+  };
+
+  $('btnFitPrep').onclick = ()=>fitTo('prep', trip.sites.filter(s=>s.lat!=null));
+  $('btnRoutePrep').onclick = e=>{
+    if(!maps.prep){ toast('Carte indisponible hors ligne'); return; }
+    routeOn.prep = !routeOn.prep;
+    e.currentTarget.classList.toggle('on', routeOn.prep);
+    if(routeOn.prep) drawRoute('prep', routePoints(), $('routeInfoPrep'));
+    else { if(layers.prep.route){ maps.prep.removeLayer(layers.prep.route); layers.prep.route=null; } $('routeInfoPrep').hidden=true; }
+  };
+
+  // Road book
+  $('btnPrevDay').onclick = ()=>{ dayIndex--; renderBook(); };
+  $('btnNextDay').onclick = ()=>{ dayIndex++; renderBook(); };
+  $('btnImport').onclick  = ()=>$('photoInput').click();
+  $('photoInput').onchange = e=>{ importPhotos(Array.from(e.target.files)); e.target.value=''; };
+
+  $('dayNote').oninput = ()=>{
+    const days = dayList(); if(!days.length) return;
+    days[dayIndex].note = $('dayNote').value;
+    clearTimeout(window._noteT);
+    window._noteT = setTimeout(persist, 600);
+  };
+
+  $('stepList').onclick = e=>{
+    const btn = e.target.closest('[data-act="rename"]'); if(!btn) return;
+    const days = dayList(); const st = days[dayIndex].steps[+btn.dataset.step];
+    const suggestion = st.name || (nearestSite(st)||{}).name || '';
+    const v = prompt('Nom de l\'étape', suggestion);
+    if(v===null) return;
+    st.name = v.trim();
+    const n = prompt('Note (facultatif)', st.note || '');
+    if(n!==null) st.note = n;
+    persist(); renderBook();
+  };
+
+  $('btnFitBook').onclick = ()=>{
+    const days = dayList(); if(days.length) fitTo('book', days[dayIndex].steps||[]);
+  };
+  $('btnRouteBook').onclick = e=>{
+    if(!maps.book){ toast('Carte indisponible hors ligne'); return; }
+    routeOn.book = !routeOn.book;
+    e.currentTarget.classList.toggle('on', routeOn.book);
+    const days = dayList();
+    if(routeOn.book && days.length) drawRoute('book', days[dayIndex].steps||[], $('routeInfoBook'));
+    else { if(layers.book.route){ maps.book.removeLayer(layers.book.route); layers.book.route=null; } $('routeInfoBook').hidden=true; }
+  };
+
+  $('viewerClose').onclick = ()=>{ $('viewer').hidden = true; };
+
+  // Menu
+  $('btnMenu').onclick = ()=>{
+    $('mName').value = trip.name; $('mStart').value = trip.start; $('mEnd').value = trip.end;
+    showStorage(); openSheet('menu');
+  };
+  $('btnCloseMenu').onclick = $('menuBackdrop').onclick = ()=>closeSheet('menu');
+  ['mName','mStart','mEnd'].forEach(id=>{
+    $(id).onchange = ()=>{
+      trip.name  = $('mName').value.trim() || 'Nouveau voyage';
+      trip.start = $('mStart').value; trip.end = $('mEnd').value;
+      persist(); refreshHeader();
+    };
+  });
+
+  $('btnExpPdf').onclick  = exportPdf;
+  $('btnExpHtml').onclick = async ()=>{
+    busy(true,'Construction de la page…');
+    const html = await buildBookHtml(true);
+    busy(false);
+    download(`${bookTitle()}.html`, html, 'text/html');
+    toast('Page web téléchargée', 3000);
+  };
+  $('btnExpMd').onclick = async ()=>{
+    const md = buildMarkdown();
+    try{ await navigator.clipboard.writeText(md); toast('Copié — collez dans Notion', 3600); }
+    catch(e){ toast('Fichier téléchargé pour Notion', 3200); }
+    download(`${bookTitle()}.md`, md, 'text/markdown');
+  };
+
+  $('btnBackup').onclick  = backup;
+  $('btnRestore').onclick = ()=>$('restoreInput').click();
+  $('restoreInput').onchange = e=>{ if(e.target.files[0]) restore(e.target.files[0]); e.target.value=''; };
+
+  $('btnLoadCape').onclick = ()=>{
+    if(trip.sites.length && !confirm('Remplacer les étapes actuelles par l\'itinéraire du Cap ?')) return;
+    trip.name = CAPE_TRIP.name; trip.start = CAPE_TRIP.start; trip.end = CAPE_TRIP.end;
+    trip.sites = CAPE_TRIP.sites.map(s=>Object.assign({id:uid()}, s));
+    persist(); refreshHeader(); closeSheet('menu'); switchPane('prep');
+    setTimeout(()=>fitTo('prep', trip.sites.filter(s=>s.lat!=null)), 300);
+    toast('Itinéraire du Cap chargé', 3000);
+  };
+
+  $('btnWipe').onclick = async ()=>{
+    if(!confirm('Tout effacer — étapes, journées et photos ?\n\nFaites une sauvegarde avant.')) return;
+    await Photos.clear(); Store.clear(); urlCache.clear();
+    trip = { name:'Nouveau voyage', start:'', end:'', sites:[], days:[] };
+    refreshHeader(); closeSheet('menu'); switchPane('prep');
+    toast('Tout a été effacé');
+  };
+
+  // Éditeur
+  $('btnEditSave').onclick = saveEditor;
+  $('btnEditCancel').onclick = $('editBackdrop').onclick = ()=>closeSheet('edit');
+  $('btnEditDelete').onclick = ()=>{
+    if(!editingId || !confirm('Supprimer cette étape ?')) return;
+    trip.sites = trip.sites.filter(s=>s.id!==editingId);
+    persist(); closeSheet('edit'); refreshHeader(); renderPrep();
+    toast('Étape supprimée');
+  };
+}
+
+async function showStorage(){
+  try{
+    if(navigator.storage && navigator.storage.estimate){
+      const {usage,quota} = await navigator.storage.estimate();
+      const pct = quota ? Math.round(usage/quota*100) : 0;
+      $('storageHint').textContent =
+        `${trip.sites.length} étapes · ${trip.days.length} journées · ${(await Photos.keys()).length} photos — ${(usage/1048576).toFixed(0)} Mo utilisés (${pct} %)`;
+    }
+  }catch(e){}
+}
+
+/* ===================== Démarrage ===================== */
+wire();
+refreshHeader();
+switchPane('prep');
+
+if(!trip.sites.length && !trip.days.length){
+  // Premier lancement : on propose l'itinéraire déjà préparé.
+  setTimeout(()=>toast('Menu ☰ › Itinéraire Le Cap pour démarrer', 5000), 900);
+}
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+}
+
+</script>
 </body>
 </html>

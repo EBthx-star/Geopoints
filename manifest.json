@@ -1,23 +1,17 @@
 {
-  "name": "GéoPoints - Mes emplacements",
-  "short_name": "GéoPoints",
-  "description": "Application de géolocalisation et gestion de points avec photos et vidéos",
+  "name": "BTHX Travel",
+  "short_name": "BTHX Travel",
+  "description": "Préparation de voyage et road book privé",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#007AFF",
   "orientation": "portrait",
+  "background_color": "#f4f1ec",
+  "theme_color": "#1d4e5f",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23007AFF;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%230051D5;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='200' height='200' rx='40' fill='url(%23grad)'/%3E%3Cg transform='translate(100,100)'%3E%3Ccircle r='55' fill='white' opacity='0.2'/%3E%3Ccircle r='45' fill='white' opacity='0.3'/%3E%3Cpath d='M 0,-50 L 15,-15 L 50,-15 L 22,10 L 35,45 L 0,20 L -35,45 L -22,10 L -50,-15 L -15,-15 Z' fill='white'/%3E%3Ccircle r='12' fill='%23007AFF'/%3E%3C/g%3E%3C/svg%3E",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23007AFF;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%230051D5;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='100' fill='url(%23grad)'/%3E%3Cg transform='translate(256,256)'%3E%3Ccircle r='140' fill='white' opacity='0.2'/%3E%3Ccircle r='115' fill='white' opacity='0.3'/%3E%3Cpath d='M 0,-128 L 38,-38 L 128,-38 L 56,26 L 90,115 L 0,51 L -90,115 L -56,26 L -128,-38 L -38,-38 Z' fill='white'/%3E%3Ccircle r='30' fill='%23007AFF'/%3E%3C/g%3E%3C/svg%3E",
-      "sizes": "512x512",
+      "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%0A%20%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22110%22%20fill%3D%22%231d4e5f%22/%3E%0A%20%20%3Cpath%20d%3D%22M120%20360%20Q200%20250%20256%20300%20Q312%20350%20392%20180%22%20stroke%3D%22%23c2853a%22%20stroke-width%3D%2222%22%0A%20%20%20%20%20%20%20%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-dasharray%3D%224%2040%22/%3E%0A%20%20%3Ccircle%20cx%3D%22120%22%20cy%3D%22360%22%20r%3D%2230%22%20fill%3D%22%23fff%22/%3E%0A%20%20%3Cpath%20d%3D%22M392%20130%20a46%2046%200%200%201%2046%2046%20c0%2034%20-46%2084%20-46%2084%20s-46%20-50%20-46%20-84%20a46%2046%200%200%201%2046%20-46z%22%20fill%3D%22%23fff%22/%3E%0A%20%20%3Ccircle%20cx%3D%22392%22%20cy%3D%22176%22%20r%3D%2217%22%20fill%3D%22%231d4e5f%22/%3E%0A%3C/svg%3E%0A",
+      "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
