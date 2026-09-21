@@ -84,7 +84,17 @@ const Store = {
     return { id:this._uid(), name:name||'Nouveau voyage', start:'', end:'', sites:[], days:[] };
   },
   _read(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } },
-  _write(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ console.warn('save',e); return false; } },
+  /* Le voyage passe avant le cache des routes : si la mémoire est pleine,
+     on vide les tracés (ils se recalculent) et on réessaie. */
+  _write(k,v){
+    const txt = JSON.stringify(v);
+    try{ localStorage.setItem(k, txt); return true; }
+    catch(e){
+      RouteCache.purge();
+      try{ localStorage.setItem(k, txt); return true; }
+      catch(e2){ console.warn('save',e2); return false; }
+    }
+  },
 
   index(){
     let idx = this._read(LS_INDEX);
@@ -128,7 +138,12 @@ const Store = {
     if(i<0) idx.trips.push(this._meta(trip)); else idx.trips[i] = this._meta(trip);
     return this._write(LS_INDEX, idx);
   },
-  create(name){ const t=this.blank(name); this.save(t); this.setCurrent(t.id); return t; },
+  create(name){
+    const t = this.blank(name);
+    if(!this.save(t)) return null;          // mémoire pleine : l'appelant prévient
+    this.setCurrent(t.id);
+    return t;
+  },
   remove(id){
     try{ localStorage.removeItem(LS_TRIP+id); }catch(e){}
     const idx = this.index();
@@ -194,12 +209,36 @@ const Photos = (() => {
    Indispensable hors ligne : une fois un segment calculé, il ne
    redemande plus rien au réseau. */
 const RouteCache = {
+  PREFIX: 'bthx.route.',
   key(a,b){ return `${a.lat.toFixed(4)},${a.lon.toFixed(4)}>${b.lat.toFixed(4)},${b.lon.toFixed(4)}`; },
   get(a,b){
-    try{ const v = localStorage.getItem('bthx.route.'+this.key(a,b)); return v?JSON.parse(v):null; }
+    try{ const v = localStorage.getItem(this.PREFIX+this.key(a,b)); return v?JSON.parse(v):null; }
     catch(e){ return null; }
   },
+  /* Un tracé OSRM complet compte des milliers de points : dix segments
+     longs suffisaient à saturer les 5 Mo de l'iPhone. On arrondit au mètre
+     et on ne garde qu'un point tous les 40 m environ — invisible à l'écran. */
+  compact(val){
+    const c = val.coords || [];
+    const out = [];
+    let last = null;
+    c.forEach((p,i)=>{
+      const q = [Math.round(p[0]*1e5)/1e5, Math.round(p[1]*1e5)/1e5];
+      if(!last || i===c.length-1 || Math.abs(q[0]-last[0])+Math.abs(q[1]-last[1]) > 0.0004){ out.push(q); last = q; }
+    });
+    return Object.assign({}, val, {coords: out});
+  },
   set(a,b,val){
-    try{ localStorage.setItem('bthx.route.'+this.key(a,b), JSON.stringify(val)); }catch(e){}
+    const txt = JSON.stringify(this.compact(val));
+    try{ localStorage.setItem(this.PREFIX+this.key(a,b), txt); }
+    catch(e){ this.purge(); try{ localStorage.setItem(this.PREFIX+this.key(a,b), txt); }catch(e2){} }
+  },
+  purge(){
+    try{
+      const ks = [];
+      for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.startsWith(this.PREFIX)) ks.push(k); }
+      ks.forEach(k=>localStorage.removeItem(k));
+      return ks.length;
+    }catch(e){ return 0; }
   }
 };

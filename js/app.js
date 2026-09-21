@@ -840,6 +840,7 @@ async function newTrip(){
   const v = await ask({ title:'Nouveau voyage', fields:[{label:'Nom', placeholder:'ex. Namibie 2027'}], ok:'Créer' });
   if(v===null) return;
   const t = Store.create(v[0].trim() || 'Nouveau voyage');
+  if(!t){ toast('⚠️ Mémoire pleine — faites une sauvegarde puis supprimez un ancien voyage.', 5000); return; }
   switchTrip(t.id);
   switchPane('prep');
   toast('Voyage créé — renseignez les dates ci-dessus', 3200);
@@ -1158,7 +1159,9 @@ function wire(){
     // sans rien écraser.
     if(trip.sites.length || trip.days.length){
       if(!(await askYes('Itinéraire du Cap', 'Créer un nouveau voyage avec l\'itinéraire du Cap ?\nLe voyage actuel reste intact dans la liste.', 'Créer'))) return;
-      trip = Store.create(CAPE_TRIP.name);
+      const t = Store.create(CAPE_TRIP.name);
+      if(!t){ toast('⚠️ Mémoire pleine — impossible de créer le voyage.', 5000); return; }
+      trip = t;
     }
     trip.name = CAPE_TRIP.name; trip.start = CAPE_TRIP.start; trip.end = CAPE_TRIP.end;
     trip.sites = CAPE_TRIP.sites.map(s=>Object.assign({id:uid()}, s));
