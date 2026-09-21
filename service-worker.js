@@ -11,7 +11,7 @@
    cache ne prend le relais que s'il est injoignable.
 */
 
-const CACHE = 'bthx-travel-v4';
+const CACHE = 'bthx-travel-v5';
 
 // Ce qu'il faut avoir sous la main pour démarrer hors réseau.
 const SHELL = [

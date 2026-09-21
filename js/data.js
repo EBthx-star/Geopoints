@@ -69,27 +69,81 @@ const CAPE_TRIP = {
                     le quota de localStorage
    ================================================================== */
 
-const LS_KEY = 'bthx.trip.v1';
+/* Plusieurs voyages depuis le 21 sept. 2026.
+   - `bthx.index.v2`       : { current, trips:[{id,name,start,end}] }
+   - `bthx.trip.v2.<id>`   : un voyage complet
+   L'ancien emplacement unique `bthx.trip.v1` est repris au premier
+   lancement : le voyage déjà saisi devient le premier de la liste. */
+const LS_OLD   = 'bthx.trip.v1';
+const LS_INDEX = 'bthx.index.v2';
+const LS_TRIP  = 'bthx.trip.v2.';
 
 const Store = {
-  load(){
-    try{
-      const raw = localStorage.getItem(LS_KEY);
-      if(!raw) return null;
-      return JSON.parse(raw);
-    }catch(e){ console.warn('load', e); return null; }
+  _uid(){ return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); },
+  blank(name){
+    return { id:this._uid(), name:name||'Nouveau voyage', start:'', end:'', sites:[], days:[] };
   },
-  save(trip){
-    try{
-      localStorage.setItem(LS_KEY, JSON.stringify(trip));
-      return true;
-    }catch(e){
-      console.warn('save', e);
-      return false; // quota — l'appelant prévient l'utilisateur
+  _read(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } },
+  _write(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ console.warn('save',e); return false; } },
+
+  index(){
+    let idx = this._read(LS_INDEX);
+    if(idx && Array.isArray(idx.trips)) return idx;
+    idx = { current:null, trips:[] };
+    const old = this._read(LS_OLD);                    // migration v1 -> v2
+    if(old){
+      old.id = old.id || this._uid();
+      if(this._write(LS_TRIP+old.id, old)){
+        idx.trips.push(this._meta(old)); idx.current = old.id;
+        try{ localStorage.removeItem(LS_OLD); }catch(e){}
+      }
     }
+    this._write(LS_INDEX, idx);
+    return idx;
   },
-  clear(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
+  _meta(t){ return { id:t.id, name:t.name||'Nouveau voyage', start:t.start||'', end:t.end||'' }; },
+
+  list(){ return this.index().trips; },
+  load(id){
+    const t = this._read(LS_TRIP+id);
+    if(!t) return null;
+    t.id = id; t.sites = t.sites||[]; t.days = t.days||[];
+    return t;
+  },
+  /* Le voyage ouvert. Il y en a toujours un : on le crée au besoin. */
+  current(){
+    const idx = this.index();
+    let t = idx.current ? this.load(idx.current) : null;
+    if(!t && idx.trips.length) t = this.load(idx.trips[0].id);
+    if(!t){ t = this.blank(); this.save(t); }
+    this.setCurrent(t.id);
+    return t;
+  },
+  setCurrent(id){ const idx=this.index(); idx.current=id; this._write(LS_INDEX, idx); },
+  save(trip){
+    if(!trip.id) trip.id = this._uid();
+    if(!this._write(LS_TRIP+trip.id, trip)) return false; // quota — l'appelant prévient
+    const idx = this.index();
+    const i = idx.trips.findIndex(x=>x.id===trip.id);
+    if(i<0) idx.trips.push(this._meta(trip)); else idx.trips[i] = this._meta(trip);
+    return this._write(LS_INDEX, idx);
+  },
+  create(name){ const t=this.blank(name); this.save(t); this.setCurrent(t.id); return t; },
+  remove(id){
+    try{ localStorage.removeItem(LS_TRIP+id); }catch(e){}
+    const idx = this.index();
+    idx.trips = idx.trips.filter(x=>x.id!==id);
+    if(idx.current===id) idx.current = idx.trips.length ? idx.trips[0].id : null;
+    this._write(LS_INDEX, idx);
+  }
 };
+
+/* Les photos d'un voyage : c'est ce qui borne une sauvegarde ou une suppression. */
+function tripPhotoIds(t){
+  const ids = new Set();
+  (t.days||[]).forEach(d=>(d.photos||[]).forEach(p=>ids.add(p)));
+  return [...ids];
+}
 
 /* ---- IndexedDB pour les images ---- */
 const Photos = (() => {

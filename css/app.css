@@ -36,7 +36,10 @@ body{
 .pane{flex:1;display:flex;flex-direction:column;min-height:0;padding-bottom:calc(var(--tabbar-h) + var(--safe-bot))}
 .pane[hidden]{display:none}
 
-.map-wrap{position:relative;height:38vh;min-height:200px;flex-shrink:0;background:#ddd}
+.map-wrap{position:relative;height:38vh;min-height:200px;flex-shrink:0;background:#ddd;
+  /* Leaflet place ses contrôles (© OpenStreetMap, + / −) au plan 1000, au-dessus
+     des feuilles de menu (901). `isolation` enferme ces plans dans la carte. */
+  isolation:isolate}
 #mapPrep,#mapBook{width:100%;height:100%}
 .map-tools{position:absolute;right:10px;top:10px;z-index:450;display:flex;flex-direction:column;gap:8px}
 .map-btn{
@@ -130,6 +133,17 @@ body{
   border-radius:11px;font-size:21px;color:var(--teal);flex-shrink:0;
 }
 .day-nav:disabled{opacity:.3}
+.day-nav.all{font-size:17px}
+.day-nav.on{background:var(--ocre);border-color:var(--ocre)}
+
+/* Trajet entre deux étapes : distance et temps de route */
+.leg{display:flex;align-items:center;gap:10px;margin:-2px 0 6px 22px;min-height:26px}
+.leg-line{width:2px;align-self:stretch;background:var(--teal);opacity:.35;border-radius:1px}
+.leg-txt{font-size:12px;font-weight:600;color:var(--teal)}
+.leg.approx .leg-txt{color:var(--ocre)}
+.guess{color:var(--ocre);font-style:italic}
+.day-item{cursor:pointer}
+.day-item .act{font-size:22px;color:var(--ink-soft)}
 .day-label{flex:1;text-align:center;min-width:0}
 #dayTitle{font-weight:650;font-size:15px;color:var(--teal)}
 .day-label .subtitle{font-size:12px;color:var(--ink-soft)}

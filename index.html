@@ -67,6 +67,7 @@
       <div class="subtitle" id="daySub">Importez vos photos pour commencer</div>
     </div>
     <button class="day-nav" id="btnNextDay">›</button>
+    <button class="day-nav all" id="btnAllDays" title="Tout le voyage">🌍</button>
   </div>
 
   <div class="map-wrap">
@@ -81,7 +82,7 @@
 
   <div class="list-wrap">
     <div class="list-head">
-      <h2>Journée <span class="count" id="stepCount">0</span></h2>
+      <h2><span id="bookHead">Journée</span> <span class="count" id="stepCount">0</span></h2>
       <div class="list-head-actions">
         <button class="mini-btn primary" id="btnImport">📷 Importer</button>
       </div>
@@ -107,7 +108,12 @@
 <div class="sheet" id="menuSheet" hidden>
   <div class="sheet-handle"></div>
   <h3>Voyage</h3>
-  <div class="menu-row"><label>Nom</label><input type="text" id="mName"></div>
+  <div class="menu-row"><label>Ouvert</label><select id="mTrip"></select></div>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnNewTrip"><span>➕</span>Nouveau voyage</button>
+    <button class="menu-btn danger" id="btnDeleteTrip"><span>🗑️</span>Supprimer ce voyage</button>
+  </div>
+  <div class="menu-row" style="margin-top:12px"><label>Nom</label><input type="text" id="mName"></div>
   <div class="menu-row"><label>Du</label><input type="date" id="mStart"></div>
   <div class="menu-row"><label>Au</label><input type="date" id="mEnd"></div>
 
@@ -133,8 +139,7 @@
 
   <h3>Données</h3>
   <div class="menu-grid">
-    <button class="menu-btn" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap</button>
-    <button class="menu-btn danger" id="btnWipe"><span>🗑️</span>Tout effacer</button>
+    <button class="menu-btn wide" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap</button>
   </div>
   <p class="hint" id="storageHint"></p>
   <button class="menu-close" id="btnCloseMenu">Fermer</button>
