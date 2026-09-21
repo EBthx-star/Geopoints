@@ -54,7 +54,10 @@ body{
 .pane{flex:1;display:flex;flex-direction:column;min-height:0;padding-bottom:calc(var(--tabbar-h) + var(--safe-bot))}
 .pane[hidden]{display:none}
 
-.map-wrap{position:relative;height:38vh;min-height:200px;flex-shrink:0;background:#ddd}
+.map-wrap{position:relative;height:38vh;min-height:200px;flex-shrink:0;background:#ddd;
+  /* Leaflet place ses contrôles (© OpenStreetMap, + / −) au plan 1000, au-dessus
+     des feuilles de menu (901). `isolation` enferme ces plans dans la carte. */
+  isolation:isolate}
 #mapPrep,#mapBook{width:100%;height:100%}
 .map-tools{position:absolute;right:10px;top:10px;z-index:450;display:flex;flex-direction:column;gap:8px}
 .map-btn{
@@ -148,6 +151,17 @@ body{
   border-radius:11px;font-size:21px;color:var(--teal);flex-shrink:0;
 }
 .day-nav:disabled{opacity:.3}
+.day-nav.all{font-size:17px}
+.day-nav.on{background:var(--ocre);border-color:var(--ocre)}
+
+/* Trajet entre deux étapes : distance et temps de route */
+.leg{display:flex;align-items:center;gap:10px;margin:-2px 0 6px 22px;min-height:26px}
+.leg-line{width:2px;align-self:stretch;background:var(--teal);opacity:.35;border-radius:1px}
+.leg-txt{font-size:12px;font-weight:600;color:var(--teal)}
+.leg.approx .leg-txt{color:var(--ocre)}
+.guess{color:var(--ocre);font-style:italic}
+.day-item{cursor:pointer}
+.day-item .act{font-size:22px;color:var(--ink-soft)}
 .day-label{flex:1;text-align:center;min-width:0}
 #dayTitle{font-weight:650;font-size:15px;color:var(--teal)}
 .day-label .subtitle{font-size:12px;color:var(--ink-soft)}
@@ -309,6 +323,21 @@ body{
 }
 .prop-empty{text-align:center;padding:18px;color:var(--ink-soft);font-size:13px}
 
+/* ---------- Dialogue maison (au-dessus des autres feuilles) ---------- */
+.sheet-backdrop.ask{z-index:930}
+.sheet.ask{z-index:931}
+.ask-msg{font-size:14px;line-height:1.5;color:var(--ink);margin:0 0 12px;white-space:pre-line}
+.ask-msg:empty{display:none}
+.ask-field{margin-bottom:10px}
+.ask-field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px}
+.ask-field input,.ask-field textarea{
+  width:100%;box-sizing:border-box;font-size:16px;padding:11px 12px;
+  border:1px solid var(--line);border-radius:11px;background:#fff;font-family:inherit;
+}
+.ask-field textarea{min-height:90px;resize:vertical}
+.menu-btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.menu-btn.primary.danger{background:#b3261e;border-color:#b3261e;color:#fff}
+
 </style>
 </head>
 <body>
@@ -361,6 +390,7 @@ body{
       <div class="subtitle" id="daySub">Importez vos photos pour commencer</div>
     </div>
     <button class="day-nav" id="btnNextDay">›</button>
+    <button class="day-nav all" id="btnAllDays" title="Tout le voyage">🌍</button>
   </div>
 
   <div class="map-wrap">
@@ -375,7 +405,7 @@ body{
 
   <div class="list-wrap">
     <div class="list-head">
-      <h2>Journée <span class="count" id="stepCount">0</span></h2>
+      <h2><span id="bookHead">Journée</span> <span class="count" id="stepCount">0</span></h2>
       <div class="list-head-actions">
         <button class="mini-btn primary" id="btnImport">📷 Importer</button>
       </div>
@@ -401,7 +431,12 @@ body{
 <div class="sheet" id="menuSheet" hidden>
   <div class="sheet-handle"></div>
   <h3>Voyage</h3>
-  <div class="menu-row"><label>Nom</label><input type="text" id="mName"></div>
+  <div class="menu-row"><label>Ouvert</label><select id="mTrip"></select></div>
+  <div class="menu-grid">
+    <button class="menu-btn" id="btnNewTrip"><span>➕</span>Nouveau voyage</button>
+    <button class="menu-btn danger" id="btnDeleteTrip"><span>🗑️</span>Supprimer ce voyage</button>
+  </div>
+  <div class="menu-row" style="margin-top:12px"><label>Nom</label><input type="text" id="mName"></div>
   <div class="menu-row"><label>Du</label><input type="date" id="mStart"></div>
   <div class="menu-row"><label>Au</label><input type="date" id="mEnd"></div>
 
@@ -427,8 +462,7 @@ body{
 
   <h3>Données</h3>
   <div class="menu-grid">
-    <button class="menu-btn" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap</button>
-    <button class="menu-btn danger" id="btnWipe"><span>🗑️</span>Tout effacer</button>
+    <button class="menu-btn wide" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap</button>
   </div>
   <p class="hint" id="storageHint"></p>
   <button class="menu-close" id="btnCloseMenu">Fermer</button>
@@ -471,6 +505,21 @@ body{
     <button class="menu-btn danger" id="btnEditDelete"><span>🗑️</span>Supprimer</button>
   </div>
   <button class="menu-close" id="btnEditCancel">Annuler</button>
+</div>
+
+<!-- ======================= DIALOGUE ======================= -->
+<!-- Remplace prompt() et confirm() : dans une app installée sur l'écran
+     d'accueil, iOS peut les supprimer sans rien afficher. -->
+<div class="sheet-backdrop ask" id="askBackdrop" hidden></div>
+<div class="sheet ask" id="askSheet" hidden role="dialog">
+  <div class="sheet-handle"></div>
+  <h3 id="askTitle"></h3>
+  <p class="ask-msg" id="askMsg"></p>
+  <div id="askFields"></div>
+  <div class="menu-grid">
+    <button class="menu-btn" id="askCancel">Annuler</button>
+    <button class="menu-btn primary" id="askOk">OK</button>
+  </div>
 </div>
 
 <!-- ======================= VISIONNEUSE PHOTO ======================= -->
@@ -1055,27 +1104,81 @@ const CAPE_TRIP = {
                     le quota de localStorage
    ================================================================== */
 
-const LS_KEY = 'bthx.trip.v1';
+/* Plusieurs voyages depuis le 21 sept. 2026.
+   - `bthx.index.v2`       : { current, trips:[{id,name,start,end}] }
+   - `bthx.trip.v2.<id>`   : un voyage complet
+   L'ancien emplacement unique `bthx.trip.v1` est repris au premier
+   lancement : le voyage déjà saisi devient le premier de la liste. */
+const LS_OLD   = 'bthx.trip.v1';
+const LS_INDEX = 'bthx.index.v2';
+const LS_TRIP  = 'bthx.trip.v2.';
 
 const Store = {
-  load(){
-    try{
-      const raw = localStorage.getItem(LS_KEY);
-      if(!raw) return null;
-      return JSON.parse(raw);
-    }catch(e){ console.warn('load', e); return null; }
+  _uid(){ return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); },
+  blank(name){
+    return { id:this._uid(), name:name||'Nouveau voyage', start:'', end:'', sites:[], days:[] };
   },
-  save(trip){
-    try{
-      localStorage.setItem(LS_KEY, JSON.stringify(trip));
-      return true;
-    }catch(e){
-      console.warn('save', e);
-      return false; // quota — l'appelant prévient l'utilisateur
+  _read(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } },
+  _write(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ console.warn('save',e); return false; } },
+
+  index(){
+    let idx = this._read(LS_INDEX);
+    if(idx && Array.isArray(idx.trips)) return idx;
+    idx = { current:null, trips:[] };
+    const old = this._read(LS_OLD);                    // migration v1 -> v2
+    if(old){
+      old.id = old.id || this._uid();
+      if(this._write(LS_TRIP+old.id, old)){
+        idx.trips.push(this._meta(old)); idx.current = old.id;
+        try{ localStorage.removeItem(LS_OLD); }catch(e){}
+      }
     }
+    this._write(LS_INDEX, idx);
+    return idx;
   },
-  clear(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
+  _meta(t){ return { id:t.id, name:t.name||'Nouveau voyage', start:t.start||'', end:t.end||'' }; },
+
+  list(){ return this.index().trips; },
+  load(id){
+    const t = this._read(LS_TRIP+id);
+    if(!t) return null;
+    t.id = id; t.sites = t.sites||[]; t.days = t.days||[];
+    return t;
+  },
+  /* Le voyage ouvert. Il y en a toujours un : on le crée au besoin. */
+  current(){
+    const idx = this.index();
+    let t = idx.current ? this.load(idx.current) : null;
+    if(!t && idx.trips.length) t = this.load(idx.trips[0].id);
+    if(!t){ t = this.blank(); this.save(t); }
+    this.setCurrent(t.id);
+    return t;
+  },
+  setCurrent(id){ const idx=this.index(); idx.current=id; this._write(LS_INDEX, idx); },
+  save(trip){
+    if(!trip.id) trip.id = this._uid();
+    if(!this._write(LS_TRIP+trip.id, trip)) return false; // quota — l'appelant prévient
+    const idx = this.index();
+    const i = idx.trips.findIndex(x=>x.id===trip.id);
+    if(i<0) idx.trips.push(this._meta(trip)); else idx.trips[i] = this._meta(trip);
+    return this._write(LS_INDEX, idx);
+  },
+  create(name){ const t=this.blank(name); this.save(t); this.setCurrent(t.id); return t; },
+  remove(id){
+    try{ localStorage.removeItem(LS_TRIP+id); }catch(e){}
+    const idx = this.index();
+    idx.trips = idx.trips.filter(x=>x.id!==id);
+    if(idx.current===id) idx.current = idx.trips.length ? idx.trips[0].id : null;
+    this._write(LS_INDEX, idx);
+  }
 };
+
+/* Les photos d'un voyage : c'est ce qui borne une sauvegarde ou une suppression. */
+function tripPhotoIds(t){
+  const ids = new Set();
+  (t.days||[]).forEach(d=>(d.photos||[]).forEach(p=>ids.add(p)));
+  return [...ids];
+}
 
 /* ---- IndexedDB pour les images ---- */
 const Photos = (() => {
@@ -1144,17 +1247,15 @@ const RouteCache = {
 'use strict';
 
 /* ===================== État ===================== */
-let trip = Store.load() || { name:"Nouveau voyage", start:"", end:"", sites:[], days:[] };
-if(!trip.days) trip.days = [];
-if(!trip.sites) trip.sites = [];
+let trip = Store.current();     // le voyage ouvert ; les autres attendent dans le menu
 
 let pane       = 'prep';
 let kindFilter = 'all';
-let dayIndex   = 0;
+let dayIndex   = 0;          // -1 : « Tout le voyage »
 let editingId  = null;
 const maps     = { prep:null, book:null };
 const layers   = { prep:{markers:[],route:null}, book:{markers:[],route:null} };
-const routeOn  = { prep:false, book:false };
+const routeOn  = { prep:false, book:true };   // le road book trace d'office
 const urlCache = new Map();   // id photo -> objectURL
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -1297,6 +1398,9 @@ function fitTo(which, pts){
 
 /* ---- Itinéraire routier via OSRM, segment par segment, avec cache ---- */
 async function routeSegment(a,b){
+  const d0 = haversine(a,b);
+  // Deux étapes à deux pas l'une de l'autre : on marche, inutile d'interroger le routeur.
+  if(d0 < 250) return { coords:[[a.lat,a.lon],[b.lat,b.lon]], distance:d0, duration:d0/1.3, real:true, walk:true };
   const hit = RouteCache.get(a,b);
   if(hit) return hit;
   const url = `https://router.project-osrm.org/route/v1/driving/`
@@ -1316,33 +1420,69 @@ async function routeSegment(a,b){
   }catch(e){
     // Hors ligne, ou pas de route (piste de réserve, traversée maritime) :
     // on relie en ligne droite plutôt que de ne rien montrer.
-    return { coords:[[a.lat,a.lon],[b.lat,b.lon]], distance:haversine(a,b), duration:0, real:false };
+    return { coords:[[a.lat,a.lon],[b.lat,b.lon]], distance:d0, duration:0, real:false };
   }
 }
-async function drawRoute(which, pts, infoEl){
-  const m = maps[which]; if(!m) return;
-  if(layers[which].route){ m.removeLayer(layers[which].route); layers[which].route=null; }
-  if(pts.length < 2){ infoEl.hidden = true; return; }
-
-  busy(true,'Calcul de l\'itinéraire…');
-  const group = L.layerGroup().addTo(m);
-  let totD=0, totT=0, approx=false;
-
+/* Ce qu'on sait d'un segment sans rien demander au réseau (exports, listes). */
+function legStats(a,b){
+  const d0 = haversine(a,b);
+  if(d0 < 250) return { distance:d0, duration:d0/1.3, real:true, walk:true };
+  return RouteCache.get(a,b) || { distance:d0, duration:0, real:false };
+}
+function fmtLeg(seg){
+  if(seg.walk) return seg.distance < 60 ? 'sur place' : `${km(seg.distance)} à pied`;
+  if(!seg.real) return `≈ ${km(seg.distance)} à vol d'oiseau`;
+  return `${km(seg.distance)} · ${dur(seg.duration)}`;
+}
+function fmtTotal(t, long=false){
+  if(!t.distance) return '';
+  return `${km(t.distance)}${t.duration?' · '+dur(t.duration)+(long?' de route':''):''}${t.approx?' · partiel':''}`;
+}
+function sumLegs(pts){
+  const t = {distance:0, duration:0, approx:false};
   for(let i=0;i<pts.length-1;i++){
-    const seg = await routeSegment(pts[i], pts[i+1]);
-    totD += seg.distance; totT += seg.duration;
-    if(!seg.real) approx = true;
-    L.polyline(seg.coords, {
-      color: seg.real ? '#1d4e5f' : '#c2853a',
-      weight: 4, opacity: .8,
-      dashArray: seg.real ? null : '7,7'
-    }).addTo(group);
+    const g = legStats(pts[i],pts[i+1]);
+    t.distance += g.distance; t.duration += g.duration; if(!g.real) t.approx = true;
   }
-  layers[which].route = group;
-  busy(false);
+  return t;
+}
 
+/* Trace l'itinéraire et en rend compte segment par segment.
+   N'immobilise pas l'écran : le calcul avance en fond, le cartouche de la
+   carte indique la progression, et un nouveau tracé annule l'ancien. */
+const routeGen = { prep:0, book:0 };
+async function drawRoute(which, pts, infoEl, opts={}){
+  const m = maps[which];
+  const draw = opts.draw !== false && m;
+  const gen = ++routeGen[which];
+  if(m && layers[which].route){ m.removeLayer(layers[which].route); layers[which].route=null; }
+  if(pts.length < 2){ infoEl.hidden = true; return null; }
+
+  const group = draw ? L.layerGroup().addTo(m) : null;
+  if(group) layers[which].route = group;
   infoEl.hidden = false;
-  infoEl.textContent = `${km(totD)}${totT?' · '+dur(totT):''}${approx?' · partiel':''}`;
+  const tot = {distance:0, duration:0, approx:false};
+  const segs = [];
+  const n = pts.length-1;
+
+  for(let i=0;i<n;i++){
+    if(!RouteCache.get(pts[i],pts[i+1]) && haversine(pts[i],pts[i+1])>=250)
+      infoEl.textContent = `Calcul de l'itinéraire… ${i+1} / ${n}`;
+    const seg = await routeSegment(pts[i], pts[i+1]);
+    if(gen !== routeGen[which]) return null;          // un autre tracé a pris la main
+    segs.push(seg);
+    tot.distance += seg.distance; tot.duration += seg.duration;
+    if(!seg.real) tot.approx = true;
+    if(group) L.polyline(seg.coords, {
+      color: seg.real ? '#1d4e5f' : '#c2853a',
+      weight: seg.walk ? 3 : 4, opacity: .8,
+      dashArray: seg.real && !seg.walk ? null : (seg.walk ? '2,6' : '7,7')
+    }).addTo(group);
+    if(opts.onSeg) opts.onSeg(i, seg);
+  }
+  infoEl.textContent = fmtTotal(tot, true) || km(tot.distance);
+  if(opts.onDone) opts.onDone(tot, segs);
+  return tot;
 }
 
 /* ===================== AXE 1 — Préparation ===================== */
@@ -1417,39 +1557,78 @@ function highlight(id){
 function dayList(){
   return trip.days.slice().sort((a,b)=>a.date.localeCompare(b.date));
 }
+/* Nom d'une étape : celui donné par l'utilisateur, sinon le lieu préparé
+   le plus proche (hôtel, table, site) — c'est ainsi que les adresses
+   visitées apparaissent d'elles-mêmes dans le road book. */
+function stepLabel(st, i){
+  if(st.name) return st.name;
+  const s = nearestSite(st);
+  if(s) return s.name;
+  return 'Étape ' + (i+1);
+}
+function stepIcon(st){
+  const s = st.name ? null : nearestSite(st);
+  if(st.kind && KIND[st.kind]) return KIND[st.kind].icon;
+  return s ? KIND[s.kind].icon : '';
+}
+function allSteps(days){
+  const out = [];
+  days.forEach((d,di)=>(d.steps||[]).forEach((st,si)=>out.push(Object.assign({}, st, {_d:di, _s:si}))));
+  return out;
+}
+function legRow(id, a, b, extra=''){
+  return `<div class="leg" id="${id}"><span class="leg-line"></span>
+    <span class="leg-txt">${extra}${fmtLeg(legStats(a,b))}</span></div>`;
+}
+function setLeg(id, seg, extra=''){
+  const el = $(id); if(!el) return;
+  el.querySelector('.leg-txt').textContent = extra + fmtLeg(seg);
+  el.classList.toggle('approx', !seg.real);
+}
+
+let bookGen = 0;
 async function renderBook(){
   const days = dayList();
+  const gen = ++bookGen;
   const m = initMap('book','mapBook');
   if(m) setTimeout(()=>m.invalidateSize(),60);
   clearLayers('book');
+  routeGen.book++;                                   // annule un tracé en cours
   $('routeInfoBook').hidden = true;
+  $('btnRouteBook').classList.toggle('on', routeOn.book);
 
   if(!days.length){
     $('dayTitle').textContent = 'Aucune journée';
     $('daySub').textContent   = 'Importez vos photos pour commencer';
     $('stepCount').textContent = 0;
-    $('dayNote').value = '';
-    $('btnPrevDay').disabled = $('btnNextDay').disabled = true;
+    $('dayNote').value = ''; $('dayNote').hidden = true;
+    $('btnPrevDay').disabled = $('btnNextDay').disabled = $('btnAllDays').disabled = true;
     $('stepList').innerHTML = `<div class="empty"><div class="empty-icon">📖</div>
       <p>Le soir, importez les photos de la journée.<br>
       L'app lit leurs coordonnées et reconstitue le trajet.</p></div>`;
     return;
   }
+  $('btnAllDays').disabled = false;
+  if(dayIndex < 0) return renderTrip(days, m, gen);
 
   dayIndex = Math.max(0, Math.min(dayIndex, days.length-1));
+  $('btnAllDays').classList.remove('on');
+  $('bookHead').textContent = 'Journée';
   const day = days[dayIndex];
   $('btnPrevDay').disabled = dayIndex===0;
   $('btnNextDay').disabled = dayIndex===days.length-1;
   $('dayTitle').textContent = fmtDate(day.date);
-  $('daySub').textContent   = `Jour ${dayIndex+1} / ${days.length} · ${day.photos.length} photo${day.photos.length>1?'s':''}`;
-  $('dayNote').value = day.note || '';
-
   const steps = day.steps || [];
+  const baseSub = `Jour ${dayIndex+1} / ${days.length} · ${day.photos.length} photo${day.photos.length>1?'s':''}`;
+  const known = fmtTotal(sumLegs(steps));
+  $('daySub').textContent = baseSub + (known && steps.length>1 ? ' · ' + known : '');
+  $('dayNote').hidden = false;
+  $('dayNote').value = day.note || '';
   $('stepCount').textContent = steps.length;
 
   if(m) steps.forEach((st,i)=>{
     const mk = L.marker([st.lat,st.lon],{icon:numIcon(i+1)}).addTo(m)
-      .bindPopup(`<b>${escapeHtml(st.name||('Étape '+(i+1)))}</b><br><small>${fmtTime(st.t)}</small>`);
+      .bindPopup(`<b>${escapeHtml(stepLabel(st,i))}</b><br><small>${fmtTime(st.t)}</small>`);
     layers.book.markers.push(mk);
   });
   fitTo('book', steps);
@@ -1461,11 +1640,12 @@ async function renderBook(){
       Vérifiez : Réglages › Confidentialité › Service de localisation › Appareil photo.</p></div>`;
   } else {
     list.innerHTML = steps.map((st,i)=>`
+      ${i>0 ? legRow('leg-'+(i-1), steps[i-1], st) : ''}
       <div class="item" data-step="${i}">
         <div class="item-badge"><span class="seq">${i+1}</span></div>
         <div class="item-body">
-          <div class="item-title">${escapeHtml(st.name || 'Étape '+(i+1))}</div>
-          <div class="item-meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${st.photos.length} photo${st.photos.length>1?'s':''}</div>
+          <div class="item-title">${stepIcon(st)} ${escapeHtml(stepLabel(st,i))}</div>
+          <div class="item-meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${st.photos.length} photo${st.photos.length>1?'s':''}${!st.name && nearestSite(st)?' · <span class="guess">lieu proposé — ✏️ pour valider</span>':''}</div>
           ${st.note?`<div class="item-notes">${escapeHtml(st.note)}</div>`:''}
           <div class="thumbs" id="th-${i}"></div>
         </div>
@@ -1476,7 +1656,80 @@ async function renderBook(){
     steps.forEach((st,i)=>loadThumbs(i, st));
   }
 
-  if(routeOn.book) drawRoute('book', steps, $('routeInfoBook'));
+  // Les distances et temps se calculent toujours ; le bouton 🛣️ ne fait
+  // qu'afficher ou masquer le tracé sur la carte.
+  if(steps.length > 1) drawRoute('book', steps, $('routeInfoBook'), {
+    draw: routeOn.book,
+    onSeg: (i,seg)=>{ if(gen===bookGen) setLeg('leg-'+i, seg); },
+    onDone: tot=>{ if(gen===bookGen) $('daySub').textContent = baseSub + ' · ' + fmtTotal(tot); }
+  });
+}
+
+/* Vue « Tout le voyage » : toutes les étapes, jour après jour, sur une carte. */
+function renderTrip(days, m, gen){
+  $('btnAllDays').classList.add('on');
+  $('bookHead').textContent = 'Voyage';
+  $('btnPrevDay').disabled = $('btnNextDay').disabled = false;
+  $('dayTitle').textContent = 'Tout le voyage';
+  $('dayNote').hidden = true;
+  $('stepCount').textContent = days.length;
+
+  const pts = allSteps(days);
+  const nbSteps = pts.length;
+  const subBase = `${days.length} jour${days.length>1?'s':''} · ${nbSteps} étape${nbSteps>1?'s':''}`;
+  $('daySub').textContent = subBase + (nbSteps>1 ? ' · ' + fmtTotal(sumLegs(pts)) : '');
+
+  if(m) pts.forEach(st=>{
+    const mk = L.marker([st.lat,st.lon],{icon:numIcon(st._d+1)}).addTo(m)
+      .bindPopup(`<b>${escapeHtml(stepLabel(st,st._s))}</b><br><small>Jour ${st._d+1} · ${fmtDate(days[st._d].date)} ${fmtTime(st.t)}</small>`);
+    mk.on('click', ()=>{});
+    layers.book.markers.push(mk);
+  });
+  fitTo('book', pts);
+
+  // Totaux par jour : segments internes au jour ; les segments d'un jour
+  // au suivant sont les transferts.
+  const dayTot = days.map(d=>sumLegs(d.steps||[]));
+  const lastIdx = {}; pts.forEach((p,k)=>{ lastIdx[p._d] = k; });
+
+  $('stepList').innerHTML = days.map((d,di)=>{
+    const st = d.steps||[];
+    const names = st.map((x,i)=>stepLabel(x,i));
+    const uniq = names.filter((x,i)=>names.indexOf(x)===i);
+    const k = lastIdx[di];
+    let next = (k!=null && k+1<pts.length) ? pts[k+1] : null;
+    if(next && haversine(pts[k], next) < 250) next = null;   // nuit au même endroit : pas de transfert
+    return `
+      <div class="item day-item" data-day="${di}">
+        <div class="item-badge"><span class="seq">${di+1}</span></div>
+        <div class="item-body">
+          <div class="item-title">${fmtDate(d.date)}</div>
+          <div class="item-meta" id="dt-${di}">${st.length} étape${st.length>1?'s':''}${dayTot[di].distance?' · '+fmtTotal(dayTot[di]):''}</div>
+          ${uniq.length?`<div class="item-notes">${escapeHtml(uniq.slice(0,6).join(' → '))}${uniq.length>6?' …':''}</div>`:''}
+        </div>
+        <div class="item-actions"><span class="act">›</span></div>
+      </div>
+      ${next ? legRow('leg-'+k, pts[k], next, 'Transfert · ') : ''}`;
+  }).join('');
+
+  if(nbSteps > 1) drawRoute('book', pts, $('routeInfoBook'), {
+    draw: routeOn.book,
+    onSeg: (i,seg)=>{
+      if(gen!==bookGen) return;
+      if(pts[i]._d !== pts[i+1]._d) setLeg('leg-'+i, seg, 'Transfert · ');
+    },
+    onDone: (tot, segs)=>{
+      if(gen!==bookGen) return;
+      $('daySub').textContent = subBase + ' · ' + fmtTotal(tot);
+      days.forEach((d,di)=>{
+        const t = {distance:0,duration:0,approx:false};
+        segs.forEach((g,i)=>{ if(pts[i]._d===di && pts[i+1]._d===di){ t.distance+=g.distance; t.duration+=g.duration; if(!g.real) t.approx=true; } });
+        const el = $('dt-'+di);
+        const n = (d.steps||[]).length;
+        if(el) el.textContent = `${n} étape${n>1?'s':''}${t.distance?' · '+fmtTotal(t):''}`;
+      });
+    }
+  });
 }
 async function loadThumbs(i, step){
   const box = $('th-'+i); if(!box) return;
@@ -1625,6 +1878,7 @@ h3{font-size:16px;margin:18px 0 4px;color:#143a47}
 .n{display:inline-flex;width:22px;height:22px;background:#1d4e5f;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-size:12px;margin-right:6px;vertical-align:2px}
 .meta{font-size:12px;color:#6b6b6b;margin:0 0 6px}
 .note,.daynote{font-size:14px;background:#fff;border-left:3px solid #c2853a;padding:9px 13px;border-radius:0 7px 7px 0;margin:8px 0}
+.leg{font-size:12px;color:#c2853a;margin:6px 0 6px 8px;font-weight:600}
 .gal{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
 .gal img{width:150px;height:150px;object-fit:cover;border-radius:7px}
 @media print{body{background:#fff;padding:0}.day{page-break-inside:avoid}}
@@ -1638,9 +1892,12 @@ async function buildBookParts(embed = true){
 
   for(const [di,day] of days.entries()){
     body += `<section class="day"><h2>Jour ${di+1} — ${fmtDate(day.date)}</h2>`;
+    const tDay = sumLegs(day.steps||[]);
+    if(tDay.distance) body += `<p class="meta">🛣️ ${fmtTotal(tDay)}</p>`;
     if(day.note) body += `<p class="daynote">${escapeHtml(day.note).replace(/\n/g,'<br>')}</p>`;
     for(const [si,st] of (day.steps||[]).entries()){
-      body += `<div class="step"><h3><span class="n">${si+1}</span> ${escapeHtml(st.name || 'Étape '+(si+1))}</h3>`;
+      if(si>0) body += `<p class="leg">↓ ${fmtLeg(legStats(day.steps[si-1], st))}</p>`;
+      body += `<div class="step"><h3><span class="n">${si+1}</span> ${escapeHtml(stepLabel(st,si))}</h3>`;
       body += `<p class="meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}</p>`;
       if(st.note) body += `<p class="note">${escapeHtml(st.note).replace(/\n/g,'<br>')}</p>`;
       if(embed){
@@ -1666,7 +1923,7 @@ async function buildBookParts(embed = true){
   }
 
   const header = `<h1>${escapeHtml(bookTitle())}</h1>
-<div class="sub">${trip.start?fmtDate(trip.start):''}${trip.end?' → '+fmtDate(trip.end):''} · ${days.length} journée${days.length>1?'s':''}</div>`;
+<div class="sub">${trip.start?fmtDate(trip.start):''}${trip.end?' → '+fmtDate(trip.end):''} · ${days.length} journée${days.length>1?'s':''}${(()=>{ const t=sumLegs(allSteps(days)); return t.distance?' · '+fmtTotal(t):''; })()}</div>`;
 
   return { header, body };
 }
@@ -1716,9 +1973,12 @@ function buildMarkdown(){
 
   days.forEach((day,di)=>{
     md += `## Jour ${di+1} — ${fmtDate(day.date)}\n\n`;
+    const tDay = sumLegs(day.steps||[]);
+    if(tDay.distance) md += `🛣️ ${fmtTotal(tDay)}\n\n`;
     if(day.note) md += `${day.note}\n\n`;
     (day.steps||[]).forEach((st,si)=>{
-      md += `### ${si+1}. ${st.name || 'Étape '+(si+1)}\n`;
+      if(si>0) md += `↓ *${fmtLeg(legStats(day.steps[si-1], st))}*\n\n`;
+      md += `### ${si+1}. ${stepLabel(st,si)}\n`;
       md += `*${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · [${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}](https://maps.google.com/?q=${st.lat},${st.lon}) · ${st.photos.length} photo(s)*\n\n`;
       if(st.note) md += `${st.note}\n\n`;
     });
@@ -1763,39 +2023,81 @@ async function exportPdf(){
 async function backup(){
   busy(true,'Constitution de la sauvegarde…');
   const imgs = {};
-  const keys = await Photos.keys();
-  for(const k of keys){
+  for(const k of tripPhotoIds(trip)){               // les photos de CE voyage seulement
     const b = await Photos.get(k);
     if(b) imgs[k] = await blobToDataUrl(b);
   }
   busy(false);
-  const payload = { version:1, savedAt:new Date().toISOString(), trip, images:imgs };
+  const payload = { version:2, savedAt:new Date().toISOString(), trip, images:imgs };
   const name = `bthx-${(trip.name||'voyage').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.json`;
   const how = await shareFile(name, JSON.stringify(payload), 'application/json', 'Sauvegarde ' + bookTitle());
   if(how !== 'annulé') toast(`Sauvegarde ${how}`, 3200);
 }
+/* Une sauvegarde revient comme un voyage de la liste. Si ce voyage existe
+   déjà, on propose de le remplacer ; sinon il s'ajoute à côté des autres. */
 async function restore(file){
   busy(true,'Restauration…');
   try{
     const data = JSON.parse(await file.text());
     if(!data.trip) throw new Error('format');
-    trip = data.trip;
-    if(!trip.days) trip.days=[]; if(!trip.sites) trip.sites=[];
-    await Photos.clear(); urlCache.clear();
+    const t = data.trip;
+    t.days = t.days||[]; t.sites = t.sites||[];
+    busy(false);
+    const exists = t.id && Store.list().some(x=>x.id===t.id);
+    if(exists && (await ask({title:'Ce voyage existe déjà', msg:`Remplacer « ${t.name} » par la sauvegarde, ou l'ajouter comme un voyage distinct ?`, ok:'Remplacer', cancel:'Ajouter à côté'}))===null){
+      t.id = null; t.name = (t.name||'Voyage') + ' (copie)';
+    }
+    if(!t.id) t.id = Store.blank().id;
+    busy(true,'Restauration…');
     if(data.images){
       for(const [id,dataUrl] of Object.entries(data.images)){
         const blob = await (await fetch(dataUrl)).blob();
         await Photos.put(id, blob);
       }
     }
-    persist();
+    Store.save(t);
     busy(false);
-    refreshHeader(); renderPrep(); renderBook();
+    switchTrip(t.id);
     toast('Sauvegarde restaurée', 3000);
   }catch(e){
     busy(false);
     toast('Fichier illisible', 3200);
   }
+}
+
+/* ===================== Plusieurs voyages ===================== */
+function fillTripMenu(){
+  const sel = $('mTrip');
+  sel.innerHTML = Store.list().map(t=>
+    `<option value="${t.id}"${t.id===trip.id?' selected':''}>${escapeHtml(t.name)}${t.start?' — '+t.start.slice(0,4):''}</option>`).join('');
+  $('mName').value = trip.name; $('mStart').value = trip.start||''; $('mEnd').value = trip.end||'';
+}
+function switchTrip(id){
+  const t = Store.load(id); if(!t) return;
+  trip = t; Store.setCurrent(id);
+  dayIndex = 0; renderPrep._fitted = false;
+  refreshHeader(); fillTripMenu();
+  if(pane==='prep') renderPrep(); else renderBook();
+}
+async function newTrip(){
+  const v = await ask({ title:'Nouveau voyage', fields:[{label:'Nom', placeholder:'ex. Namibie 2027'}], ok:'Créer' });
+  if(v===null) return;
+  const t = Store.create(v[0].trim() || 'Nouveau voyage');
+  switchTrip(t.id);
+  switchPane('prep');
+  toast('Voyage créé — renseignez les dates ci-dessus', 3200);
+}
+async function deleteTrip(){
+  if(!(await askYes('Supprimer ce voyage ?', `« ${trip.name} » — étapes, journées et photos.\nFaites une sauvegarde avant.`, 'Supprimer', true))) return;
+  // On garde les photos qu'un autre voyage utiliserait encore (copie restaurée).
+  const used = new Set();
+  Store.list().filter(x=>x.id!==trip.id).forEach(x=>{ const o=Store.load(x.id); if(o) tripPhotoIds(o).forEach(p=>used.add(p)); });
+  for(const pid of tripPhotoIds(trip)) if(!used.has(pid)){ await Photos.del(pid); urlCache.delete(pid); }
+  Store.remove(trip.id);
+  const next = Store.current();
+  switchTrip(next.id);
+  closeSheet('menu'); switchPane('prep');
+  toast('Voyage supprimé');
 }
 
 /* ===================== Coller une confirmation ===================== */
@@ -1865,6 +2167,36 @@ function addProps(){
   switchPane('prep');
   toast(`${gardes.length} entrée${gardes.length>1?'s':''} ajoutée${gardes.length>1?'s':''}`, 3000);
 }
+
+/* ===================== Dialogue maison =====================
+   ask({title, msg, fields:[{label,value,placeholder,multiline}], ok, cancel, danger})
+   → Promise : tableau des valeurs saisies si OK, null si Annuler. */
+let askResolve = null;
+function ask(o){
+  if(askResolve) askResolve(null);
+  $('askTitle').textContent = o.title || '';
+  $('askMsg').textContent   = o.msg || '';
+  const fields = o.fields || [];
+  $('askFields').innerHTML = fields.map((f,i)=>`<div class="ask-field">
+      ${f.label?`<label for="askF${i}">${escapeHtml(f.label)}</label>`:''}
+      ${f.multiline
+        ? `<textarea id="askF${i}" placeholder="${escapeHtml(f.placeholder||'')}">${escapeHtml(f.value||'')}</textarea>`
+        : `<input type="text" id="askF${i}" value="${escapeHtml(f.value||'')}" placeholder="${escapeHtml(f.placeholder||'')}" enterkeyhint="done">`}
+    </div>`).join('');
+  $('askOk').textContent = o.ok || 'OK';
+  $('askCancel').textContent = o.cancel || 'Annuler';
+  $('askOk').classList.toggle('danger', !!o.danger);
+  openSheet('ask');
+  if(fields.length) setTimeout(()=>{ const f=$('askF0'); if(f){ f.focus(); f.select && f.select(); } }, 80);
+  return new Promise(res=>{ askResolve = res; });
+}
+function askClose(ok){
+  const res = askResolve; askResolve = null;
+  const vals = ok ? Array.from($('askFields').querySelectorAll('input,textarea')).map(e=>e.value) : null;
+  closeSheet('ask');
+  if(res) res(vals);
+}
+const askYes = (title, msg, ok='OK', danger=false) => ask({title, msg, ok, danger}).then(v=>v!==null);
 
 /* ===================== Interface ===================== */
 function refreshHeader(){
@@ -1977,57 +2309,67 @@ function wire(){
   };
 
   // Road book
-  $('btnPrevDay').onclick = ()=>{ dayIndex--; renderBook(); };
-  $('btnNextDay').onclick = ()=>{ dayIndex++; renderBook(); };
+  let lastDay = 0;
+  $('btnPrevDay').onclick = ()=>{ dayIndex = dayIndex<0 ? dayList().length-1 : dayIndex-1; renderBook(); };
+  $('btnNextDay').onclick = ()=>{ dayIndex = dayIndex<0 ? 0 : dayIndex+1; renderBook(); };
+  $('btnAllDays').onclick = ()=>{
+    if(dayIndex<0) dayIndex = lastDay; else { lastDay = dayIndex; dayIndex = -1; }
+    renderBook();
+  };
   $('btnImport').onclick  = ()=>$('photoInput').click();
   $('photoInput').onchange = e=>{ importPhotos(Array.from(e.target.files)); e.target.value=''; };
 
   $('dayNote').oninput = ()=>{
-    const days = dayList(); if(!days.length) return;
+    const days = dayList(); if(!days.length || dayIndex<0) return;
     days[dayIndex].note = $('dayNote').value;
     clearTimeout(window._noteT);
     window._noteT = setTimeout(persist, 600);
   };
 
   $('stepList').onclick = e=>{
+    const dayEl = e.target.closest('[data-day]');
+    if(dayEl){ dayIndex = +dayEl.dataset.day; renderBook(); $('stepList').scrollTop = 0; return; }
     const btn = e.target.closest('[data-act="rename"]'); if(!btn) return;
     const days = dayList(); const st = days[dayIndex].steps[+btn.dataset.step];
-    const suggestion = st.name || (nearestSite(st)||{}).name || '';
-    const v = prompt('Nom de l\'étape', suggestion);
-    if(v===null) return;
-    st.name = v.trim();
-    const n = prompt('Note (facultatif)', st.note || '');
-    if(n!==null) st.note = n;
-    persist(); renderBook();
+    const suggestion = stepLabel(st, +btn.dataset.step);
+    ask({ title:'Étape', ok:'Enregistrer', fields:[
+      {label:'Nom', value:suggestion, placeholder:'Nom du lieu'},
+      {label:'Note (facultatif)', value:st.note||'', multiline:true}
+    ]}).then(v=>{
+      if(v===null) return;
+      st.name = v[0].trim(); st.note = v[1];
+      persist(); renderBook();
+    });
   };
 
   $('btnFitBook').onclick = ()=>{
-    const days = dayList(); if(days.length) fitTo('book', days[dayIndex].steps||[]);
+    const days = dayList(); if(!days.length) return;
+    fitTo('book', dayIndex<0 ? allSteps(days) : (days[dayIndex].steps||[]));
   };
   $('btnRouteBook').onclick = e=>{
     if(!maps.book){ toast('Carte indisponible hors ligne'); return; }
     routeOn.book = !routeOn.book;
     e.currentTarget.classList.toggle('on', routeOn.book);
-    const days = dayList();
-    if(routeOn.book && days.length) drawRoute('book', days[dayIndex].steps||[], $('routeInfoBook'));
-    else { if(layers.book.route){ maps.book.removeLayer(layers.book.route); layers.book.route=null; } $('routeInfoBook').hidden=true; }
+    renderBook();          // les distances restent ; seul le tracé apparaît ou disparaît
   };
 
   $('viewerClose').onclick = ()=>{ $('viewer').hidden = true; };
 
   // Menu
   $('btnMenu').onclick = ()=>{
-    $('mName').value = trip.name; $('mStart').value = trip.start; $('mEnd').value = trip.end;
-    showStorage(); openSheet('menu');
+    fillTripMenu(); showStorage(); openSheet('menu');
   };
   $('btnCloseMenu').onclick = $('menuBackdrop').onclick = ()=>closeSheet('menu');
   ['mName','mStart','mEnd'].forEach(id=>{
     $(id).onchange = ()=>{
       trip.name  = $('mName').value.trim() || 'Nouveau voyage';
       trip.start = $('mStart').value; trip.end = $('mEnd').value;
-      persist(); refreshHeader();
+      persist(); refreshHeader(); fillTripMenu();
     };
   });
+  $('mTrip').onchange = e=>{ switchTrip(e.target.value); toast('Voyage ouvert : ' + trip.name); };
+  $('btnNewTrip').onclick = newTrip;
+  $('btnDeleteTrip').onclick = deleteTrip;
 
   $('btnExpPdf').onclick  = ()=>{ closeSheet('menu'); exportPdf(); };
   $('btnExpHtml').onclick = async ()=>{
@@ -2054,21 +2396,18 @@ function wire(){
   $('btnRestore').onclick = ()=>$('restoreInput').click();
   $('restoreInput').onchange = e=>{ if(e.target.files[0]) restore(e.target.files[0]); e.target.value=''; };
 
-  $('btnLoadCape').onclick = ()=>{
-    if(trip.sites.length && !confirm('Remplacer les étapes actuelles par l\'itinéraire du Cap ?')) return;
+  $('btnLoadCape').onclick = async ()=>{
+    // Voyage vide : on le remplit. Sinon le Cap devient un voyage à part,
+    // sans rien écraser.
+    if(trip.sites.length || trip.days.length){
+      if(!(await askYes('Itinéraire du Cap', 'Créer un nouveau voyage avec l\'itinéraire du Cap ?\nLe voyage actuel reste intact dans la liste.', 'Créer'))) return;
+      trip = Store.create(CAPE_TRIP.name);
+    }
     trip.name = CAPE_TRIP.name; trip.start = CAPE_TRIP.start; trip.end = CAPE_TRIP.end;
     trip.sites = CAPE_TRIP.sites.map(s=>Object.assign({id:uid()}, s));
-    persist(); refreshHeader(); closeSheet('menu'); switchPane('prep');
+    persist(); switchTrip(trip.id); closeSheet('menu'); switchPane('prep');
     setTimeout(()=>fitTo('prep', trip.sites.filter(s=>s.lat!=null)), 300);
     toast('Itinéraire du Cap chargé', 3000);
-  };
-
-  $('btnWipe').onclick = async ()=>{
-    if(!confirm('Tout effacer — étapes, journées et photos ?\n\nFaites une sauvegarde avant.')) return;
-    await Photos.clear(); Store.clear(); urlCache.clear();
-    trip = { name:'Nouveau voyage', start:'', end:'', sites:[], days:[] };
-    refreshHeader(); closeSheet('menu'); switchPane('prep');
-    toast('Tout a été effacé');
   };
 
   // Coller une confirmation
@@ -2076,11 +2415,18 @@ function wire(){
   $('btnPasteAnalyse').onclick = analysePaste;
   $('btnPasteClose').onclick = $('pasteBackdrop').onclick = ()=>closeSheet('paste');
 
+  // Dialogue maison
+  $('askOk').onclick = ()=>askClose(true);
+  $('askCancel').onclick = $('askBackdrop').onclick = ()=>askClose(false);
+  $('askFields').addEventListener('keydown', e=>{
+    if(e.key==='Enter' && e.target.tagName==='INPUT'){ e.preventDefault(); askClose(true); }
+  });
+
   // Éditeur
   $('btnEditSave').onclick = saveEditor;
   $('btnEditCancel').onclick = $('editBackdrop').onclick = ()=>closeSheet('edit');
-  $('btnEditDelete').onclick = ()=>{
-    if(!editingId || !confirm('Supprimer cette étape ?')) return;
+  $('btnEditDelete').onclick = async ()=>{
+    if(!editingId || !(await askYes('Supprimer cette étape ?', '', 'Supprimer', true))) return;
     trip.sites = trip.sites.filter(s=>s.id!==editingId);
     persist(); closeSheet('edit'); refreshHeader(); renderPrep();
     toast('Étape supprimée');
@@ -2093,7 +2439,8 @@ async function showStorage(){
       const {usage,quota} = await navigator.storage.estimate();
       const pct = quota ? Math.round(usage/quota*100) : 0;
       $('storageHint').textContent =
-        `${trip.sites.length} étapes · ${trip.days.length} journées · ${(await Photos.keys()).length} photos — ${(usage/1048576).toFixed(0)} Mo utilisés (${pct} %)`;
+        `Ce voyage : ${trip.sites.length} étapes · ${trip.days.length} journées · ${tripPhotoIds(trip).length} photos. `
+        + `${Store.list().length} voyage${Store.list().length>1?'s':''} — ${(usage/1048576).toFixed(0)} Mo utilisés (${pct} %)`;
     }
   }catch(e){}
 }
