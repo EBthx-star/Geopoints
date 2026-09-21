@@ -801,7 +801,7 @@ async function restore(file){
     t.days = t.days||[]; t.sites = t.sites||[];
     busy(false);
     const exists = t.id && Store.list().some(x=>x.id===t.id);
-    if(exists && !confirm(`Remplacer le voyage « ${t.name} » par cette sauvegarde ?\n\nAnnuler : l'ajouter comme un voyage distinct.`)){
+    if(exists && (await ask({title:'Ce voyage existe déjà', msg:`Remplacer « ${t.name} » par la sauvegarde, ou l'ajouter comme un voyage distinct ?`, ok:'Remplacer', cancel:'Ajouter à côté'}))===null){
       t.id = null; t.name = (t.name||'Voyage') + ' (copie)';
     }
     if(!t.id) t.id = Store.blank().id;
@@ -836,16 +836,16 @@ function switchTrip(id){
   refreshHeader(); fillTripMenu();
   if(pane==='prep') renderPrep(); else renderBook();
 }
-function newTrip(){
-  const name = prompt('Nom du nouveau voyage', '');
-  if(name===null) return;
-  const t = Store.create(name.trim() || 'Nouveau voyage');
+async function newTrip(){
+  const v = await ask({ title:'Nouveau voyage', fields:[{label:'Nom', placeholder:'ex. Namibie 2027'}], ok:'Créer' });
+  if(v===null) return;
+  const t = Store.create(v[0].trim() || 'Nouveau voyage');
   switchTrip(t.id);
   switchPane('prep');
   toast('Voyage créé — renseignez les dates ci-dessus', 3200);
 }
 async function deleteTrip(){
-  if(!confirm(`Supprimer le voyage « ${trip.name} » — étapes, journées et photos ?\n\nFaites une sauvegarde avant.`)) return;
+  if(!(await askYes('Supprimer ce voyage ?', `« ${trip.name} » — étapes, journées et photos.\nFaites une sauvegarde avant.`, 'Supprimer', true))) return;
   // On garde les photos qu'un autre voyage utiliserait encore (copie restaurée).
   const used = new Set();
   Store.list().filter(x=>x.id!==trip.id).forEach(x=>{ const o=Store.load(x.id); if(o) tripPhotoIds(o).forEach(p=>used.add(p)); });
@@ -924,6 +924,36 @@ function addProps(){
   switchPane('prep');
   toast(`${gardes.length} entrée${gardes.length>1?'s':''} ajoutée${gardes.length>1?'s':''}`, 3000);
 }
+
+/* ===================== Dialogue maison =====================
+   ask({title, msg, fields:[{label,value,placeholder,multiline}], ok, cancel, danger})
+   → Promise : tableau des valeurs saisies si OK, null si Annuler. */
+let askResolve = null;
+function ask(o){
+  if(askResolve) askResolve(null);
+  $('askTitle').textContent = o.title || '';
+  $('askMsg').textContent   = o.msg || '';
+  const fields = o.fields || [];
+  $('askFields').innerHTML = fields.map((f,i)=>`<div class="ask-field">
+      ${f.label?`<label for="askF${i}">${escapeHtml(f.label)}</label>`:''}
+      ${f.multiline
+        ? `<textarea id="askF${i}" placeholder="${escapeHtml(f.placeholder||'')}">${escapeHtml(f.value||'')}</textarea>`
+        : `<input type="text" id="askF${i}" value="${escapeHtml(f.value||'')}" placeholder="${escapeHtml(f.placeholder||'')}" enterkeyhint="done">`}
+    </div>`).join('');
+  $('askOk').textContent = o.ok || 'OK';
+  $('askCancel').textContent = o.cancel || 'Annuler';
+  $('askOk').classList.toggle('danger', !!o.danger);
+  openSheet('ask');
+  if(fields.length) setTimeout(()=>{ const f=$('askF0'); if(f){ f.focus(); f.select && f.select(); } }, 80);
+  return new Promise(res=>{ askResolve = res; });
+}
+function askClose(ok){
+  const res = askResolve; askResolve = null;
+  const vals = ok ? Array.from($('askFields').querySelectorAll('input,textarea')).map(e=>e.value) : null;
+  closeSheet('ask');
+  if(res) res(vals);
+}
+const askYes = (title, msg, ok='OK', danger=false) => ask({title, msg, ok, danger}).then(v=>v!==null);
 
 /* ===================== Interface ===================== */
 function refreshHeader(){
@@ -1059,12 +1089,14 @@ function wire(){
     const btn = e.target.closest('[data-act="rename"]'); if(!btn) return;
     const days = dayList(); const st = days[dayIndex].steps[+btn.dataset.step];
     const suggestion = stepLabel(st, +btn.dataset.step);
-    const v = prompt('Nom de l\'étape', suggestion);
-    if(v===null) return;
-    st.name = v.trim();
-    const n = prompt('Note (facultatif)', st.note || '');
-    if(n!==null) st.note = n;
-    persist(); renderBook();
+    ask({ title:'Étape', ok:'Enregistrer', fields:[
+      {label:'Nom', value:suggestion, placeholder:'Nom du lieu'},
+      {label:'Note (facultatif)', value:st.note||'', multiline:true}
+    ]}).then(v=>{
+      if(v===null) return;
+      st.name = v[0].trim(); st.note = v[1];
+      persist(); renderBook();
+    });
   };
 
   $('btnFitBook').onclick = ()=>{
@@ -1121,11 +1153,11 @@ function wire(){
   $('btnRestore').onclick = ()=>$('restoreInput').click();
   $('restoreInput').onchange = e=>{ if(e.target.files[0]) restore(e.target.files[0]); e.target.value=''; };
 
-  $('btnLoadCape').onclick = ()=>{
+  $('btnLoadCape').onclick = async ()=>{
     // Voyage vide : on le remplit. Sinon le Cap devient un voyage à part,
     // sans rien écraser.
     if(trip.sites.length || trip.days.length){
-      if(!confirm('Créer un nouveau voyage avec l\'itinéraire du Cap ?\n\nLe voyage actuel reste intact dans la liste.')) return;
+      if(!(await askYes('Itinéraire du Cap', 'Créer un nouveau voyage avec l\'itinéraire du Cap ?\nLe voyage actuel reste intact dans la liste.', 'Créer'))) return;
       trip = Store.create(CAPE_TRIP.name);
     }
     trip.name = CAPE_TRIP.name; trip.start = CAPE_TRIP.start; trip.end = CAPE_TRIP.end;
@@ -1140,11 +1172,18 @@ function wire(){
   $('btnPasteAnalyse').onclick = analysePaste;
   $('btnPasteClose').onclick = $('pasteBackdrop').onclick = ()=>closeSheet('paste');
 
+  // Dialogue maison
+  $('askOk').onclick = ()=>askClose(true);
+  $('askCancel').onclick = $('askBackdrop').onclick = ()=>askClose(false);
+  $('askFields').addEventListener('keydown', e=>{
+    if(e.key==='Enter' && e.target.tagName==='INPUT'){ e.preventDefault(); askClose(true); }
+  });
+
   // Éditeur
   $('btnEditSave').onclick = saveEditor;
   $('btnEditCancel').onclick = $('editBackdrop').onclick = ()=>closeSheet('edit');
-  $('btnEditDelete').onclick = ()=>{
-    if(!editingId || !confirm('Supprimer cette étape ?')) return;
+  $('btnEditDelete').onclick = async ()=>{
+    if(!editingId || !(await askYes('Supprimer cette étape ?', '', 'Supprimer', true))) return;
     trip.sites = trip.sites.filter(s=>s.id!==editingId);
     persist(); closeSheet('edit'); refreshHeader(); renderPrep();
     toast('Étape supprimée');

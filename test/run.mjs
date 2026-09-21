@@ -24,6 +24,8 @@ await p.route('**/router.project-osrm.org/**', route=>{
     distance:d, duration:d/1000*60, geometry:{coordinates:[[lo1,la1],[lo2,la2]]} }] }) });
 });
 // Un voyage saisi avant la version multi-voyages doit être repris.
+// Comme dans l'app installée sur iPhone : les dialogues système ne s'affichent pas.
+await p.addInitScript(()=>{ window.prompt=()=>null; window.confirm=()=>false; window.alert=()=>{}; });
 await p.addInitScript(()=>{
   if(!sessionStorage.getItem('seeded')){
     sessionStorage.setItem('seeded','1');
@@ -42,8 +44,8 @@ r['carte isolée (bug OSM)'] = await p.evaluate(()=> getComputedStyle(document.q
 
 // 2 — itinéraire du Cap
 await p.click('#btnMenu'); await p.waitForTimeout(200);
-p.once('dialog', d=>d.accept());
-await p.click('#btnLoadCape'); await p.waitForTimeout(500);
+await p.click('#btnLoadCape'); await p.waitForTimeout(300);
+await p.click('#askOk'); await p.waitForTimeout(500);
 r['itinéraire Cap chargé'] = await p.evaluate(()=> trip.sites.length);
 r['Cap = nouveau voyage, ancien intact'] = await p.evaluate(()=> Store.list().map(t=>t.name));
 r['nom du voyage'] = await p.textContent('#tripName');
@@ -129,16 +131,18 @@ r['rapprochement lieu'] = await p.evaluate(()=>{
 // 11 — plusieurs voyages : créer, basculer, supprimer
 await p.click('#btnMenu'); await p.waitForTimeout(200);
 r['sélecteur de voyages'] = await p.evaluate(()=> document.querySelectorAll('#mTrip option').length);
-p.once('dialog', d=>d.accept('Namibie 2027'));
-await p.click('#btnNewTrip'); await p.waitForTimeout(400);
+await p.click('#btnNewTrip'); await p.waitForTimeout(300);
+r['dialogue nouveau voyage visible'] = await p.evaluate(()=> !document.getElementById('askSheet').hidden && document.getElementById('askTitle').textContent);
+await p.fill('#askF0','Namibie 2027');
+await p.click('#askOk'); await p.waitForTimeout(400);
 r['nouveau voyage ouvert'] = await p.evaluate(()=> ({nom:trip.name, étapes:trip.sites.length, voyages:Store.list().length}));
 r['menu refermé ? (non : on renseigne les dates)'] = await p.evaluate(()=> !document.getElementById('menuSheet').hidden);
 const capeId = await p.evaluate(()=> Store.list().find(t=>t.name.includes('Cap')).id);
 await p.selectOption('#mTrip', capeId); await p.waitForTimeout(400);
 r['retour au Cap'] = await p.evaluate(()=> ({nom:trip.name, étapes:trip.sites.length, jours:trip.days.length}));
 await p.selectOption('#mTrip', await p.evaluate(()=> Store.list().find(t=>t.name==='Namibie 2027').id)); await p.waitForTimeout(300);
-p.once('dialog', d=>d.accept());
-await p.click('#btnDeleteTrip'); await p.waitForTimeout(500);
+await p.click('#btnDeleteTrip'); await p.waitForTimeout(300);
+await p.click('#askOk'); await p.waitForTimeout(500);
 r['après suppression'] = await p.evaluate(()=> ({ouvert:trip.name, liste:Store.list().map(t=>t.name)}));
 await p.reload(); await p.waitForTimeout(700);
 r['rechargement : voyage courant conservé'] = await p.evaluate(()=> trip.name);

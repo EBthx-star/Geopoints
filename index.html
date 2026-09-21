@@ -184,6 +184,21 @@
   <button class="menu-close" id="btnEditCancel">Annuler</button>
 </div>
 
+<!-- ======================= DIALOGUE ======================= -->
+<!-- Remplace prompt() et confirm() : dans une app installée sur l'écran
+     d'accueil, iOS peut les supprimer sans rien afficher. -->
+<div class="sheet-backdrop ask" id="askBackdrop" hidden></div>
+<div class="sheet ask" id="askSheet" hidden role="dialog">
+  <div class="sheet-handle"></div>
+  <h3 id="askTitle"></h3>
+  <p class="ask-msg" id="askMsg"></p>
+  <div id="askFields"></div>
+  <div class="menu-grid">
+    <button class="menu-btn" id="askCancel">Annuler</button>
+    <button class="menu-btn primary" id="askOk">OK</button>
+  </div>
+</div>
+
 <!-- ======================= VISIONNEUSE PHOTO ======================= -->
 <div class="viewer" id="viewer" hidden>
   <button class="viewer-close" id="viewerClose">✕</button>
