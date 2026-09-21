@@ -11,7 +11,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BTHX Travel">
 <link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%0A%20%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22110%22%20fill%3D%22%231d4e5f%22/%3E%0A%20%20%3Cpath%20d%3D%22M120%20360%20Q200%20250%20256%20300%20Q312%20350%20392%20180%22%20stroke%3D%22%23c2853a%22%20stroke-width%3D%2222%22%0A%20%20%20%20%20%20%20%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-dasharray%3D%224%2040%22/%3E%0A%20%20%3Ccircle%20cx%3D%22120%22%20cy%3D%22360%22%20r%3D%2230%22%20fill%3D%22%23fff%22/%3E%0A%20%20%3Cpath%20d%3D%22M392%20130%20a46%2046%200%200%201%2046%2046%20c0%2034%20-46%2084%20-46%2084%20s-46%20-50%20-46%20-84%20a46%2046%200%200%201%2046%20-46z%22%20fill%3D%22%23fff%22/%3E%0A%20%20%3Ccircle%20cx%3D%22392%22%20cy%3D%22176%22%20r%3D%2217%22%20fill%3D%22%231d4e5f%22/%3E%0A%3C/svg%3E%0A">
+<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,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">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%0A%20%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22110%22%20fill%3D%22%231d4e5f%22/%3E%0A%20%20%3Cpath%20d%3D%22M120%20360%20Q200%20250%20256%20300%20Q312%20350%20392%20180%22%20stroke%3D%22%23c2853a%22%20stroke-width%3D%2222%22%0A%20%20%20%20%20%20%20%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-dasharray%3D%224%2040%22/%3E%0A%20%20%3Ccircle%20cx%3D%22120%22%20cy%3D%22360%22%20r%3D%2230%22%20fill%3D%22%23fff%22/%3E%0A%20%20%3Cpath%20d%3D%22M392%20130%20a46%2046%200%200%201%2046%2046%20c0%2034%20-46%2084%20-46%2084%20s-46%20-50%20-46%20-84%20a46%2046%200%200%201%2046%20-46z%22%20fill%3D%22%23fff%22/%3E%0A%20%20%3Ccircle%20cx%3D%22392%22%20cy%3D%22176%22%20r%3D%2217%22%20fill%3D%22%231d4e5f%22/%3E%0A%3C/svg%3E%0A">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -273,6 +274,41 @@ body{
 .map-off span{font-size:14px;font-weight:600}
 .map-off small{font-size:12px;opacity:.75}
 
+/* ---------- Impression du road book ----------
+   Une PWA installée ne peut pas ouvrir de fenêtre : on imprime depuis
+   la page elle-même, en ne laissant visible que #printRoot. */
+#printRoot{display:none}
+@media print{
+  body{overflow:visible;height:auto;display:block}
+  body.printing > *:not(#printRoot){display:none !important}
+  body.printing #printRoot{display:block !important}
+  #tabbar,#toast,.busy,.sheet,.sheet-backdrop,.viewer{display:none !important}
+}
+
+/* ---------- Collage d'une confirmation ---------- */
+.menu-btn.wide{flex-direction:row;gap:9px;width:100%;grid-column:1/-1;padding:13px}
+.menu-btn.wide span{font-size:19px}
+#pasteText{min-height:140px;font-size:14px}
+.prop{
+  background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:11px 13px;margin-bottom:8px;display:flex;gap:11px;align-items:flex-start;
+}
+.prop.off{opacity:.45}
+.prop-check{
+  width:24px;height:24px;border-radius:7px;border:2px solid var(--line);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:14px;background:#fff;color:#fff;margin-top:1px;
+}
+.prop.on .prop-check{background:var(--teal);border-color:var(--teal)}
+.prop-body{flex:1;min-width:0}
+.prop-name{font-weight:640;font-size:14px;word-break:break-word}
+.prop-meta{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.prop-note{
+  font-size:12px;color:#555;margin-top:5px;white-space:pre-wrap;
+  max-height:58px;overflow:hidden;border-left:2px solid var(--line);padding-left:8px;
+}
+.prop-empty{text-align:center;padding:18px;color:var(--ink-soft);font-size:13px}
+
 </style>
 </head>
 <body>
@@ -369,6 +405,11 @@ body{
   <div class="menu-row"><label>Du</label><input type="date" id="mStart"></div>
   <div class="menu-row"><label>Au</label><input type="date" id="mEnd"></div>
 
+  <h3>Réservations</h3>
+  <div class="menu-grid">
+    <button class="menu-btn wide" id="btnPaste"><span>📨</span>Coller une confirmation</button>
+  </div>
+
   <h3>Exporter le road book</h3>
   <div class="menu-grid">
     <button class="menu-btn" id="btnExpPdf"><span>🖨️</span>PDF</button>
@@ -391,6 +432,20 @@ body{
   </div>
   <p class="hint" id="storageHint"></p>
   <button class="menu-close" id="btnCloseMenu">Fermer</button>
+</div>
+
+<!-- ======================= COLLER UNE CONFIRMATION ======================= -->
+<div class="sheet-backdrop" id="pasteBackdrop" hidden></div>
+<div class="sheet" id="pasteSheet" hidden>
+  <div class="sheet-handle"></div>
+  <h3>Coller une confirmation</h3>
+  <p class="hint">Ouvrez le mail Air France, Booking ou du loueur, sélectionnez tout,
+  copiez, puis collez ici. Les vols, hôtels et dates reconnus vous sont proposés —
+  vous choisissez ce qui rejoint le voyage. Le texte est conservé en note.</p>
+  <textarea id="pasteText" class="notes-area" placeholder="Collez le mail de confirmation ici…"></textarea>
+  <button class="menu-btn wide" id="btnPasteAnalyse"><span>🔍</span>Analyser</button>
+  <div id="pasteResult"></div>
+  <button class="menu-close" id="btnPasteClose">Fermer</button>
 </div>
 
 <!-- ======================= ÉDITEUR D'ÉTAPE ======================= -->
@@ -424,6 +479,8 @@ body{
   <img id="viewerImg" alt="">
   <div class="viewer-cap" id="viewerCap"></div>
 </div>
+
+<div id="printRoot"></div>
 
 <div id="toast"></div>
 <div class="busy" id="busy" hidden><div class="spinner"></div><div id="busyText">Traitement…</div></div>
@@ -700,6 +757,229 @@ const Exif = (() => {
   }
 
   return { parse };
+})();
+
+</script>
+<script>
+/* BTHX Travel — lecture des confirmations de réservation.
+   ------------------------------------------------------------------
+   Ni Air France ni Booking n'exposent d'API « mes réservations », et une
+   page web n'a pas le droit d'interroger leurs sites. La voie robuste est
+   donc le texte du mail de confirmation, collé ici.
+
+   Ce module ne prétend pas tout comprendre : il propose ce qu'il a
+   reconnu, et l'utilisateur corrige avant d'ajouter. Le texte collé est
+   conservé en note, pour que rien ne se perde même si l'analyse rate.
+*/
+
+const Confirm = (() => {
+
+  const MOIS = {
+    'janvier':1,'février':2,'fevrier':2,'mars':3,'avril':4,'mai':5,'juin':6,
+    'juillet':7,'août':8,'aout':8,'septembre':9,'octobre':10,'novembre':11,'décembre':12,'decembre':12,
+    'jan':1,'feb':2,'fév':2,'mar':3,'apr':4,'avr':4,'may':5,'jun':6,'jul':7,
+    'aug':8,'sep':9,'sept':9,'oct':10,'nov':11,'dec':12,'déc':12
+  };
+
+  // Aéroports utiles : ceux du voyage et les grandes plateformes.
+  const AEROPORTS = {
+    CDG:{v:'Paris Charles-de-Gaulle', lat:49.0097, lon:2.5479},
+    ORY:{v:'Paris Orly',              lat:48.7233, lon:2.3794},
+    CPT:{v:'Le Cap',                  lat:-33.9715, lon:18.6021},
+    JNB:{v:'Johannesburg',            lat:-26.1392, lon:28.2460},
+    AMS:{v:'Amsterdam',               lat:52.3105, lon:4.7683},
+    DUR:{v:'Durban',                  lat:-29.6144, lon:31.1197},
+    PLZ:{v:'Gqeberha',                lat:-33.9849, lon:25.6173},
+    GRJ:{v:'George',                  lat:-34.0056, lon:22.3789}
+  };
+
+  /* ---------- Dates ---------- */
+  // Reconnaît « 22 septembre 2026 », « 22/09/2026 », « 2026-09-22 », « 22 Sep 2026 »
+  function findDates(text){
+    const out = [];
+    const annee = new Date().getFullYear();
+
+    let re = /(\d{1,2})\s+([a-zéûôA-ZÉÛÔ]{3,10})\.?\s*(\d{4})?/g, m;
+    while((m = re.exec(text))){
+      const mois = MOIS[m[2].toLowerCase()];
+      if(!mois) continue;
+      out.push({ iso: iso(+(m[3]||annee), mois, +m[1]), at: m.index });
+    }
+
+    re = /(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/g;
+    while((m = re.exec(text))) out.push({ iso: iso(+m[3], +m[2], +m[1]), at: m.index });
+
+    re = /(\d{4})-(\d{2})-(\d{2})/g;
+    while((m = re.exec(text))) out.push({ iso: `${m[1]}-${m[2]}-${m[3]}`, at: m.index });
+
+    out.sort((a,b)=>a.at-b.at);
+    return out;
+  }
+  const iso = (y,m,d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+  function findTimes(text){
+    const out = [];
+    const re = /\b(\d{1,2})\s*[h:]\s*(\d{2})\b/g; let m;
+    while((m = re.exec(text))){
+      const h = +m[1];
+      if(h <= 23) out.push({ t:`${String(h).padStart(2,'0')}h${m[2]}`, at:m.index });
+    }
+    return out;
+  }
+
+  /* ---------- Vols ---------- */
+  function parseFlights(text){
+    const vols = [];
+    const re = /\b(AF|KL|SA|BA|LH|EK|QR|TK)\s?-?\s?(\d{2,4})\b/g; let m;
+    const vus = new Set();
+    while((m = re.exec(text))){
+      const num = `${m[1]}${m[2].padStart(3,'0')}`;
+      if(vus.has(num)) continue;
+      vus.add(num);
+      vols.push({ num, at: m.index });
+    }
+    if(!vols.length) return [];
+
+    const codes = [];
+    const rc = /\b([A-Z]{3})\b/g;
+    while((m = rc.exec(text))) if(AEROPORTS[m[1]]) codes.push({ c:m[1], at:m.index });
+
+    const dates = findDates(text);
+    const heures = findTimes(text);
+    const ref = findRef(text);
+
+    return vols.map((v, i) => {
+      // Les aéroports d'un vol sont écrits APRÈS son numéro, et avant le vol
+      // suivant : sans cette borne, le retour héritait des escales de l'aller.
+      const fin = vols[i+1] ? vols[i+1].at : Infinity;
+      const suite = codes.filter(c => c.at > v.at && c.at < fin && c.at - v.at < 400)
+                         .sort((a,b) => a.at - b.at);
+      const dep = suite[0] || null;
+      const arr = suite[1] || null;
+      const d   = proche(dates, v.at, 600);
+      const h   = proche(heures, v.at, 400);
+      // On situe l'étape à l'arrivée : c'est là qu'on se trouve ensuite.
+      const a   = arr ? AEROPORTS[arr.c] : (dep ? AEROPORTS[dep.c] : null);
+
+      let nom = 'Vol ' + v.num;
+      if(dep && arr) nom += ` ${dep.c} → ${arr.c}`;
+      else if(arr)   nom += ` → ${arr.c}`;
+
+      const lignes = [];
+      lignes.push(`Vol ${v.num}`);
+      if(dep && arr) lignes.push(`${AEROPORTS[dep.c].v} → ${AEROPORTS[arr.c].v}`);
+      if(h) lignes.push(`Départ ${h.t}`);
+      if(ref) lignes.push(`Dossier ${ref}`);
+
+      return {
+        kind: 'etape',
+        name: nom,
+        date: d ? d.iso : '',
+        lat: a ? a.lat : null,
+        lon: a ? a.lon : null,
+        notes: lignes.join('\n')
+      };
+    });
+  }
+  function proche(list, at, max){
+    let best=null, bd=max;
+    list.forEach(x => { const d = Math.abs(x.at - at); if(d < bd){ bd = d; best = x; } });
+    return best;
+  }
+
+  /* ---------- Hébergements ---------- */
+  function parseStay(text){
+    const lignes = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+    // Le nom de l'hôtel suit en général un libellé, ou ouvre le message.
+    let nom = '';
+    const apres = /(?:votre réservation (?:à|au|chez)?|confirmation de votre séjour|réservation confirmée(?: à| au| chez)?)\s*:?\s*(.+)/i;
+    for(const l of lignes){
+      const m = l.match(apres);
+      if(m && m[1].length > 2){ nom = m[1].trim(); break; }
+    }
+    if(!nom){
+      const candidat = lignes.find(l =>
+        /h[ôo]tel|guest\s?house|lodge|b&b|resort|villa|maison|riad|apartment|appartement/i.test(l) && l.length < 90);
+      if(candidat) nom = candidat;
+    }
+    if(!nom) return null;
+    nom = nom
+      .replace(/^[-–•\s]+/, '')
+      // « Blue Peter Hotel est confirmée » → « Blue Peter Hotel »
+      .replace(/\s+(?:est|a été)\s+confirm[ée]e?\b.*$/i, '')
+      .replace(/\s+is\s+confirmed\b.*$/i, '')
+      .replace(/\s*[–—|]\s.*$/, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+      .slice(0, 80);
+
+    // Arrivée et départ : on prend la date qui suit chaque libellé.
+    const dates = findDates(text);
+    const dateApres = (mots) => {
+      const re = new RegExp(mots, 'i');
+      const m = re.exec(text);
+      if(!m) return '';
+      const d = dates.find(x => x.at >= m.index && x.at - m.index < 120);
+      return d ? d.iso : '';
+    };
+    const arrivee = dateApres('arriv[ée]e|check[-\\s]?in|d[ée]but du s[ée]jour');
+    const depart  = dateApres('d[ée]part|check[-\\s]?out|fin du s[ée]jour');
+
+    const tel = (text.match(/(\+\d[\d\s().-]{7,}\d)/) || [])[1];
+    const ref = findRef(text);
+
+    const lignesNote = [];
+    if(tel) lignesNote.push(tel);
+    if(arrivee && depart) lignesNote.push(`Du ${arrivee} au ${depart}`);
+    if(ref) lignesNote.push(`Confirmation ${ref}`);
+
+    return {
+      kind: 'hotel',
+      name: nom,
+      date: arrivee || (dates[0] ? dates[0].iso : ''),
+      lat: null, lon: null,
+      notes: lignesNote.join('\n')
+    };
+  }
+
+  function findRef(text){
+    const re = /(?:dossier|r[ée]f[ée]rence|confirmation|booking number|r[ée]servation)\s*(?:n[°o]|n[ou]m[ée]ro)?\s*:?\s*([A-Z0-9]{6,12})\b/gi;
+    let m;
+    while((m = re.exec(text))){
+      const ref = m[1].toUpperCase();
+      // Une référence porte toujours au moins un chiffre : sans ce garde-fou,
+      // un simple « Bonjour » après « réservation » passerait pour un dossier.
+      if(/\d/.test(ref)) return ref;
+    }
+    return '';
+  }
+
+  /* ---------- Entrée publique ---------- */
+  function analyse(text){
+    if(!text || text.trim().length < 20) return [];
+    const propositions = [];
+
+    const vols = parseFlights(text);
+    propositions.push(...vols);
+
+    // On ne cherche un hébergement que si le texte y fait référence :
+    // sinon un mail de vol produirait un faux hôtel.
+    if(/h[ôo]tel|guest\s?house|lodge|booking|s[ée]jour|check[-\s]?in|nuit[s]?\b/i.test(text)){
+      const stay = parseStay(text);
+      if(stay) propositions.push(stay);
+    }
+
+    // Le texte intégral rejoint la première proposition : rien ne se perd.
+    if(propositions.length){
+      const extrait = text.trim().slice(0, 1200);
+      propositions[0].notes = (propositions[0].notes ? propositions[0].notes + '\n\n' : '')
+                            + '— Confirmation —\n' + extrait;
+    }
+    return propositions;
+  }
+
+  return { analyse, AEROPORTS };
 })();
 
 </script>
@@ -1336,7 +1616,23 @@ function nearestSite(pt, maxM=800){
 /* ===================== Exports ===================== */
 function bookTitle(){ return trip.name || 'Road book'; }
 
-async function buildBookHtml(embed=true){
+const BOOK_CSS = `
+body{font-family:-apple-system,BlinkMacSystemFont,Georgia,serif;max-width:800px;margin:0 auto;padding:28px 20px;color:#1b1b1b;background:#faf8f4;line-height:1.55}
+h1{color:#1d4e5f;font-size:30px;border-bottom:3px solid #c2853a;padding-bottom:10px;margin-bottom:4px}
+.sub{color:#6b6b6b;font-size:14px;margin-bottom:28px}
+h2{color:#1d4e5f;font-size:21px;margin:34px 0 12px;padding-top:18px;border-top:1px solid #e2ddd4}
+h3{font-size:16px;margin:18px 0 4px;color:#143a47}
+.n{display:inline-flex;width:22px;height:22px;background:#1d4e5f;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-size:12px;margin-right:6px;vertical-align:2px}
+.meta{font-size:12px;color:#6b6b6b;margin:0 0 6px}
+.note,.daynote{font-size:14px;background:#fff;border-left:3px solid #c2853a;padding:9px 13px;border-radius:0 7px 7px 0;margin:8px 0}
+.gal{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.gal img{width:150px;height:150px;object-fit:cover;border-radius:7px}
+@media print{body{background:#fff;padding:0}.day{page-break-inside:avoid}}
+`;
+
+/* Compose le corps du road book. `embed` intègre les photos en base64 :
+   indispensable pour un fichier autonome, coûteux pour l'aperçu. */
+async function buildBookParts(embed = true){
   const days = dayList();
   let body = '';
 
@@ -1351,7 +1647,7 @@ async function buildBookHtml(embed=true){
         body += `<div class="gal">`;
         for(const pid of st.photos.slice(0,8)){
           const blob = await Photos.get(pid);
-          if(blob){ body += `<img src="${await blobToDataUrl(blob)}" alt="">`; }
+          if(blob) body += `<img src="${await blobToDataUrl(blob)}" alt="">`;
         }
         body += `</div>`;
       }
@@ -1360,34 +1656,27 @@ async function buildBookHtml(embed=true){
     body += `</section>`;
   }
 
-  // Les étapes préparées en annexe : c'est la partie utile pour refaire le voyage.
-  let prep = '';
+  // Le carnet d'adresses en annexe : c'est ce qui sert à refaire le voyage.
   const sites = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
   if(sites.length){
-    prep = `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
+    body += `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
       <div class="step"><h3>${KIND[s.kind].icon} ${escapeHtml(s.name)}</h3>
       <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
       ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
   }
 
+  const header = `<h1>${escapeHtml(bookTitle())}</h1>
+<div class="sub">${trip.start?fmtDate(trip.start):''}${trip.end?' → '+fmtDate(trip.end):''} · ${days.length} journée${days.length>1?'s':''}</div>`;
+
+  return { header, body };
+}
+
+async function buildBookHtml(embed=true){
+  const { header, body } = await buildBookParts(embed);
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(bookTitle())}</title><style>
-body{font-family:-apple-system,BlinkMacSystemFont,Georgia,serif;max-width:800px;margin:0 auto;padding:28px 20px;color:#1b1b1b;background:#faf8f4;line-height:1.55}
-h1{color:#1d4e5f;font-size:30px;border-bottom:3px solid #c2853a;padding-bottom:10px;margin-bottom:4px}
-.sub{color:#6b6b6b;font-size:14px;margin-bottom:28px}
-h2{color:#1d4e5f;font-size:21px;margin:34px 0 12px;padding-top:18px;border-top:1px solid #e2ddd4}
-h3{font-size:16px;margin:18px 0 4px;color:#143a47}
-.n{display:inline-flex;width:22px;height:22px;background:#1d4e5f;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-size:12px;margin-right:6px;vertical-align:2px}
-.meta{font-size:12px;color:#6b6b6b;margin:0 0 6px}
-.note,.daynote{font-size:14px;background:#fff;border-left:3px solid #c2853a;padding:9px 13px;border-radius:0 7px 7px 0;margin:8px 0}
-.gal{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
-.gal img{width:150px;height:150px;object-fit:cover;border-radius:7px}
-@media print{body{background:#fff}.day{page-break-inside:avoid}}
-</style></head><body>
-<h1>${escapeHtml(bookTitle())}</h1>
-<div class="sub">${trip.start?fmtDate(trip.start):''}${trip.end?' → '+fmtDate(trip.end):''} · ${days.length} journée${days.length>1?'s':''}</div>
-${body}${prep}
+<title>${escapeHtml(bookTitle())}</title><style>${BOOK_CSS}</style></head><body>
+${header}${body}
 </body></html>`;
 }
 function blobToDataUrl(blob){
@@ -1401,6 +1690,25 @@ function download(name, content, type){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
+/* Sur iPhone, un téléchargement se perd dans Fichiers. La feuille de
+   partage iOS — AirDrop, Messages, Mail, Enregistrer dans Fichiers,
+   Imprimer — répond d'un seul geste à « enregistrer », « publier » et
+   « partager ». On retombe sur le téléchargement là où elle n'existe pas. */
+async function shareFile(filename, content, mime, title){
+  const blob = content instanceof Blob ? content : new Blob([content], {type:mime});
+  try{
+    const file = new File([blob], filename, {type:mime});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title: title || bookTitle() });
+      return 'partagé';
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return 'annulé';   // l'utilisateur a fermé la feuille
+  }
+  download(filename, blob, mime);
+  return 'téléchargé';
+}
+
 function buildMarkdown(){
   const days = dayList();
   let md = `# ${bookTitle()}\n\n`;
@@ -1429,21 +1737,26 @@ function buildMarkdown(){
   }
   return md;
 }
+/* Une PWA installée ne peut pas ouvrir de fenêtre : window.open est
+   bloqué. On imprime donc depuis la page elle-même, en masquant tout
+   sauf le road book le temps de l'impression. */
 async function exportPdf(){
   busy(true,'Préparation du document…');
-  const html = await buildBookHtml(true);
+  const { header, body } = await buildBookParts(true);
+  const root = $('printRoot');
+  root.innerHTML = `<style>${BOOK_CSS}</style>${header}${body}`;
   busy(false);
-  const w = window.open('', '_blank');
-  if(!w){
-    // Safari bloque parfois l'ouverture : on retombe sur le téléchargement.
-    download(`${bookTitle()}.html`, html, 'text/html');
-    toast('Fichier téléchargé — ouvrez-le puis Partager › Imprimer', 4800);
-    return;
-  }
-  w.document.write(html);
-  w.document.close();
-  setTimeout(()=>{ w.focus(); w.print(); }, 700);
-  toast('Dans la fenêtre d\'impression : Enregistrer en PDF', 4200);
+
+  document.body.classList.add('printing');
+  const done = ()=>{
+    document.body.classList.remove('printing');
+    root.innerHTML = '';
+    window.removeEventListener('afterprint', done);
+  };
+  window.addEventListener('afterprint', done);
+  setTimeout(()=>{ window.print(); }, 300);
+  setTimeout(done, 60000);          // filet de sécurité si afterprint ne vient pas
+  toast('Choisissez « PDF » dans la fenêtre d\'impression', 4200);
 }
 
 /* ===================== Sauvegarde / restauration ===================== */
@@ -1458,8 +1771,8 @@ async function backup(){
   busy(false);
   const payload = { version:1, savedAt:new Date().toISOString(), trip, images:imgs };
   const name = `bthx-${(trip.name||'voyage').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.json`;
-  download(name, JSON.stringify(payload), 'application/json');
-  toast('Sauvegarde téléchargée', 3000);
+  const how = await shareFile(name, JSON.stringify(payload), 'application/json', 'Sauvegarde ' + bookTitle());
+  if(how !== 'annulé') toast(`Sauvegarde ${how}`, 3200);
 }
 async function restore(file){
   busy(true,'Restauration…');
@@ -1483,6 +1796,74 @@ async function restore(file){
     busy(false);
     toast('Fichier illisible', 3200);
   }
+}
+
+/* ===================== Coller une confirmation ===================== */
+let pasteProps = [];
+
+function openPaste(){
+  $('pasteText').value = '';
+  pasteProps = [];
+  renderProps();
+  openSheet('paste');
+}
+
+function analysePaste(){
+  const txt = $('pasteText').value;
+  if(txt.trim().length < 20){ toast('Collez d\'abord le texte du mail'); return; }
+  pasteProps = Confirm.analyse(txt).map(p => Object.assign({ keep:true }, p));
+  if(!pasteProps.length){
+    // Rien de reconnu : on propose quand même de garder le texte,
+    // plutôt que de renvoyer l'utilisateur les mains vides.
+    pasteProps = [{
+      keep:true, kind:'etape', name:'Réservation', date:'', lat:null, lon:null,
+      notes: txt.trim().slice(0, 1200)
+    }];
+    toast('Rien reconnu — le texte est gardé en note', 3600);
+  }
+  renderProps();
+}
+
+function renderProps(){
+  const box = $('pasteResult');
+  if(!pasteProps.length){ box.innerHTML = ''; return; }
+
+  box.innerHTML = pasteProps.map((p,i)=>`
+    <div class="prop ${p.keep?'on':'off'}" data-i="${i}">
+      <div class="prop-check">${p.keep?'✓':''}</div>
+      <div class="prop-body">
+        <div class="prop-name">${KIND[p.kind].icon} ${escapeHtml(p.name)}</div>
+        <div class="prop-meta">${KIND[p.kind].label}${p.date?' · '+fmtDate(p.date):' · date à préciser'}${p.lat!=null?' · situé':''}</div>
+        ${p.notes?`<div class="prop-note">${escapeHtml(p.notes.split('\n').slice(0,3).join('\n'))}</div>`:''}
+      </div>
+    </div>`).join('')
+    + `<button class="menu-btn wide" id="btnPasteAdd"><span>➕</span>Ajouter au voyage</button>`;
+
+  box.querySelectorAll('.prop').forEach(el=>{
+    el.onclick = ()=>{
+      const i = +el.dataset.i;
+      pasteProps[i].keep = !pasteProps[i].keep;
+      renderProps();
+    };
+  });
+  $('btnPasteAdd').onclick = addProps;
+}
+
+function addProps(){
+  const gardes = pasteProps.filter(p => p.keep);
+  if(!gardes.length){ toast('Rien de sélectionné'); return; }
+  gardes.forEach(p=>{
+    trip.sites.push({
+      id: uid(), name: p.name, kind: p.kind, date: p.date,
+      lat: p.lat, lon: p.lon, notes: p.notes
+    });
+  });
+  persist();
+  closeSheet('paste');
+  refreshHeader();
+  renderPrep();
+  switchPane('prep');
+  toast(`${gardes.length} entrée${gardes.length>1?'s':''} ajoutée${gardes.length>1?'s':''}`, 3000);
 }
 
 /* ===================== Interface ===================== */
@@ -1648,22 +2029,28 @@ function wire(){
     };
   });
 
-  $('btnExpPdf').onclick  = exportPdf;
+  $('btnExpPdf').onclick  = ()=>{ closeSheet('menu'); exportPdf(); };
   $('btnExpHtml').onclick = async ()=>{
+    closeSheet('menu');
     busy(true,'Construction de la page…');
     const html = await buildBookHtml(true);
     busy(false);
-    download(`${bookTitle()}.html`, html, 'text/html');
-    toast('Page web téléchargée', 3000);
+    const how = await shareFile(`${bookTitle()}.html`, html, 'text/html');
+    if(how !== 'annulé') toast(`Road book ${how}`, 3000);
   };
   $('btnExpMd').onclick = async ()=>{
+    closeSheet('menu');
     const md = buildMarkdown();
-    try{ await navigator.clipboard.writeText(md); toast('Copié — collez dans Notion', 3600); }
-    catch(e){ toast('Fichier téléchargé pour Notion', 3200); }
-    download(`${bookTitle()}.md`, md, 'text/markdown');
+    // Le presse-papiers d'abord : c'est ce qui se colle directement dans Notion.
+    let copied = false;
+    try{ await navigator.clipboard.writeText(md); copied = true; }catch(e){}
+    const how = await shareFile(`${bookTitle()}.md`, md, 'text/markdown');
+    if(how !== 'annulé'){
+      toast(copied ? 'Copié — collez dans Notion' : `Markdown ${how}`, 3600);
+    }
   };
 
-  $('btnBackup').onclick  = backup;
+  $('btnBackup').onclick  = ()=>{ closeSheet('menu'); backup(); };
   $('btnRestore').onclick = ()=>$('restoreInput').click();
   $('restoreInput').onchange = e=>{ if(e.target.files[0]) restore(e.target.files[0]); e.target.value=''; };
 
@@ -1683,6 +2070,11 @@ function wire(){
     refreshHeader(); closeSheet('menu'); switchPane('prep');
     toast('Tout a été effacé');
   };
+
+  // Coller une confirmation
+  $('btnPaste').onclick = ()=>{ closeSheet('menu'); openPaste(); };
+  $('btnPasteAnalyse').onclick = analysePaste;
+  $('btnPasteClose').onclick = $('pasteBackdrop').onclick = ()=>closeSheet('paste');
 
   // Éditeur
   $('btnEditSave').onclick = saveEditor;
