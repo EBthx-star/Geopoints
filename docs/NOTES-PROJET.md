@@ -175,6 +175,40 @@ de sept jours** — disqualifiant pour un voyage de dix-huit.
 
 ---
 
+## Ajouts du 21 septembre 2026 (note Notion « 21 sept. 2026 — 13h00 »)
+
+**Road book : trajets, kilomètres et temps de route.**
+- Entre deux étapes de la journée, une ligne indique la distance et le temps
+  de route (OSRM). À moins de 250 m : « à pied », sans interroger le routeur.
+  Hors ligne ou sans route : « ≈ X km à vol d'oiseau », en ocre.
+- Le total de la journée s'affiche sous la date et dans le cartouche de la carte.
+- Le tracé est actif d'office dans le road book ; le bouton 🛣️ ne fait plus
+  qu'afficher ou masquer la ligne — les distances restent.
+- Bouton 🌍 : **Tout le voyage**. Toutes les étapes sur une carte, marqueurs
+  numérotés par jour, total général, total par jour, et les **transferts**
+  d'un jour au suivant. Un toucher sur un jour l'ouvre.
+- Une étape sans nom prend le nom du lieu préparé le plus proche (hôtel,
+  table, site à moins de 800 m), marqué « lieu proposé — ✏️ pour valider ».
+  C'est ainsi que les hôtels et restaurants visités apparaissent d'eux-mêmes.
+- Les exports (PDF, page web, Notion) reprennent trajets et totaux.
+
+**Plusieurs voyages.** Menu ☰ → *Voyage* : sélecteur du voyage ouvert,
+➕ *Nouveau voyage*, 🗑️ *Supprimer ce voyage* (remplace « Tout effacer »).
+Le voyage déjà saisi est repris automatiquement comme premier de la liste.
+*Itinéraire Le Cap* remplit le voyage s'il est vide, sinon crée un voyage à
+part. La sauvegarde ne contient plus que le voyage ouvert et ses photos ; une
+restauration revient comme un voyage de la liste.
+
+**Bug corrigé : « OpenStreetMap reste affiché » par-dessus le menu.**
+Leaflet place ses contrôles (mention © OpenStreetMap, boutons + / −) sur un
+plan d'affichage plus haut que les feuilles du menu. La carte est désormais
+isolée (`isolation: isolate`) : ses plans restent enfermés dedans.
+
+Pas encore fait : une carte dessinée dans les exports PDF / page web (les
+trajets y sont en texte), et l'ajout à la main d'un lieu visité sans photo.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :
