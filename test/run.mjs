@@ -128,6 +128,41 @@ r['rapprochement lieu'] = await p.evaluate(()=>{
   return s ? s.name : 'aucun';
 });
 
+// 10b — chronologie : date puis heure
+r['tri date + heure'] = await p.evaluate(()=>{
+  const t = {sites:[
+    {name:'Hôtel', kind:'hotel', date:'2026-09-23'},
+    {name:'Hertz', kind:'etape', date:'2026-09-23', time:'12:30'},
+    {name:'Vol', kind:'etape', date:'2026-09-23', time:'09:10'},
+    {name:'Sans date', kind:'site', date:''},
+    {name:'Veille', kind:'etape', date:'2026-09-22', time:'23:25'}]};
+  return t.sites.slice().sort(bySite).map(x=>x.name).join(' > ');
+});
+
+// 10c — mise à jour du Cap sur un voyage existant (ancien jeu de données)
+r['Cap : mise à jour'] = await p.evaluate(()=>{
+  const old = { name:CAPE_TRIP.name, sites:[
+    {id:'o1', name:'Tokara', kind:'table', date:'2026-09-24', lat:-33.9179, lon:18.9203, notes:'ma note'},
+    {id:'o2', name:'Simon\'s Town Quayside Hotel', kind:'hotel', date:'2026-09-26', lat:-34.1928, lon:18.4326, notes:''}], days:[] };
+  const n = topUpCape(old);
+  const again = topUpCape(old);
+  return { ajoutées:n.added, corrigées:n.fixed, deuxièmeFois:again.added+again.fixed,
+           tokara:old.sites.find(x=>x.name==='Tokara').date, noteGardée:old.sites.find(x=>x.name==='Tokara').notes,
+           cigares:old.sites.filter(x=>x.kind==='shop').length, domaines:old.sites.filter(x=>x.kind==='vin').length };
+});
+
+// 10d — fusion de deux copies (Mac → iPhone), lieux chargés séparément (ids différents)
+r['fusion'] = await p.evaluate(()=>{
+  const iphone = { sites:[{id:'a', name:'Tokara', kind:'table', date:'2026-09-26', lat:1, lon:1, notes:''}],
+                   days:[{date:'2026-09-22', photos:['p1'], note:'', raw:[{id:'p1',t:1,lat:-33.9,lon:18.4}], steps:[]}] };
+  const mac = { sites:[{id:'b', name:'Tokara', kind:'table', date:'2026-09-26', lat:1, lon:1, notes:'Réserver la terrasse'},
+                       {id:'c', name:'Étape ajoutée sur le Mac', kind:'etape', date:'2026-09-25', lat:2, lon:2, notes:''}],
+                days:[{date:'2026-09-22', photos:['p2'], note:'Arrivée', raw:[{id:'p2',t:2,lat:-33.9,lon:18.4}], steps:[]}] };
+  const n = mergeTrips(iphone, mac);
+  const twice = mergeTrips(iphone, mac);
+  return { n, deuxièmeFois:twice.added, lieux:iphone.sites.map(x=>x.name+(x.notes?' ('+x.notes+')':'')), photosDuJour:iphone.days[0].photos.length, note:iphone.days[0].note };
+});
+
 // 11 — plusieurs voyages : créer, basculer, supprimer
 await p.click('#btnMenu'); await p.waitForTimeout(200);
 r['sélecteur de voyages'] = await p.evaluate(()=> document.querySelectorAll('#mTrip option').length);

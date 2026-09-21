@@ -53,6 +53,8 @@
       <button class="chip" data-kind="hotel">Hôtels</button>
       <button class="chip" data-kind="table">Tables</button>
       <button class="chip" data-kind="site">À voir</button>
+      <button class="chip" data-kind="vin">Domaines</button>
+      <button class="chip" data-kind="shop">Shopping</button>
     </div>
     <div id="siteList" class="list"></div>
   </div>
@@ -131,15 +133,17 @@
 
   <h3>Sauvegarde</h3>
   <div class="menu-grid">
-    <button class="menu-btn" id="btnBackup"><span>💾</span>Sauvegarder</button>
-    <button class="menu-btn" id="btnRestore"><span>♻️</span>Restaurer</button>
+    <button class="menu-btn" id="btnBackup"><span>💾</span>Sauvegarder / envoyer</button>
+    <button class="menu-btn" id="btnRestore"><span>♻️</span>Restaurer / recevoir</button>
   </div>
   <input type="file" id="restoreInput" accept=".json,application/json" hidden>
-  <p class="hint" id="backupHint">Faites une sauvegarde une fois par semaine : Safari peut purger les données d'un site.</p>
+  <p class="hint" id="backupHint">Chaque appareil garde ses propres données. Pour passer du Mac à l'iPhone :
+  <b>Sauvegarder / envoyer</b> → AirDrop, puis sur l'iPhone <b>Restaurer / recevoir</b> → <b>Fusionner</b>.
+  Sauvegardez aussi une fois par semaine : Safari peut purger les données d'un site.</p>
 
   <h3>Données</h3>
   <div class="menu-grid">
-    <button class="menu-btn wide" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap</button>
+    <button class="menu-btn wide" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap — charger ou mettre à jour</button>
   </div>
   <p class="hint" id="storageHint"></p>
   <button class="menu-close" id="btnCloseMenu">Fermer</button>
@@ -171,9 +175,12 @@
       <option value="hotel">Hôtel</option>
       <option value="table">Table</option>
       <option value="site">À voir</option>
+      <option value="vin">Domaine</option>
+      <option value="shop">Shopping</option>
     </select>
   </div>
   <div class="menu-row"><label>Date</label><input type="date" id="eDate"></div>
+  <div class="menu-row"><label>Heure</label><input type="time" id="eTime"></div>
   <div class="menu-row"><label>Lat</label><input type="number" step="0.000001" id="eLat" placeholder="-33.9249"></div>
   <div class="menu-row"><label>Lon</label><input type="number" step="0.000001" id="eLon" placeholder="18.4241"></div>
   <textarea id="eNotes" class="notes-area" placeholder="Notes libres — adresse, téléphone, ce qu'il faut réserver, ce qu'on a aimé. Collez ce que vous voulez."></textarea>

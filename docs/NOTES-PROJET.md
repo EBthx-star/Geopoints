@@ -209,6 +209,39 @@ trajets y sont en texte), et l'ajout à la main d'un lieu visité sans photo.
 
 ---
 
+## Ajouts du 21 septembre 2026, soir (note Notion « 21 sept. 2026 16h30 »)
+
+**Chronologie des confirmations collées.** Les lieux se classent désormais par
+date **puis heure** (champ *Heure* dans l'éditeur). Les vols prennent leur heure
+de départ, et les mails de loueurs (Hertz, Avis, Europcar, Budget, Sixt…) sont
+lus : prise en charge et restitution, date, heure, aéroport. Avant, un mail
+Hertz n'était pas reconnu et finissait sans date en bas de liste. Formats
+anglais acceptés (« Sep 22, 2026 », « 12:30 PM »). La publicité Hertz des mails
+Air France est ignorée. Sans heure, un hôtel se range en fin de journée.
+
+**Dates du Cap corrigées.** Stellenbosch (Bonne Esperance, Tokara, Babylonstoren)
+passe au 26 sept., Overture au 27, Simon's Town (Quayside, Harbour House) au 27,
+conformément au road book (Blue Peter 22→26, Stellenbosch 26→27, Simon's Town 27→28).
+
+**Transfert Mac ↔ iPhone.** Chaque appareil garde ses données, sans serveur :
+c'est voulu (données privées), mais rien ne se synchronise seul.
+Menu ☰ → *Sauvegarder / envoyer* → AirDrop ; sur l'autre appareil *Restaurer /
+recevoir* → **Fusionner**. La fusion ajoute ce qui manque sans rien effacer ; un
+même lieu saisi sur deux appareils se reconnaît à son identifiant ou à son nom
+et sa date. Limite : un lieu supprimé d'un côté réapparaît à la fusion.
+Une vraie synchronisation automatique demanderait un service en ligne : à
+décider après Le Cap, avec la v2 native.
+
+**Cigares et domaines.** Deux catégories nouvelles : 🍷 *Domaine* et 🛍️
+*Shopping*. Ajout des 9 adresses cigares (Le Cap, Stellenbosch) et de 13
+domaines (Constantia, Helshoogte, Hemel-en-Aarde, Elim, Calitzdorp, Robertson)
+repris de la conversation *Voyage personnel au Cap*. Les coordonnées des
+domaines sont approximatives (📍 dans la note). Menu ☰ → *Itinéraire Le Cap —
+charger ou mettre à jour* complète un voyage du Cap existant sans doublon et
+sans toucher aux notes saisies.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :

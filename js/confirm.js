@@ -46,6 +46,13 @@ const Confirm = (() => {
     re = /(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/g;
     while((m = re.exec(text))) out.push({ iso: iso(+m[3], +m[2], +m[1]), at: m.index });
 
+    // Format anglais des loueurs : « Sep 22, 2026 », « September 22 2026 »
+    re = /\b([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})\b/g;
+    while((m = re.exec(text))){
+      const mois = MOIS[m[1].toLowerCase()] || MOIS[m[1].toLowerCase().slice(0,3)];
+      if(mois) out.push({ iso: iso(+m[3], mois, +m[2]), at: m.index });
+    }
+
     re = /(\d{4})-(\d{2})-(\d{2})/g;
     while((m = re.exec(text))) out.push({ iso: `${m[1]}-${m[2]}-${m[3]}`, at: m.index });
 
@@ -56,11 +63,18 @@ const Confirm = (() => {
 
   function findTimes(text){
     const out = [];
-    const re = /\b(\d{1,2})\s*[h:]\s*(\d{2})\b/g; let m;
+    let re = /\b(\d{1,2})\s*[h:]\s*(\d{2})\b(?!\s*[AaPp][Mm])/g, m;
     while((m = re.exec(text))){
       const h = +m[1];
-      if(h <= 23) out.push({ t:`${String(h).padStart(2,'0')}h${m[2]}`, at:m.index });
+      if(h <= 23) out.push({ t:`${String(h).padStart(2,'0')}h${m[2]}`, hm:`${String(h).padStart(2,'0')}:${m[2]}`, at:m.index });
     }
+    re = /\b(\d{1,2})(?:[:h](\d{2}))?\s*([AaPp])\.?[Mm]\b/g;
+    while((m = re.exec(text))){
+      let h = +m[1] % 12; if(/p/i.test(m[3])) h += 12;
+      const mn = m[2] || '00';
+      out.push({ t:`${String(h).padStart(2,'0')}h${mn}`, hm:`${String(h).padStart(2,'0')}:${mn}`, at:m.index });
+    }
+    out.sort((a,b)=>a.at-b.at);
     return out;
   }
 
@@ -112,6 +126,7 @@ const Confirm = (() => {
         kind: 'etape',
         name: nom,
         date: d ? d.iso : '',
+        time: h ? h.hm : '',
         lat: a ? a.lat : null,
         lon: a ? a.lon : null,
         notes: lignes.join('\n')
@@ -180,6 +195,51 @@ const Confirm = (() => {
     };
   }
 
+  /* ---------- Location de voiture ---------- */
+  const LOUEURS = /\b(Hertz|Avis|Europcar|Budget|Sixt|Enterprise|Thrifty|Tempest|Bluu|First Car Rental|Woodford)\b/i;
+  const LIEUX = [
+    { re:/cape town (?:international )?airport|a[ée]roport (?:international )?du cap|\bCPT\b/i, v:'Aéroport du Cap', lat:-33.9715, lon:18.6021 },
+    { re:/george airport|a[ée]roport de george|\bGRJ\b/i,       v:'Aéroport de George', lat:-34.0056, lon:22.3789 },
+    { re:/port elizabeth|gqeberha|\bPLZ\b/i,                    v:'Gqeberha', lat:-33.9849, lon:25.6173 },
+    { re:/johannesburg|o\.?r\.? tambo|\bJNB\b/i,               v:'Johannesburg', lat:-26.1392, lon:28.2460 },
+    { re:/cape town|le cap\b/i,                                 v:'Le Cap', lat:-33.9249, lon:18.4241 }
+  ];
+  function parseCar(text){
+    const lm = text.match(LOUEURS);
+    if(!lm) return [];
+    const loueur = lm[1].replace(/^\w/, c=>c.toUpperCase());
+    const dates = findDates(text), heures = findTimes(text);
+    const ref = findRef(text);
+    const bloc = (mots) => {
+      const m = new RegExp(mots, 'i').exec(text);
+      if(!m) return null;
+      const d = dates.find(x => x.at >= m.index && x.at - m.index < 220);
+      if(!d) return null;
+      const h = heures.find(x => x.at >= m.index && x.at - m.index < 260);
+      const zone = text.slice(m.index, m.index + 300);
+      const lieu = LIEUX.find(l => l.re.test(zone)) || null;
+      return { d, h, lieu };
+    };
+    const pick = bloc('prise en charge|retrait du v[ée]hicule|pick[\\s-]?up|date de d[ée]part|d[ée]part du v[ée]hicule');
+    const drop = bloc('restitution|retour du v[ée]hicule|drop[\\s-]?off|return|date de retour');
+    const out = [];
+    const mk = (b, quoi) => {
+      const lignes = [`${loueur} — ${quoi}`];
+      if(b.lieu) lignes.push(b.lieu.v);
+      if(b.h) lignes.push(`${quoi === 'prise en charge' ? 'Prise en charge' : 'Restitution'} ${b.h.t}`);
+      if(ref) lignes.push(`Réservation ${ref}`);
+      return {
+        kind:'etape', name:`🚗 ${loueur} — ${quoi}`,
+        date: b.d.iso, time: b.h ? b.h.hm : '',
+        lat: b.lieu ? b.lieu.lat : null, lon: b.lieu ? b.lieu.lon : null,
+        notes: lignes.join('\n')
+      };
+    };
+    if(pick) out.push(mk(pick, 'prise en charge'));
+    if(drop && (!pick || drop.d.iso !== pick.d.iso || (drop.h && pick.h && drop.h.at !== pick.h.at))) out.push(mk(drop, 'restitution'));
+    return out;
+  }
+
   function findRef(text){
     const re = /(?:dossier|r[ée]f[ée]rence|confirmation|booking number|r[ée]servation)\s*(?:n[°o]|n[ou]m[ée]ro)?\s*:?\s*([A-Z0-9]{6,12})\b/gi;
     let m;
@@ -200,9 +260,16 @@ const Confirm = (() => {
     const vols = parseFlights(text);
     propositions.push(...vols);
 
+    // Un mail de loueur n'est pas un mail de vol : on ne cherche la voiture
+    // que si aucun vol n'est reconnu (les mails Air France vantent Hertz).
+    const voitures = vols.length ? [] : parseCar(text);
+    propositions.push(...voitures);
+
     // On ne cherche un hébergement que si le texte y fait référence :
     // sinon un mail de vol produirait un faux hôtel.
-    if(/h[ôo]tel|guest\s?house|lodge|booking|s[ée]jour|check[-\s]?in|nuit[s]?\b/i.test(text)){
+    const hotelWords = voitures.length ? /h[ôo]tel|guest\s?house|lodge|check[-\s]?in/i
+                                       : /h[ôo]tel|guest\s?house|lodge|booking|s[ée]jour|check[-\s]?in|nuit[s]?\b/i;
+    if(hotelWords.test(text)){
       const stay = parseStay(text);
       if(stay) propositions.push(stay);
     }

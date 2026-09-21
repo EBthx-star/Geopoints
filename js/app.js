@@ -56,8 +56,19 @@ function haversine(a,b){
 }
 const KIND = {
   etape:{icon:'📍',label:'Étape'}, hotel:{icon:'🛏️',label:'Hôtel'},
-  table:{icon:'🍽️',label:'Table'}, site:{icon:'⭐',label:'À voir'}
+  table:{icon:'🍽️',label:'Table'}, site:{icon:'⭐',label:'À voir'},
+  vin:{icon:'🍷',label:'Domaine'},  shop:{icon:'🛍️',label:'Shopping'}
 };
+/* Ordre chronologique : la date, puis l'heure. Sans heure, un hôtel se range
+   en fin de journée (on y arrive le soir), le reste à midi. */
+function siteKey(s){
+  if(!s.date) return '9999';
+  return s.date + ' ' + (s.time || (s.kind==='hotel' ? '18:00' : '12:00'));
+}
+const bySite = (a,b)=>siteKey(a).localeCompare(siteKey(b));
+function fmtWhen(s){
+  return s.date ? fmtDate(s.date) + (s.time ? ' · ' + s.time.replace(':','h') : '') : '';
+}
 function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -249,7 +260,7 @@ function renderPrep(){
   clearLayers('prep');
   $('routeInfoPrep').hidden = true;
 
-  const all = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  const all = trip.sites.slice().sort(bySite);
   const shown = kindFilter==='all' ? all : all.filter(s=>s.kind===kindFilter);
   $('siteCount').textContent = all.length;
 
@@ -257,7 +268,7 @@ function renderPrep(){
   if(m) shown.forEach(s=>{
     if(s.lat==null || s.lon==null) return;
     const mk = L.marker([s.lat,s.lon],{icon:pinIcon(s.kind)}).addTo(m)
-      .bindPopup(`<b>${escapeHtml(s.name)}</b><br><small>${fmtDate(s.date)}</small>`);
+      .bindPopup(`<b>${escapeHtml(s.name)}</b><br><small>${fmtWhen(s)}</small>`);
     mk.on('click', ()=>highlight(s.id));
     layers.prep.markers.push(mk);
   });
@@ -278,7 +289,7 @@ function renderPrep(){
           <div class="item-title">
             ${isStop?`<span class="seq">${seq}</span>`:''}${escapeHtml(s.name)}
           </div>
-          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}</div>
+          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}</div>
           ${s.notes?`<div class="item-notes">${escapeHtml(s.notes)}</div>`:''}
         </div>
         <div class="item-actions">
@@ -302,7 +313,7 @@ function routePoints(){
   // les tables et les visites ne détournent pas le tracé.
   return trip.sites
     .filter(s=>(s.kind==='etape'||s.kind==='hotel') && s.lat!=null && s.lon!=null)
-    .sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+    .sort(bySite);
 }
 function highlight(id){
   document.querySelectorAll('.item.active').forEach(e=>e.classList.remove('active'));
@@ -671,11 +682,11 @@ async function buildBookParts(embed = true){
   }
 
   // Le carnet d'adresses en annexe : c'est ce qui sert à refaire le voyage.
-  const sites = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  const sites = trip.sites.slice().sort(bySite);
   if(sites.length){
     body += `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
       <div class="step"><h3>${KIND[s.kind].icon} ${escapeHtml(s.name)}</h3>
-      <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
+      <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
       ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
   }
 
@@ -741,12 +752,12 @@ function buildMarkdown(){
     });
   });
 
-  const sites = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  const sites = trip.sites.slice().sort(bySite);
   if(sites.length){
     md += `\n## Carnet d'adresses\n\n`;
     sites.forEach(s=>{
       md += `### ${KIND[s.kind].icon} ${s.name}\n`;
-      md += `*${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}`;
+      md += `*${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}`;
       if(s.lat!=null) md += ` · [carte](https://maps.google.com/?q=${s.lat},${s.lon})`;
       md += `*\n\n`;
       if(s.notes) md += `${s.notes}\n\n`;
@@ -792,34 +803,105 @@ async function backup(){
 }
 /* Une sauvegarde revient comme un voyage de la liste. Si ce voyage existe
    déjà, on propose de le remplacer ; sinon il s'ajoute à côté des autres. */
+/* Une sauvegarde peut venir d'un autre appareil. On propose de la fusionner
+   avec le voyage ouvert (le cas « transfert Mac → iPhone »), ou de l'ajouter
+   comme un voyage distinct. */
 async function restore(file){
+  busy(true,'Lecture de la sauvegarde…');
+  let data;
+  try{
+    data = JSON.parse(await file.text());
+    if(!data.trip) throw new Error('format');
+  }catch(e){ busy(false); toast('Fichier illisible', 3200); return; }
+  busy(false);
+  const t = data.trip;
+  t.days = t.days||[]; t.sites = t.sites||[];
+
+  const v = await ask({
+    title:'Restaurer « ' + (t.name||'Voyage') + ' »',
+    msg:`${t.sites.length} lieux · ${t.days.length} journées · ${Object.keys(data.images||{}).length} photos.\n\n`
+       +`Fusionner : ajoute ce qui manque au voyage ouvert « ${trip.name} », sans rien effacer.\n`
+       +`Ajouter à côté : en fait un voyage distinct dans la liste.`,
+    ok:'Fusionner', cancel:'Ajouter à côté'
+  });
+
   busy(true,'Restauration…');
   try{
-    const data = JSON.parse(await file.text());
-    if(!data.trip) throw new Error('format');
-    const t = data.trip;
-    t.days = t.days||[]; t.sites = t.sites||[];
-    busy(false);
-    const exists = t.id && Store.list().some(x=>x.id===t.id);
-    if(exists && (await ask({title:'Ce voyage existe déjà', msg:`Remplacer « ${t.name} » par la sauvegarde, ou l'ajouter comme un voyage distinct ?`, ok:'Remplacer', cancel:'Ajouter à côté'}))===null){
-      t.id = null; t.name = (t.name||'Voyage') + ' (copie)';
-    }
-    if(!t.id) t.id = Store.blank().id;
-    busy(true,'Restauration…');
     if(data.images){
       for(const [id,dataUrl] of Object.entries(data.images)){
         const blob = await (await fetch(dataUrl)).blob();
         await Photos.put(id, blob);
       }
     }
-    Store.save(t);
-    busy(false);
-    switchTrip(t.id);
-    toast('Sauvegarde restaurée', 3000);
+    if(v !== null){
+      const n = mergeTrips(trip, t);
+      persist(); busy(false);
+      switchTrip(trip.id);
+      toast(`Fusion : ${n.added} lieu${n.added>1?'x':''} ajouté${n.added>1?'s':''}, ${n.updated} mis à jour, ${n.days} journée${n.days>1?'s':''}`, 4200);
+    } else {
+      if(!t.id || Store.list().some(x=>x.id===t.id)) t.id = Store.blank().id;
+      Store.save(t); busy(false);
+      switchTrip(t.id);
+      toast('Voyage ajouté à la liste', 3000);
+    }
   }catch(e){
     busy(false);
-    toast('Fichier illisible', 3200);
+    toast('Restauration interrompue', 3200);
   }
+}
+
+function topUpCape(t){
+  const norm = x => (x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const have = new Set(t.sites.map(x=>norm(x.name)));
+  let added = 0, fixed = 0;
+  CAPE_TRIP.sites.forEach(src=>{
+    if(!have.has(norm(src.name))){ t.sites.push(Object.assign({id:uid()}, src)); added++; }
+  });
+  t.sites.forEach(x=>{
+    const f = CAPE_FIXES[x.name];
+    if(f && x.date === f.from){ x.date = f.to; fixed++; }
+    const src = CAPE_TRIP.sites.find(c=>c.name===x.name);
+    if(src && src.time && !x.time) x.time = src.time;
+  });
+  return {added, fixed};
+}
+
+/* ===================== Fusion de deux copies d'un voyage =====================
+   Chaque appareil garde ses données (aucun serveur). Pour passer du Mac à
+   l'iPhone : Sauvegarder → AirDrop → Restaurer → Fusionner. La fusion ajoute
+   ce qui manque sans rien effacer : les mêmes lieux saisis sur deux appareils
+   se reconnaissent à leur identifiant, ou à leur nom et leur date. */
+function mergeTrips(into, from){
+  const norm = x => (x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const same = (a,b) => a.id===b.id || (norm(a.name)===norm(b.name) && (a.date||'')===(b.date||''));
+  let added = 0, updated = 0;
+  (from.sites||[]).forEach(fs=>{
+    const cur = into.sites.find(x=>same(x,fs));
+    if(!cur){ into.sites.push(Object.assign({}, fs)); added++; return; }
+    // Même lieu : on garde la version modifiée le plus récemment, sinon on
+    // complète seulement ce qui manque (notes plus longues, coordonnées, heure).
+    if((fs.updated||0) > (cur.updated||0)){ Object.assign(cur, fs, {id:cur.id}); updated++; return; }
+    let ch = false;
+    if(cur.lat==null && fs.lat!=null){ cur.lat=fs.lat; cur.lon=fs.lon; ch=true; }
+    if(!cur.time && fs.time){ cur.time=fs.time; ch=true; }
+    if((fs.notes||'').length > (cur.notes||'').length && !(cur.notes||'').includes(fs.notes)){ cur.notes=fs.notes; ch=true; }
+    if(ch) updated++;
+  });
+  let days = 0;
+  (from.days||[]).forEach(fd=>{
+    let d = into.days.find(x=>x.date===fd.date);
+    if(!d){ into.days.push(JSON.parse(JSON.stringify(fd))); days++; return; }
+    const raw = d.raw || (d.raw=[]);
+    (fd.raw||[]).forEach(p=>{ if(!raw.some(x=>x.id===p.id)) raw.push(p); });
+    (fd.photos||[]).forEach(p=>{ if(!d.photos.includes(p)) d.photos.push(p); });
+    if(fd.note && !(d.note||'').includes(fd.note)) d.note = d.note ? d.note + '\n\n' + fd.note : fd.note;
+    raw.sort((a,b)=>a.t-b.t);
+    d.steps = clusterSteps(raw, (d.steps||[]).concat(fd.steps||[]));
+    days++;
+  });
+  if(!into.start && from.start) into.start = from.start;
+  if(!into.end && from.end) into.end = from.end;
+  return {added, updated, days};
 }
 
 /* ===================== Plusieurs voyages ===================== */
@@ -893,7 +975,7 @@ function renderProps(){
       <div class="prop-check">${p.keep?'✓':''}</div>
       <div class="prop-body">
         <div class="prop-name">${KIND[p.kind].icon} ${escapeHtml(p.name)}</div>
-        <div class="prop-meta">${KIND[p.kind].label}${p.date?' · '+fmtDate(p.date):' · date à préciser'}${p.lat!=null?' · situé':''}</div>
+        <div class="prop-meta">${KIND[p.kind].label}${p.date?' · '+fmtWhen(p):' · date à préciser'}${p.lat!=null?' · situé':''}</div>
         ${p.notes?`<div class="prop-note">${escapeHtml(p.notes.split('\n').slice(0,3).join('\n'))}</div>`:''}
       </div>
     </div>`).join('')
@@ -914,7 +996,7 @@ function addProps(){
   if(!gardes.length){ toast('Rien de sélectionné'); return; }
   gardes.forEach(p=>{
     trip.sites.push({
-      id: uid(), name: p.name, kind: p.kind, date: p.date,
+      id: uid(), name: p.name, kind: p.kind, date: p.date, time: p.time || '',
       lat: p.lat, lon: p.lon, notes: p.notes
     });
   });
@@ -984,6 +1066,7 @@ function openEditor(id){
   $('eName').value  = s?s.name:'';
   $('eKind').value  = s?s.kind:'etape';
   $('eDate').value  = s?(s.date||''):'';
+  $('eTime').value  = s?(s.time||''):'';
   $('eLat').value   = s&&s.lat!=null?s.lat:'';
   $('eLon').value   = s&&s.lon!=null?s.lon:'';
   $('eNotes').value = s?(s.notes||''):'';
@@ -997,10 +1080,12 @@ function saveEditor(){
     name,
     kind:  $('eKind').value,
     date:  $('eDate').value || '',
+    time:  $('eTime').value || '',
     lat:   $('eLat').value===''?null:parseFloat($('eLat').value),
     lon:   $('eLon').value===''?null:parseFloat($('eLon').value),
     notes: $('eNotes').value
   };
+  rec.updated = Date.now();
   if(editingId){
     const s = trip.sites.find(x=>x.id===editingId);
     Object.assign(s, rec);
@@ -1155,8 +1240,15 @@ function wire(){
   $('restoreInput').onchange = e=>{ if(e.target.files[0]) restore(e.target.files[0]); e.target.value=''; };
 
   $('btnLoadCape').onclick = async ()=>{
-    // Voyage vide : on le remplit. Sinon le Cap devient un voyage à part,
-    // sans rien écraser.
+    // Voyage du Cap déjà ouvert : on le complète (adresses ajoutées depuis,
+    // dates corrigées) sans rien écraser de ce que l'utilisateur a saisi.
+    if(trip.name === CAPE_TRIP.name && trip.sites.length){
+      const n = topUpCape(trip);
+      persist(); closeSheet('menu'); switchPane('prep');
+      toast(n.added || n.fixed ? `${n.added} adresse${n.added>1?'s':''} ajoutée${n.added>1?'s':''} · ${n.fixed} date${n.fixed>1?'s':''} corrigée${n.fixed>1?'s':''}` : 'Itinéraire du Cap déjà à jour', 3600);
+      return;
+    }
+    // Voyage vide : on le remplit. Sinon le Cap devient un voyage à part.
     if(trip.sites.length || trip.days.length){
       if(!(await askYes('Itinéraire du Cap', 'Créer un nouveau voyage avec l\'itinéraire du Cap ?\nLe voyage actuel reste intact dans la liste.', 'Créer'))) return;
       const t = Store.create(CAPE_TRIP.name);
