@@ -272,6 +272,8 @@ body{
 .pin-hotel{background:var(--ocre)}
 .pin-table{background:#8e5a3c}
 .pin-site{background:#4a7c59}
+.pin-vin{background:#7a2e3b}
+.pin-shop{background:#5b4b7a}
 .pin-photo{background:var(--teal);border-radius:50%;transform:none}
 .pin-photo > *{transform:none}
 
@@ -376,6 +378,8 @@ body{
       <button class="chip" data-kind="hotel">Hôtels</button>
       <button class="chip" data-kind="table">Tables</button>
       <button class="chip" data-kind="site">À voir</button>
+      <button class="chip" data-kind="vin">Domaines</button>
+      <button class="chip" data-kind="shop">Shopping</button>
     </div>
     <div id="siteList" class="list"></div>
   </div>
@@ -454,15 +458,17 @@ body{
 
   <h3>Sauvegarde</h3>
   <div class="menu-grid">
-    <button class="menu-btn" id="btnBackup"><span>💾</span>Sauvegarder</button>
-    <button class="menu-btn" id="btnRestore"><span>♻️</span>Restaurer</button>
+    <button class="menu-btn" id="btnBackup"><span>💾</span>Sauvegarder / envoyer</button>
+    <button class="menu-btn" id="btnRestore"><span>♻️</span>Restaurer / recevoir</button>
   </div>
   <input type="file" id="restoreInput" accept=".json,application/json" hidden>
-  <p class="hint" id="backupHint">Faites une sauvegarde une fois par semaine : Safari peut purger les données d'un site.</p>
+  <p class="hint" id="backupHint">Chaque appareil garde ses propres données. Pour passer du Mac à l'iPhone :
+  <b>Sauvegarder / envoyer</b> → AirDrop, puis sur l'iPhone <b>Restaurer / recevoir</b> → <b>Fusionner</b>.
+  Sauvegardez aussi une fois par semaine : Safari peut purger les données d'un site.</p>
 
   <h3>Données</h3>
   <div class="menu-grid">
-    <button class="menu-btn wide" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap</button>
+    <button class="menu-btn wide" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap — charger ou mettre à jour</button>
   </div>
   <p class="hint" id="storageHint"></p>
   <button class="menu-close" id="btnCloseMenu">Fermer</button>
@@ -494,9 +500,12 @@ body{
       <option value="hotel">Hôtel</option>
       <option value="table">Table</option>
       <option value="site">À voir</option>
+      <option value="vin">Domaine</option>
+      <option value="shop">Shopping</option>
     </select>
   </div>
   <div class="menu-row"><label>Date</label><input type="date" id="eDate"></div>
+  <div class="menu-row"><label>Heure</label><input type="time" id="eTime"></div>
   <div class="menu-row"><label>Lat</label><input type="number" step="0.000001" id="eLat" placeholder="-33.9249"></div>
   <div class="menu-row"><label>Lon</label><input type="number" step="0.000001" id="eLon" placeholder="18.4241"></div>
   <textarea id="eNotes" class="notes-area" placeholder="Notes libres — adresse, téléphone, ce qu'il faut réserver, ce qu'on a aimé. Collez ce que vous voulez."></textarea>
@@ -858,6 +867,13 @@ const Confirm = (() => {
     re = /(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/g;
     while((m = re.exec(text))) out.push({ iso: iso(+m[3], +m[2], +m[1]), at: m.index });
 
+    // Format anglais des loueurs : « Sep 22, 2026 », « September 22 2026 »
+    re = /\b([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})\b/g;
+    while((m = re.exec(text))){
+      const mois = MOIS[m[1].toLowerCase()] || MOIS[m[1].toLowerCase().slice(0,3)];
+      if(mois) out.push({ iso: iso(+m[3], mois, +m[2]), at: m.index });
+    }
+
     re = /(\d{4})-(\d{2})-(\d{2})/g;
     while((m = re.exec(text))) out.push({ iso: `${m[1]}-${m[2]}-${m[3]}`, at: m.index });
 
@@ -868,11 +884,18 @@ const Confirm = (() => {
 
   function findTimes(text){
     const out = [];
-    const re = /\b(\d{1,2})\s*[h:]\s*(\d{2})\b/g; let m;
+    let re = /\b(\d{1,2})\s*[h:]\s*(\d{2})\b(?!\s*[AaPp][Mm])/g, m;
     while((m = re.exec(text))){
       const h = +m[1];
-      if(h <= 23) out.push({ t:`${String(h).padStart(2,'0')}h${m[2]}`, at:m.index });
+      if(h <= 23) out.push({ t:`${String(h).padStart(2,'0')}h${m[2]}`, hm:`${String(h).padStart(2,'0')}:${m[2]}`, at:m.index });
     }
+    re = /\b(\d{1,2})(?:[:h](\d{2}))?\s*([AaPp])\.?[Mm]\b/g;
+    while((m = re.exec(text))){
+      let h = +m[1] % 12; if(/p/i.test(m[3])) h += 12;
+      const mn = m[2] || '00';
+      out.push({ t:`${String(h).padStart(2,'0')}h${mn}`, hm:`${String(h).padStart(2,'0')}:${mn}`, at:m.index });
+    }
+    out.sort((a,b)=>a.at-b.at);
     return out;
   }
 
@@ -924,6 +947,7 @@ const Confirm = (() => {
         kind: 'etape',
         name: nom,
         date: d ? d.iso : '',
+        time: h ? h.hm : '',
         lat: a ? a.lat : null,
         lon: a ? a.lon : null,
         notes: lignes.join('\n')
@@ -992,6 +1016,51 @@ const Confirm = (() => {
     };
   }
 
+  /* ---------- Location de voiture ---------- */
+  const LOUEURS = /\b(Hertz|Avis|Europcar|Budget|Sixt|Enterprise|Thrifty|Tempest|Bluu|First Car Rental|Woodford)\b/i;
+  const LIEUX = [
+    { re:/cape town (?:international )?airport|a[ée]roport (?:international )?du cap|\bCPT\b/i, v:'Aéroport du Cap', lat:-33.9715, lon:18.6021 },
+    { re:/george airport|a[ée]roport de george|\bGRJ\b/i,       v:'Aéroport de George', lat:-34.0056, lon:22.3789 },
+    { re:/port elizabeth|gqeberha|\bPLZ\b/i,                    v:'Gqeberha', lat:-33.9849, lon:25.6173 },
+    { re:/johannesburg|o\.?r\.? tambo|\bJNB\b/i,               v:'Johannesburg', lat:-26.1392, lon:28.2460 },
+    { re:/cape town|le cap\b/i,                                 v:'Le Cap', lat:-33.9249, lon:18.4241 }
+  ];
+  function parseCar(text){
+    const lm = text.match(LOUEURS);
+    if(!lm) return [];
+    const loueur = lm[1].replace(/^\w/, c=>c.toUpperCase());
+    const dates = findDates(text), heures = findTimes(text);
+    const ref = findRef(text);
+    const bloc = (mots) => {
+      const m = new RegExp(mots, 'i').exec(text);
+      if(!m) return null;
+      const d = dates.find(x => x.at >= m.index && x.at - m.index < 220);
+      if(!d) return null;
+      const h = heures.find(x => x.at >= m.index && x.at - m.index < 260);
+      const zone = text.slice(m.index, m.index + 300);
+      const lieu = LIEUX.find(l => l.re.test(zone)) || null;
+      return { d, h, lieu };
+    };
+    const pick = bloc('prise en charge|retrait du v[ée]hicule|pick[\\s-]?up|date de d[ée]part|d[ée]part du v[ée]hicule');
+    const drop = bloc('restitution|retour du v[ée]hicule|drop[\\s-]?off|return|date de retour');
+    const out = [];
+    const mk = (b, quoi) => {
+      const lignes = [`${loueur} — ${quoi}`];
+      if(b.lieu) lignes.push(b.lieu.v);
+      if(b.h) lignes.push(`${quoi === 'prise en charge' ? 'Prise en charge' : 'Restitution'} ${b.h.t}`);
+      if(ref) lignes.push(`Réservation ${ref}`);
+      return {
+        kind:'etape', name:`🚗 ${loueur} — ${quoi}`,
+        date: b.d.iso, time: b.h ? b.h.hm : '',
+        lat: b.lieu ? b.lieu.lat : null, lon: b.lieu ? b.lieu.lon : null,
+        notes: lignes.join('\n')
+      };
+    };
+    if(pick) out.push(mk(pick, 'prise en charge'));
+    if(drop && (!pick || drop.d.iso !== pick.d.iso || (drop.h && pick.h && drop.h.at !== pick.h.at))) out.push(mk(drop, 'restitution'));
+    return out;
+  }
+
   function findRef(text){
     const re = /(?:dossier|r[ée]f[ée]rence|confirmation|booking number|r[ée]servation)\s*(?:n[°o]|n[ou]m[ée]ro)?\s*:?\s*([A-Z0-9]{6,12})\b/gi;
     let m;
@@ -1012,9 +1081,16 @@ const Confirm = (() => {
     const vols = parseFlights(text);
     propositions.push(...vols);
 
+    // Un mail de loueur n'est pas un mail de vol : on ne cherche la voiture
+    // que si aucun vol n'est reconnu (les mails Air France vantent Hertz).
+    const voitures = vols.length ? [] : parseCar(text);
+    propositions.push(...voitures);
+
     // On ne cherche un hébergement que si le texte y fait référence :
     // sinon un mail de vol produirait un faux hôtel.
-    if(/h[ôo]tel|guest\s?house|lodge|booking|s[ée]jour|check[-\s]?in|nuit[s]?\b/i.test(text)){
+    const hotelWords = voitures.length ? /h[ôo]tel|guest\s?house|lodge|check[-\s]?in/i
+                                       : /h[ôo]tel|guest\s?house|lodge|booking|s[ée]jour|check[-\s]?in|nuit[s]?\b/i;
+    if(hotelWords.test(text)){
       const stay = parseStay(text);
       if(stay) propositions.push(stay);
     }
@@ -1040,6 +1116,17 @@ const Confirm = (() => {
    Les coordonnées sont un point de départ : chaque étape reste éditable.
 */
 
+/* Corrections apportées après coup à l'itinéraire : appliquées aux voyages
+   déjà chargés, tant que l'utilisateur n'a pas lui-même changé la date. */
+const CAPE_FIXES = {
+  "Bonne Esperance Guest House — Stellenbosch": { from:"2026-09-24", to:"2026-09-26" },
+  "Tokara":                                     { from:"2026-09-24", to:"2026-09-26" },
+  "Overture":                                   { from:"2026-09-25", to:"2026-09-27" },
+  "Babylonstoren — Simondium":                  { from:"2026-09-25", to:"2026-09-26" },
+  "Simon's Town Quayside Hotel":                { from:"2026-09-26", to:"2026-09-27" },
+  "Harbour House — Kalk Bay":                   { from:"2026-09-26", to:"2026-09-27" }
+};
+
 const CAPE_TRIP = {
   name: "Le Cap & Western Cape",
   start: "2026-09-22",
@@ -1050,17 +1137,17 @@ const CAPE_TRIP = {
       notes:"+27 21 554 1956\nBase des premières nuits, vue sur Table Mountain depuis la plage.\nÀ proximité : Petiscos (peri-peri), Ons Huisie." },
     { name:"Le Cap — V&A / Oranjezicht Market", kind:"site", lat:-33.92490, lon:18.42410, date:"2026-09-23",
       notes:"Oranjezicht City Farm Market le samedi matin (V&A).\nSturk's Tobacconists — la référence historique en ville." },
-    { name:"Bonne Esperance Guest House — Stellenbosch", kind:"hotel", lat:-33.93210, lon:18.86020, date:"2026-09-24",
+    { name:"Bonne Esperance Guest House — Stellenbosch", kind:"hotel", lat:-33.93210, lon:18.86020, date:"2026-09-26", time:"15:00",
       notes:"+27 21 887 0225\nDorp Street à deux pas, Stellenbosch Tobacconist dans la rue." },
-    { name:"Tokara", kind:"table", lat:-33.91790, lon:18.92030, date:"2026-09-24",
+    { name:"Tokara", kind:"table", lat:-33.91790, lon:18.92030, date:"2026-09-26", time:"12:30",
       notes:"Winelands. Vue sur la vallée, cuisine sud-africaine. Réserver." },
-    { name:"Overture", kind:"table", lat:-33.96860, lon:18.85240, date:"2026-09-25",
+    { name:"Overture", kind:"table", lat:-33.96860, lon:18.85240, date:"2026-09-27", time:"12:30",
       notes:"Hidden Valley. Table de référence des Winelands. Réserver largement à l'avance." },
-    { name:"Babylonstoren — Simondium", kind:"site", lat:-33.82670, lon:18.92670, date:"2026-09-25",
+    { name:"Babylonstoren — Simondium", kind:"site", lat:-33.82670, lon:18.92670, date:"2026-09-26", time:"10:00",
       notes:"Jardin potager historique, ferme et cave. Repéré via l'email Air France." },
-    { name:"Simon's Town Quayside Hotel", kind:"hotel", lat:-34.19280, lon:18.43260, date:"2026-09-26",
+    { name:"Simon's Town Quayside Hotel", kind:"hotel", lat:-34.19280, lon:18.43260, date:"2026-09-27", time:"17:00",
       notes:"+27 21 786 3838\nSur le port. Manchots de Boulders à côté, Cap de Bonne-Espérance au sud." },
-    { name:"Harbour House — Kalk Bay", kind:"table", lat:-34.12760, lon:18.44850, date:"2026-09-26",
+    { name:"Harbour House — Kalk Bay", kind:"table", lat:-34.12760, lon:18.44850, date:"2026-09-27", time:"19:30",
       notes:"Poisson, les pieds au-dessus de l'eau. Bertha's juste à côté à Simon's Town." },
     { name:"11 Westcliff — Hermanus", kind:"hotel", lat:-34.41870, lon:19.23450, date:"2026-09-28",
       notes:"+27 82 758 6889\nSaison des baleines : observation depuis la falaise du Cliff Path." },
@@ -1072,6 +1159,87 @@ const CAPE_TRIP = {
       notes:"+27 60 980 0664\nLe port aux raies. Cap Agulhas à 5 min : le vrai point le plus austral de l'Afrique." },
     { name:"Cap Agulhas", kind:"site", lat:-34.83330, lon:20.00000, date:"2026-10-01",
       notes:"Pointe sud de l'Afrique, séparation des deux océans. Phare de 1848." },
+
+    // ---- Tables ajoutées le 23 sept. (conversation « Voyage personnel au Cap ») ----
+    { name:"Ons Huisie — Bloubergstrand", kind:"table", lat:-33.79958, lon:18.45893, date:"2026-09-22", time:"19:30",
+      notes:"Chaumière de pêcheur les pieds dans le sable, cheminée. Poisson et fruits de mer.\nJuste à côté du Blue Peter." },
+    { name:"Petiscos — Parklands", kind:"table", lat:-33.81835, lon:18.49655, date:"2026-09-23", time:"19:30",
+      notes:"Portugais authentique à ~10 min de Bloubergstrand : gambas peri-peri, espetada, plateaux grillés.\nLe plus proche du souvenir de Durban." },
+    { name:"La Colombe — Constantia", kind:"table", lat:-34.00830, lon:18.38110, date:"2026-09-24", time:"12:30",
+      notes:"Silvermist, Constantia Nek. La grande table de la vallée, à caler sur la journée Constantia.\n📍 Position approximative. Réserver." },
+    { name:"Caramba — Green Point", kind:"table", lat:-33.90882, lon:18.41200, date:"2026-09-24", time:"19:30",
+      notes:"Petite tasca portugaise : gambas peri-peri, sardines grillées." },
+    { name:"Die Strandloper — Langebaan", kind:"table", lat:-33.07232, lon:18.03923, date:"2026-09-25", time:"12:30",
+      notes:"~1h15 au nord. Festin de poisson multi-plats cuit sur feux ouverts, sur la plage.\nRéserver, apporter ses boissons, espèces." },
+    { name:"Dias Tavern — District Six", kind:"table", lat:-33.92757, lon:18.42510, date:"2026-09-25", time:"19:30",
+      notes:"Institution portugaise du Cap : sardines, poulet et poisson peri-peri, ambiance taverne." },
+    { name:"Kalky's — Kalk Bay", kind:"table", lat:-34.12905, lon:18.44882, date:"2026-09-27", time:"12:30",
+      notes:"Sur le port. Snoek et thon grillés à l'huile peri-peri, gambas. Rustique, espèces.\nSur la route de la péninsule." },
+    { name:"Saveur — Simon's Town", kind:"table", lat:-34.19300, lon:18.43290, date:"2026-09-27", time:"20:00",
+      notes:"Au-dessus du port, près de Jubilee Square. Coucher de soleil sur False Bay, belle carte des vins.\n📍 Position approximative. Réserver." },
+    { name:"Bertha's — Simon's Town", kind:"table", lat:-34.19310, lon:18.43310, date:"2026-09-28", time:"08:00",
+      notes:"Quayside Centre, 1 Wharf St · +27 21 786 2138 · 8h–22h\nSur le quai, juste sous l'hôtel : c'est là qu'on prend le petit-déjeuner." },
+    { name:"Fick's Pool — Westcliff, Hermanus", kind:"table", lat:-34.41850, lon:19.22900, date:"2026-09-28", time:"18:00",
+      notes:"8 Marine Dr, Westcliff · +27 28 312 4082 · 11h–18h (ven.-sam. 19h)\nTapas et sundowners au-dessus de la piscine de marée, à côté du logement.\n📍 Position approximative." },
+    { name:"La Pentola — Hermanus", kind:"table", lat:-34.41850, lon:19.23200, date:"2026-09-28", time:"19:30",
+      notes:"87 Marine Dr · +27 28 313 1685 · lapentola.co.za · 11h–22h\nVue Walker Bay, baleines depuis la table.\n📍 Position approximative." },
+    { name:"Southern Right Charters — sortie baleines", kind:"site", lat:-34.42300, lon:19.22900, date:"2026-09-29", time:"09:00",
+      notes:"The Whale Shack, New Harbour · +27 82 353 0550 · southernrightcharters.co.za\nDéparts 9h / 12h / 15h · ~2 h · ~R1 580 par adulte. RÉSERVER.\n📍 Position approximative." },
+    { name:"Perlemoen Seafront — Hermanus", kind:"table", lat:-34.41900, lon:19.23800, date:"2026-09-29", time:"12:30",
+      notes:"64 Marine Dr · +27 79 314 8658 · ~9h–15h\nFruits de mer, spécialiste de l'ormeau (perlemoen) et du snoek. Plutôt le midi.\n📍 Position approximative." },
+    { name:"The Rock — New Harbour, Hermanus", kind:"table", lat:-34.42300, lon:19.22950, date:"2026-09-29", time:"19:00",
+      notes:"New Harbour · +27 28 312 2920 · 8h30–21h\nFruits de mer et sushi, vue port, aussi le petit-déjeuner. Là où part le bateau baleines.\n📍 Position approximative." },
+    { name:"Catch Cook — port de Struisbaai", kind:"table", lat:-34.79750, lon:20.05250, date:"2026-10-01", time:"12:30",
+      notes:"Sur le quai. Déjeuner de fruits de mer, là où Parrie la raie vient se faire nourrir.\n📍 Position approximative." },
+
+    // ---- Cigares (conversation « Voyage personnel au Cap ») ----
+    { name:"Sturk's Tobacconists", kind:"shop", lat:-33.92221, lon:18.42004, date:"2026-09-23",
+      notes:"54 Shortmarket St, City Centre · +27 21 423 3928 · sturks.co.za\nLA référence historique (1793), Churchill y achetait son tabac. Cubains, pipes faites main.\n⚠️ Adresse incertaine depuis 2020 (Shortmarket St ou Garden Centre, Mill St) : appeler avant." },
+    { name:"Cape Cigars & Tobacconist — Green Point", kind:"shop", lat:-33.90788, lon:18.40944, date:"2026-09-23",
+      notes:"105 Main Rd, Green Point · +27 72 457 4189 · 9h–19h (dim. 9h–14h)\nPetite boutique, patron serviable, prix corrects, choix limité." },
+    { name:"The Cock 'n Bull — V&A Waterfront", kind:"shop", lat:-33.90361, lon:18.42081, date:"2026-09-23",
+      notes:"Shop 6192, 1 Breakwater Blvd · +27 21 421 1860 · 9h–21h · cocknbull.co.za\nHumidor correct, bon conseil. Le plus accessible depuis le Waterfront." },
+    { name:"Smokers Deli Shop", kind:"shop", lat:-33.92553, lon:18.41529, date:"2026-09-23",
+      notes:"City Centre · +27 65 839 5735 · ouvert jusqu'à 23h\nMontecristo frais, cubains et américains." },
+    { name:"Bascule Bar — Cape Grace", kind:"shop", lat:-33.90823, lon:18.42017, date:"2026-09-24",
+      notes:"V&A Waterfront · capegrace.com\nCarte de whiskies monumentale, terrasse sur la marina." },
+    { name:"JJ Cale Premiere Tobacconist — Stellenbosch", kind:"shop", lat:-33.97840, lon:18.84200, date:"2026-09-26",
+      notes:"Stellenbosch Square · jjcale.co.za\nChaîne nationale au fonds sérieux : Cohiba, Bolivar, Partagas, Behike, Padrón…" },
+    { name:"Stellenbosch Tobacconist", kind:"shop", lat:-33.93927, lon:18.85933, date:"2026-09-26",
+      notes:"Dorp St, plein centre — à deux pas de Bonne Esperance · 8h30–22h\ninstagram.com/stellenboschtobacconist" },
+    { name:"Blix Tavern", kind:"shop", lat:-33.93934, lon:18.85694, date:"2026-09-26",
+      notes:"Stellenbosch · blix.africa\nLe plus petit bar de Stellenbosch. Cigares à la carte, bières maison. Fermé le dimanche." },
+    { name:"Balboa Balcony Bar", kind:"shop", lat:-33.93737, lon:18.86119, date:"2026-09-26",
+      notes:"Stellenbosch · +27 21 886 7110\nOn peut y fumer. Interdit aux moins de 23 ans, alcools premium." },
+
+    // ---- Domaines viticoles (conversation « Voyage personnel au Cap ») ----
+    // Positions approximatives pour les domaines sans coordonnées dans la conversation : à vérifier.
+    { name:"Klein Constantia", kind:"vin", lat:-34.03810, lon:18.41250, date:"2026-09-24",
+      notes:"Vallée de Constantia, la plus ancienne. Le mythique Vin de Constance (celui de Napoléon à Sainte-Hélène).\n📍 Position approximative." },
+    { name:"Groot Constantia", kind:"vin", lat:-34.02710, lon:18.42460, date:"2026-09-24",
+      notes:"Le plus ancien domaine du pays (1685), manoir cape dutch.\n📍 Position approximative." },
+    { name:"Delaire Graff", kind:"vin", lat:-33.92050, lon:18.92250, date:"2026-09-26",
+      notes:"Col de Helshoogte, voisin de Tokara. Registre luxe ; resto japonais Hōseki.\n📍 Position approximative." },
+    { name:"Hamilton Russell Vineyards", kind:"vin", lat:-34.38450, lon:19.25300, date:"2026-09-29",
+      notes:"Hemel-en-Aarde. Pinot Noir et Chardonnay de climat frais, référence du pays.\n📍 Position approximative." },
+    { name:"Bouchard Finlayson", kind:"vin", lat:-34.38100, lon:19.26100, date:"2026-09-29",
+      notes:"Hemel-en-Aarde. Pinot Noir « Galpin Peak ».\n📍 Position approximative." },
+    { name:"Newton Johnson", kind:"vin", lat:-34.36900, lon:19.26700, date:"2026-09-29",
+      notes:"Upper Hemel-en-Aarde. Pinot Noir, belle vue sur la vallée.\n📍 Position approximative." },
+    { name:"Strandveld Vineyards — Elim", kind:"vin", lat:-34.66300, lon:19.81000, date:"2026-10-01",
+      notes:"Route des vins d'Elim, la plus australe d'Afrique. Gamme First Sighting, Sauvignon Blanc et Syrah.\n📍 Position approximative." },
+    { name:"Black Oystercatcher — Elim", kind:"vin", lat:-34.62600, lon:19.81500, date:"2026-10-01",
+      notes:"Elim. Sauvignon Blanc de climat venté, restaurant sur le domaine.\n📍 Position approximative." },
+    { name:"Boplaas — Calitzdorp", kind:"vin", lat:-33.53300, lon:21.68700, date:"2026-10-09",
+      notes:"Capitale sud-africaine du porto. Dégustation le matin du départ vers Montagu.\n📍 Position approximative." },
+    { name:"Die Krans — Calitzdorp", kind:"vin", lat:-33.52500, lon:21.69200, date:"2026-10-09",
+      notes:"Porto de Calitzdorp, voisin de Boplaas.\n📍 Position approximative." },
+    { name:"Graham Beck — Robertson", kind:"vin", lat:-33.79900, lon:19.84600, date:"2026-10-10",
+      notes:"Vallée de Robertson. Les bulles MCC de référence. Dernière dégustation avant Le Cap.\n📍 Position approximative." },
+    { name:"Springfield Estate — Robertson", kind:"vin", lat:-33.83900, lon:19.91500, date:"2026-10-10",
+      notes:"Vallée de Robertson.\n📍 Position approximative." },
+    { name:"De Wetshof — Robertson", kind:"vin", lat:-33.87100, lon:20.00000, date:"2026-10-10",
+      notes:"Vallée de Robertson, grande maison du Chardonnay.\n📍 Position approximative." },
 
     // ---- Semaine 2 — à réserver ----
     { name:"Gondwana Game Reserve — safari", kind:"hotel", lat:-34.08042, lon:21.91110, date:"2026-10-02",
@@ -1338,8 +1506,19 @@ function haversine(a,b){
 }
 const KIND = {
   etape:{icon:'📍',label:'Étape'}, hotel:{icon:'🛏️',label:'Hôtel'},
-  table:{icon:'🍽️',label:'Table'}, site:{icon:'⭐',label:'À voir'}
+  table:{icon:'🍽️',label:'Table'}, site:{icon:'⭐',label:'À voir'},
+  vin:{icon:'🍷',label:'Domaine'},  shop:{icon:'🛍️',label:'Shopping'}
 };
+/* Ordre chronologique : la date, puis l'heure. Sans heure, un hôtel se range
+   en fin de journée (on y arrive le soir), le reste à midi. */
+function siteKey(s){
+  if(!s.date) return '9999';
+  return s.date + ' ' + (s.time || (s.kind==='hotel' ? '18:00' : '12:00'));
+}
+const bySite = (a,b)=>siteKey(a).localeCompare(siteKey(b));
+function fmtWhen(s){
+  return s.date ? fmtDate(s.date) + (s.time ? ' · ' + s.time.replace(':','h') : '') : '';
+}
 function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -1531,7 +1710,7 @@ function renderPrep(){
   clearLayers('prep');
   $('routeInfoPrep').hidden = true;
 
-  const all = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  const all = trip.sites.slice().sort(bySite);
   const shown = kindFilter==='all' ? all : all.filter(s=>s.kind===kindFilter);
   $('siteCount').textContent = all.length;
 
@@ -1539,7 +1718,7 @@ function renderPrep(){
   if(m) shown.forEach(s=>{
     if(s.lat==null || s.lon==null) return;
     const mk = L.marker([s.lat,s.lon],{icon:pinIcon(s.kind)}).addTo(m)
-      .bindPopup(`<b>${escapeHtml(s.name)}</b><br><small>${fmtDate(s.date)}</small>`);
+      .bindPopup(`<b>${escapeHtml(s.name)}</b><br><small>${fmtWhen(s)}</small>`);
     mk.on('click', ()=>highlight(s.id));
     layers.prep.markers.push(mk);
   });
@@ -1560,7 +1739,7 @@ function renderPrep(){
           <div class="item-title">
             ${isStop?`<span class="seq">${seq}</span>`:''}${escapeHtml(s.name)}
           </div>
-          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}</div>
+          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}</div>
           ${s.notes?`<div class="item-notes">${escapeHtml(s.notes)}</div>`:''}
         </div>
         <div class="item-actions">
@@ -1584,7 +1763,7 @@ function routePoints(){
   // les tables et les visites ne détournent pas le tracé.
   return trip.sites
     .filter(s=>(s.kind==='etape'||s.kind==='hotel') && s.lat!=null && s.lon!=null)
-    .sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+    .sort(bySite);
 }
 function highlight(id){
   document.querySelectorAll('.item.active').forEach(e=>e.classList.remove('active'));
@@ -1953,11 +2132,11 @@ async function buildBookParts(embed = true){
   }
 
   // Le carnet d'adresses en annexe : c'est ce qui sert à refaire le voyage.
-  const sites = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  const sites = trip.sites.slice().sort(bySite);
   if(sites.length){
     body += `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
       <div class="step"><h3>${KIND[s.kind].icon} ${escapeHtml(s.name)}</h3>
-      <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
+      <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
       ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
   }
 
@@ -2023,12 +2202,12 @@ function buildMarkdown(){
     });
   });
 
-  const sites = trip.sites.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  const sites = trip.sites.slice().sort(bySite);
   if(sites.length){
     md += `\n## Carnet d'adresses\n\n`;
     sites.forEach(s=>{
       md += `### ${KIND[s.kind].icon} ${s.name}\n`;
-      md += `*${KIND[s.kind].label}${s.date?' · '+fmtDate(s.date):''}`;
+      md += `*${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}`;
       if(s.lat!=null) md += ` · [carte](https://maps.google.com/?q=${s.lat},${s.lon})`;
       md += `*\n\n`;
       if(s.notes) md += `${s.notes}\n\n`;
@@ -2074,34 +2253,105 @@ async function backup(){
 }
 /* Une sauvegarde revient comme un voyage de la liste. Si ce voyage existe
    déjà, on propose de le remplacer ; sinon il s'ajoute à côté des autres. */
+/* Une sauvegarde peut venir d'un autre appareil. On propose de la fusionner
+   avec le voyage ouvert (le cas « transfert Mac → iPhone »), ou de l'ajouter
+   comme un voyage distinct. */
 async function restore(file){
+  busy(true,'Lecture de la sauvegarde…');
+  let data;
+  try{
+    data = JSON.parse(await file.text());
+    if(!data.trip) throw new Error('format');
+  }catch(e){ busy(false); toast('Fichier illisible', 3200); return; }
+  busy(false);
+  const t = data.trip;
+  t.days = t.days||[]; t.sites = t.sites||[];
+
+  const v = await ask({
+    title:'Restaurer « ' + (t.name||'Voyage') + ' »',
+    msg:`${t.sites.length} lieux · ${t.days.length} journées · ${Object.keys(data.images||{}).length} photos.\n\n`
+       +`Fusionner : ajoute ce qui manque au voyage ouvert « ${trip.name} », sans rien effacer.\n`
+       +`Ajouter à côté : en fait un voyage distinct dans la liste.`,
+    ok:'Fusionner', cancel:'Ajouter à côté'
+  });
+
   busy(true,'Restauration…');
   try{
-    const data = JSON.parse(await file.text());
-    if(!data.trip) throw new Error('format');
-    const t = data.trip;
-    t.days = t.days||[]; t.sites = t.sites||[];
-    busy(false);
-    const exists = t.id && Store.list().some(x=>x.id===t.id);
-    if(exists && (await ask({title:'Ce voyage existe déjà', msg:`Remplacer « ${t.name} » par la sauvegarde, ou l'ajouter comme un voyage distinct ?`, ok:'Remplacer', cancel:'Ajouter à côté'}))===null){
-      t.id = null; t.name = (t.name||'Voyage') + ' (copie)';
-    }
-    if(!t.id) t.id = Store.blank().id;
-    busy(true,'Restauration…');
     if(data.images){
       for(const [id,dataUrl] of Object.entries(data.images)){
         const blob = await (await fetch(dataUrl)).blob();
         await Photos.put(id, blob);
       }
     }
-    Store.save(t);
-    busy(false);
-    switchTrip(t.id);
-    toast('Sauvegarde restaurée', 3000);
+    if(v !== null){
+      const n = mergeTrips(trip, t);
+      persist(); busy(false);
+      switchTrip(trip.id);
+      toast(`Fusion : ${n.added} lieu${n.added>1?'x':''} ajouté${n.added>1?'s':''}, ${n.updated} mis à jour, ${n.days} journée${n.days>1?'s':''}`, 4200);
+    } else {
+      if(!t.id || Store.list().some(x=>x.id===t.id)) t.id = Store.blank().id;
+      Store.save(t); busy(false);
+      switchTrip(t.id);
+      toast('Voyage ajouté à la liste', 3000);
+    }
   }catch(e){
     busy(false);
-    toast('Fichier illisible', 3200);
+    toast('Restauration interrompue', 3200);
   }
+}
+
+function topUpCape(t){
+  const norm = x => (x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const have = new Set(t.sites.map(x=>norm(x.name)));
+  let added = 0, fixed = 0;
+  CAPE_TRIP.sites.forEach(src=>{
+    if(!have.has(norm(src.name))){ t.sites.push(Object.assign({id:uid()}, src)); added++; }
+  });
+  t.sites.forEach(x=>{
+    const f = CAPE_FIXES[x.name];
+    if(f && x.date === f.from){ x.date = f.to; fixed++; }
+    const src = CAPE_TRIP.sites.find(c=>c.name===x.name);
+    if(src && src.time && !x.time) x.time = src.time;
+  });
+  return {added, fixed};
+}
+
+/* ===================== Fusion de deux copies d'un voyage =====================
+   Chaque appareil garde ses données (aucun serveur). Pour passer du Mac à
+   l'iPhone : Sauvegarder → AirDrop → Restaurer → Fusionner. La fusion ajoute
+   ce qui manque sans rien effacer : les mêmes lieux saisis sur deux appareils
+   se reconnaissent à leur identifiant, ou à leur nom et leur date. */
+function mergeTrips(into, from){
+  const norm = x => (x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const same = (a,b) => a.id===b.id || (norm(a.name)===norm(b.name) && (a.date||'')===(b.date||''));
+  let added = 0, updated = 0;
+  (from.sites||[]).forEach(fs=>{
+    const cur = into.sites.find(x=>same(x,fs));
+    if(!cur){ into.sites.push(Object.assign({}, fs)); added++; return; }
+    // Même lieu : on garde la version modifiée le plus récemment, sinon on
+    // complète seulement ce qui manque (notes plus longues, coordonnées, heure).
+    if((fs.updated||0) > (cur.updated||0)){ Object.assign(cur, fs, {id:cur.id}); updated++; return; }
+    let ch = false;
+    if(cur.lat==null && fs.lat!=null){ cur.lat=fs.lat; cur.lon=fs.lon; ch=true; }
+    if(!cur.time && fs.time){ cur.time=fs.time; ch=true; }
+    if((fs.notes||'').length > (cur.notes||'').length && !(cur.notes||'').includes(fs.notes)){ cur.notes=fs.notes; ch=true; }
+    if(ch) updated++;
+  });
+  let days = 0;
+  (from.days||[]).forEach(fd=>{
+    let d = into.days.find(x=>x.date===fd.date);
+    if(!d){ into.days.push(JSON.parse(JSON.stringify(fd))); days++; return; }
+    const raw = d.raw || (d.raw=[]);
+    (fd.raw||[]).forEach(p=>{ if(!raw.some(x=>x.id===p.id)) raw.push(p); });
+    (fd.photos||[]).forEach(p=>{ if(!d.photos.includes(p)) d.photos.push(p); });
+    if(fd.note && !(d.note||'').includes(fd.note)) d.note = d.note ? d.note + '\n\n' + fd.note : fd.note;
+    raw.sort((a,b)=>a.t-b.t);
+    d.steps = clusterSteps(raw, (d.steps||[]).concat(fd.steps||[]));
+    days++;
+  });
+  if(!into.start && from.start) into.start = from.start;
+  if(!into.end && from.end) into.end = from.end;
+  return {added, updated, days};
 }
 
 /* ===================== Plusieurs voyages ===================== */
@@ -2175,7 +2425,7 @@ function renderProps(){
       <div class="prop-check">${p.keep?'✓':''}</div>
       <div class="prop-body">
         <div class="prop-name">${KIND[p.kind].icon} ${escapeHtml(p.name)}</div>
-        <div class="prop-meta">${KIND[p.kind].label}${p.date?' · '+fmtDate(p.date):' · date à préciser'}${p.lat!=null?' · situé':''}</div>
+        <div class="prop-meta">${KIND[p.kind].label}${p.date?' · '+fmtWhen(p):' · date à préciser'}${p.lat!=null?' · situé':''}</div>
         ${p.notes?`<div class="prop-note">${escapeHtml(p.notes.split('\n').slice(0,3).join('\n'))}</div>`:''}
       </div>
     </div>`).join('')
@@ -2196,7 +2446,7 @@ function addProps(){
   if(!gardes.length){ toast('Rien de sélectionné'); return; }
   gardes.forEach(p=>{
     trip.sites.push({
-      id: uid(), name: p.name, kind: p.kind, date: p.date,
+      id: uid(), name: p.name, kind: p.kind, date: p.date, time: p.time || '',
       lat: p.lat, lon: p.lon, notes: p.notes
     });
   });
@@ -2266,6 +2516,7 @@ function openEditor(id){
   $('eName').value  = s?s.name:'';
   $('eKind').value  = s?s.kind:'etape';
   $('eDate').value  = s?(s.date||''):'';
+  $('eTime').value  = s?(s.time||''):'';
   $('eLat').value   = s&&s.lat!=null?s.lat:'';
   $('eLon').value   = s&&s.lon!=null?s.lon:'';
   $('eNotes').value = s?(s.notes||''):'';
@@ -2279,10 +2530,12 @@ function saveEditor(){
     name,
     kind:  $('eKind').value,
     date:  $('eDate').value || '',
+    time:  $('eTime').value || '',
     lat:   $('eLat').value===''?null:parseFloat($('eLat').value),
     lon:   $('eLon').value===''?null:parseFloat($('eLon').value),
     notes: $('eNotes').value
   };
+  rec.updated = Date.now();
   if(editingId){
     const s = trip.sites.find(x=>x.id===editingId);
     Object.assign(s, rec);
@@ -2437,8 +2690,15 @@ function wire(){
   $('restoreInput').onchange = e=>{ if(e.target.files[0]) restore(e.target.files[0]); e.target.value=''; };
 
   $('btnLoadCape').onclick = async ()=>{
-    // Voyage vide : on le remplit. Sinon le Cap devient un voyage à part,
-    // sans rien écraser.
+    // Voyage du Cap déjà ouvert : on le complète (adresses ajoutées depuis,
+    // dates corrigées) sans rien écraser de ce que l'utilisateur a saisi.
+    if(trip.name === CAPE_TRIP.name && trip.sites.length){
+      const n = topUpCape(trip);
+      persist(); closeSheet('menu'); switchPane('prep');
+      toast(n.added || n.fixed ? `${n.added} adresse${n.added>1?'s':''} ajoutée${n.added>1?'s':''} · ${n.fixed} date${n.fixed>1?'s':''} corrigée${n.fixed>1?'s':''}` : 'Itinéraire du Cap déjà à jour', 3600);
+      return;
+    }
+    // Voyage vide : on le remplit. Sinon le Cap devient un voyage à part.
     if(trip.sites.length || trip.days.length){
       if(!(await askYes('Itinéraire du Cap', 'Créer un nouveau voyage avec l\'itinéraire du Cap ?\nLe voyage actuel reste intact dans la liste.', 'Créer'))) return;
       const t = Store.create(CAPE_TRIP.name);
