@@ -340,6 +340,16 @@ body{
 .menu-btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
 .menu-btn.primary.danger{background:#b3261e;border-color:#b3261e;color:#fff}
 
+/* ---------- Navigation et passages sur la route ---------- */
+.via{color:var(--ocre);font-weight:600}
+.check-row{display:flex;align-items:flex-start;gap:10px;margin:10px 0;font-size:13px;color:var(--ink)}
+.check-row input{width:20px;height:20px;flex-shrink:0;accent-color:var(--teal)}
+.nav-row{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:13px;color:var(--ink-soft)}
+.nav-row a{
+  flex:1;text-align:center;text-decoration:none;color:var(--teal);font-weight:600;
+  border:1px solid var(--line);border-radius:11px;padding:9px 0;background:#fff;
+}
+
 </style>
 </head>
 <body>
@@ -360,6 +370,7 @@ body{
       <button class="map-btn" id="btnTilePrep" title="Passer au satellite">🛰️</button>
       <button class="map-btn" id="btnFitPrep" title="Tout voir">⤢</button>
       <button class="map-btn" id="btnRoutePrep" title="Tracer la route">🛣️</button>
+      <button class="map-btn" id="btnNavPrep" title="Ouvrir l'itinéraire dans Google Maps">🧭</button>
     </div>
     <div class="route-info" id="routeInfoPrep" hidden></div>
   </div>
@@ -506,6 +517,14 @@ body{
   </div>
   <div class="menu-row"><label>Date</label><input type="date" id="eDate"></div>
   <div class="menu-row"><label>Heure</label><input type="time" id="eTime"></div>
+  <label class="check-row"><input type="checkbox" id="eVia">
+    <span>Passage sur la route — le tracé du voyage passe par ici</span></label>
+  <div class="nav-row" id="editNav" hidden>
+    <span>Y aller :</span>
+    <a id="navPlan" target="_blank" rel="noopener">Plan</a>
+    <a id="navWaze" target="_blank" rel="noopener">Waze</a>
+    <a id="navGoogle" target="_blank" rel="noopener">Google</a>
+  </div>
   <div class="menu-row"><label>Lat</label><input type="number" step="0.000001" id="eLat" placeholder="-33.9249"></div>
   <div class="menu-row"><label>Lon</label><input type="number" step="0.000001" id="eLon" placeholder="18.4241"></div>
   <textarea id="eNotes" class="notes-area" placeholder="Notes libres — adresse, téléphone, ce qu'il faut réserver, ce qu'on a aimé. Collez ce que vous voulez."></textarea>
@@ -1139,11 +1158,11 @@ const CAPE_TRIP = {
       notes:"Oranjezicht City Farm Market le samedi matin (V&A).\nSturk's Tobacconists — la référence historique en ville." },
     { name:"Bonne Esperance Guest House — Stellenbosch", kind:"hotel", lat:-33.93210, lon:18.86020, date:"2026-09-26", time:"15:00",
       notes:"+27 21 887 0225\nDorp Street à deux pas, Stellenbosch Tobacconist dans la rue." },
-    { name:"Tokara", kind:"table", lat:-33.91790, lon:18.92030, date:"2026-09-26", time:"12:30",
+    { name:"Tokara", kind:"table", lat:-33.91807, lon:18.92092, date:"2026-09-26", time:"12:30", via:true,
       notes:"Winelands. Vue sur la vallée, cuisine sud-africaine. Réserver." },
     { name:"Overture", kind:"table", lat:-33.96860, lon:18.85240, date:"2026-09-27", time:"12:30",
       notes:"Hidden Valley. Table de référence des Winelands. Réserver largement à l'avance." },
-    { name:"Babylonstoren — Simondium", kind:"site", lat:-33.82670, lon:18.92670, date:"2026-09-26", time:"10:00",
+    { name:"Babylonstoren — Simondium", kind:"site", lat:-33.82394, lon:18.92635, date:"2026-09-26", time:"10:00", via:true,
       notes:"Jardin potager historique, ferme et cave. Repéré via l'email Air France." },
     { name:"Simon's Town Quayside Hotel", kind:"hotel", lat:-34.19280, lon:18.43260, date:"2026-09-27", time:"17:00",
       notes:"+27 21 786 3838\nSur le port. Manchots de Boulders à côté, Cap de Bonne-Espérance au sud." },
@@ -1159,6 +1178,16 @@ const CAPE_TRIP = {
       notes:"+27 60 980 0664\nLe port aux raies. Cap Agulhas à 5 min : le vrai point le plus austral de l'Afrique." },
     { name:"Cap Agulhas", kind:"site", lat:-34.83330, lon:20.00000, date:"2026-10-01",
       notes:"Pointe sud de l'Afrique, séparation des deux océans. Phare de 1848." },
+
+    // ---- La belle route Bloubergstrand → Stellenbosch (26 sept.) ----
+    // Ces trois points sont cochés « passage sur la route » : le tracé du
+    // voyage emprunte donc les vallées viticoles au lieu de la N1.
+    { name:"Durbanville Hills — belvédère", kind:"vin", lat:-33.82493, lon:18.56581, date:"2026-09-26", time:"09:30", via:true,
+      notes:"Tygerberg Valley Rd · +27 21 558 1300 · cave ouverte à partir de 11h (sam. 11h–16h30)\nPremier point de vue en quittant la côte : la baie derrière, les vignes devant.\nOn y arrive par la M14 puis la M13, jamais par la N1." },
+    { name:"Boschendal — allée de chênes", kind:"vin", lat:-33.87679, lon:18.97434, date:"2026-09-26", time:"12:00", via:true,
+      notes:"R45 entre Simondium et Franschhoek · +27 21 870 4279\nLa plus belle ligne droite des Winelands, chênes et montagnes des deux côtés.\nDe là, on remonte le col de Helshoogte (R310) vers Tokara." },
+    { name:"Col de Helshoogte (R310)", kind:"site", lat:-33.91000, lon:18.94000, date:"2026-09-26", time:"12:15",
+      notes:"Route de montagne goudronnée entre Banhoek et Stellenbosch. Vue plongeante sur la vallée.\nLa plus belle arrivée sur Stellenbosch — magnifique en fin d'après-midi.\n📍 Position approximative." },
 
     // ---- Tables ajoutées le 23 sept. (conversation « Voyage personnel au Cap ») ----
     { name:"Ons Huisie — Bloubergstrand", kind:"table", lat:-33.79958, lon:18.45893, date:"2026-09-22", time:"19:30",
@@ -1739,12 +1768,13 @@ function renderPrep(){
           <div class="item-title">
             ${isStop?`<span class="seq">${seq}</span>`:''}${escapeHtml(s.name)}
           </div>
-          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}</div>
+          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}${s.via?' · <span class="via">🛣️ sur la route</span>':''}</div>
           ${s.notes?`<div class="item-notes">${escapeHtml(s.notes)}</div>`:''}
         </div>
         <div class="item-actions">
           <button class="act" data-act="edit" data-id="${s.id}">✏️</button>
           <button class="act" data-act="go"   data-id="${s.id}">🔍</button>
+          ${s.lat!=null?`<button class="act" data-act="nav" data-id="${s.id}">🧭</button>`:''}
         </div>
       </div>`;
     }).join('');
@@ -1759,11 +1789,47 @@ function renderPrep(){
   if(routeOn.prep) drawRoute('prep', routePoints(), $('routeInfoPrep'));
 }
 function routePoints(){
-  // L'itinéraire suit les étapes et les hôtels dans l'ordre des dates :
-  // les tables et les visites ne détournent pas le tracé.
+  // L'itinéraire suit les étapes et les hôtels dans l'ordre des dates. Les
+  // tables et les visites ne détournent pas le tracé — sauf celles cochées
+  // « passage sur la route » : c'est ce qui permet d'imposer une belle route
+  // plutôt que la plus rapide (col, route côtière, vallée viticole).
   return trip.sites
-    .filter(s=>(s.kind==='etape'||s.kind==='hotel') && s.lat!=null && s.lon!=null)
+    .filter(s=>(s.kind==='etape' || s.kind==='hotel' || s.via) && s.lat!=null && s.lon!=null)
     .sort(bySite);
+}
+
+/* ---- Navigation : ouvrir un point dans l'app de navigation ----
+   Une PWA installée ne peut pas ouvrir de fenêtre par script ; un lien
+   posé dans la page et cliqué, si. maps.apple.com lance Plan sur iPhone. */
+const NAV = {
+  plan:   p => `https://maps.apple.com/?daddr=${p.lat},${p.lon}&dirflg=d`,
+  waze:   p => `https://waze.com/ul?ll=${p.lat},${p.lon}&navigate=yes`,
+  google: p => `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}&travelmode=driving`
+};
+function openNav(url){
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+/* Tout l'itinéraire d'un coup : Google Maps est le seul à accepter des
+   étapes dans un lien (23 au maximum). */
+function routeLink(pts){
+  if(pts.length < 2) return null;
+  const o = pts[0], d = pts[pts.length-1];
+  const mid = pts.slice(1,-1).slice(0,23).map(p=>`${p.lat},${p.lon}`).join('|');
+  return `https://www.google.com/maps/dir/?api=1&origin=${o.lat},${o.lon}`
+       + `&destination=${d.lat},${d.lon}`
+       + (mid ? `&waypoints=${encodeURIComponent(mid)}` : '')
+       + `&travelmode=driving`;
+}
+async function askNav(pt, titre){
+  const v = await ask({
+    title: titre || 'Y aller',
+    msg: 'Ouvrir dans quelle application ?',
+    ok:'Plan', cancel:'Waze',
+    fields: []
+  });
+  openNav(v !== null ? NAV.plan(pt) : NAV.waze(pt));
 }
 function highlight(id){
   document.querySelectorAll('.item.active').forEach(e=>e.classList.remove('active'));
@@ -1869,6 +1935,7 @@ async function renderBook(){
         </div>
         <div class="item-actions">
           <button class="act" data-act="rename" data-step="${i}">✏️</button>
+          <button class="act" data-act="nav" data-step="${i}">🧭</button>
         </div>
       </div>`).join('');
     steps.forEach((st,i)=>loadThumbs(i, st));
@@ -2517,6 +2584,13 @@ function openEditor(id){
   $('eKind').value  = s?s.kind:'etape';
   $('eDate').value  = s?(s.date||''):'';
   $('eTime').value  = s?(s.time||''):'';
+  $('eVia').checked = s ? !!s.via : false;
+  $('editNav').hidden = !(s && s.lat!=null);
+  if(s && s.lat!=null){
+    $('navPlan').href   = NAV.plan(s);
+    $('navWaze').href   = NAV.waze(s);
+    $('navGoogle').href = NAV.google(s);
+  }
   $('eLat').value   = s&&s.lat!=null?s.lat:'';
   $('eLon').value   = s&&s.lon!=null?s.lon:'';
   $('eNotes').value = s?(s.notes||''):'';
@@ -2531,6 +2605,7 @@ function saveEditor(){
     kind:  $('eKind').value,
     date:  $('eDate').value || '',
     time:  $('eTime').value || '',
+    via:   $('eVia').checked,
     lat:   $('eLat').value===''?null:parseFloat($('eLat').value),
     lon:   $('eLon').value===''?null:parseFloat($('eLon').value),
     notes: $('eNotes').value
@@ -2564,6 +2639,7 @@ function wire(){
     if(btn){
       const s = trip.sites.find(x=>x.id===btn.dataset.id);
       if(btn.dataset.act==='edit') openEditor(btn.dataset.id);
+      if(btn.dataset.act==='nav' && s && s.lat!=null) askNav(s, s.name);
       if(btn.dataset.act==='go' && s && s.lat!=null && maps.prep){
         maps.prep.setView([s.lat,s.lon],14);
         maps.prep.closePopup();
@@ -2593,6 +2669,13 @@ function wire(){
   $('btnTilePrep').onclick = toggleTiles;
   $('btnTileBook').onclick = toggleTiles;
   $('btnFitPrep').onclick = ()=>fitTo('prep', trip.sites.filter(s=>s.lat!=null));
+  $('btnNavPrep').onclick = ()=>{
+    const pts = routePoints();
+    const url = routeLink(pts);
+    if(!url){ toast('Il faut au moins deux étapes situées'); return; }
+    openNav(url);
+    toast('Itinéraire complet ouvert dans Google Maps', 3200);
+  };
   $('btnRoutePrep').onclick = e=>{
     if(!maps.prep){ toast('Carte indisponible hors ligne'); return; }
     routeOn.prep = !routeOn.prep;
@@ -2622,6 +2705,12 @@ function wire(){
   $('stepList').onclick = e=>{
     const dayEl = e.target.closest('[data-day]');
     if(dayEl){ dayIndex = +dayEl.dataset.day; renderBook(); $('stepList').scrollTop = 0; return; }
+    const nav = e.target.closest('[data-act="nav"]');
+    if(nav){
+      const days = dayList(); const st = days[dayIndex].steps[+nav.dataset.step];
+      askNav(st, stepLabel(st, +nav.dataset.step));
+      return;
+    }
     const btn = e.target.closest('[data-act="rename"]'); if(!btn) return;
     const days = dayList(); const st = days[dayIndex].steps[+btn.dataset.step];
     const suggestion = stepLabel(st, +btn.dataset.step);

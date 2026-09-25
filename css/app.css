@@ -321,3 +321,13 @@ body{
 .ask-field textarea{min-height:90px;resize:vertical}
 .menu-btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
 .menu-btn.primary.danger{background:#b3261e;border-color:#b3261e;color:#fff}
+
+/* ---------- Navigation et passages sur la route ---------- */
+.via{color:var(--ocre);font-weight:600}
+.check-row{display:flex;align-items:flex-start;gap:10px;margin:10px 0;font-size:13px;color:var(--ink)}
+.check-row input{width:20px;height:20px;flex-shrink:0;accent-color:var(--teal)}
+.nav-row{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:13px;color:var(--ink-soft)}
+.nav-row a{
+  flex:1;text-align:center;text-decoration:none;color:var(--teal);font-weight:600;
+  border:1px solid var(--line);border-radius:11px;padding:9px 0;background:#fff;
+}

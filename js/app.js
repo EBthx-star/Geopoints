@@ -289,12 +289,13 @@ function renderPrep(){
           <div class="item-title">
             ${isStop?`<span class="seq">${seq}</span>`:''}${escapeHtml(s.name)}
           </div>
-          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}</div>
+          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}${s.via?' · <span class="via">🛣️ sur la route</span>':''}</div>
           ${s.notes?`<div class="item-notes">${escapeHtml(s.notes)}</div>`:''}
         </div>
         <div class="item-actions">
           <button class="act" data-act="edit" data-id="${s.id}">✏️</button>
           <button class="act" data-act="go"   data-id="${s.id}">🔍</button>
+          ${s.lat!=null?`<button class="act" data-act="nav" data-id="${s.id}">🧭</button>`:''}
         </div>
       </div>`;
     }).join('');
@@ -309,11 +310,47 @@ function renderPrep(){
   if(routeOn.prep) drawRoute('prep', routePoints(), $('routeInfoPrep'));
 }
 function routePoints(){
-  // L'itinéraire suit les étapes et les hôtels dans l'ordre des dates :
-  // les tables et les visites ne détournent pas le tracé.
+  // L'itinéraire suit les étapes et les hôtels dans l'ordre des dates. Les
+  // tables et les visites ne détournent pas le tracé — sauf celles cochées
+  // « passage sur la route » : c'est ce qui permet d'imposer une belle route
+  // plutôt que la plus rapide (col, route côtière, vallée viticole).
   return trip.sites
-    .filter(s=>(s.kind==='etape'||s.kind==='hotel') && s.lat!=null && s.lon!=null)
+    .filter(s=>(s.kind==='etape' || s.kind==='hotel' || s.via) && s.lat!=null && s.lon!=null)
     .sort(bySite);
+}
+
+/* ---- Navigation : ouvrir un point dans l'app de navigation ----
+   Une PWA installée ne peut pas ouvrir de fenêtre par script ; un lien
+   posé dans la page et cliqué, si. maps.apple.com lance Plan sur iPhone. */
+const NAV = {
+  plan:   p => `https://maps.apple.com/?daddr=${p.lat},${p.lon}&dirflg=d`,
+  waze:   p => `https://waze.com/ul?ll=${p.lat},${p.lon}&navigate=yes`,
+  google: p => `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}&travelmode=driving`
+};
+function openNav(url){
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+/* Tout l'itinéraire d'un coup : Google Maps est le seul à accepter des
+   étapes dans un lien (23 au maximum). */
+function routeLink(pts){
+  if(pts.length < 2) return null;
+  const o = pts[0], d = pts[pts.length-1];
+  const mid = pts.slice(1,-1).slice(0,23).map(p=>`${p.lat},${p.lon}`).join('|');
+  return `https://www.google.com/maps/dir/?api=1&origin=${o.lat},${o.lon}`
+       + `&destination=${d.lat},${d.lon}`
+       + (mid ? `&waypoints=${encodeURIComponent(mid)}` : '')
+       + `&travelmode=driving`;
+}
+async function askNav(pt, titre){
+  const v = await ask({
+    title: titre || 'Y aller',
+    msg: 'Ouvrir dans quelle application ?',
+    ok:'Plan', cancel:'Waze',
+    fields: []
+  });
+  openNav(v !== null ? NAV.plan(pt) : NAV.waze(pt));
 }
 function highlight(id){
   document.querySelectorAll('.item.active').forEach(e=>e.classList.remove('active'));
@@ -419,6 +456,7 @@ async function renderBook(){
         </div>
         <div class="item-actions">
           <button class="act" data-act="rename" data-step="${i}">✏️</button>
+          <button class="act" data-act="nav" data-step="${i}">🧭</button>
         </div>
       </div>`).join('');
     steps.forEach((st,i)=>loadThumbs(i, st));
@@ -1067,6 +1105,13 @@ function openEditor(id){
   $('eKind').value  = s?s.kind:'etape';
   $('eDate').value  = s?(s.date||''):'';
   $('eTime').value  = s?(s.time||''):'';
+  $('eVia').checked = s ? !!s.via : false;
+  $('editNav').hidden = !(s && s.lat!=null);
+  if(s && s.lat!=null){
+    $('navPlan').href   = NAV.plan(s);
+    $('navWaze').href   = NAV.waze(s);
+    $('navGoogle').href = NAV.google(s);
+  }
   $('eLat').value   = s&&s.lat!=null?s.lat:'';
   $('eLon').value   = s&&s.lon!=null?s.lon:'';
   $('eNotes').value = s?(s.notes||''):'';
@@ -1081,6 +1126,7 @@ function saveEditor(){
     kind:  $('eKind').value,
     date:  $('eDate').value || '',
     time:  $('eTime').value || '',
+    via:   $('eVia').checked,
     lat:   $('eLat').value===''?null:parseFloat($('eLat').value),
     lon:   $('eLon').value===''?null:parseFloat($('eLon').value),
     notes: $('eNotes').value
@@ -1114,6 +1160,7 @@ function wire(){
     if(btn){
       const s = trip.sites.find(x=>x.id===btn.dataset.id);
       if(btn.dataset.act==='edit') openEditor(btn.dataset.id);
+      if(btn.dataset.act==='nav' && s && s.lat!=null) askNav(s, s.name);
       if(btn.dataset.act==='go' && s && s.lat!=null && maps.prep){
         maps.prep.setView([s.lat,s.lon],14);
         maps.prep.closePopup();
@@ -1143,6 +1190,13 @@ function wire(){
   $('btnTilePrep').onclick = toggleTiles;
   $('btnTileBook').onclick = toggleTiles;
   $('btnFitPrep').onclick = ()=>fitTo('prep', trip.sites.filter(s=>s.lat!=null));
+  $('btnNavPrep').onclick = ()=>{
+    const pts = routePoints();
+    const url = routeLink(pts);
+    if(!url){ toast('Il faut au moins deux étapes situées'); return; }
+    openNav(url);
+    toast('Itinéraire complet ouvert dans Google Maps', 3200);
+  };
   $('btnRoutePrep').onclick = e=>{
     if(!maps.prep){ toast('Carte indisponible hors ligne'); return; }
     routeOn.prep = !routeOn.prep;
@@ -1172,6 +1226,12 @@ function wire(){
   $('stepList').onclick = e=>{
     const dayEl = e.target.closest('[data-day]');
     if(dayEl){ dayIndex = +dayEl.dataset.day; renderBook(); $('stepList').scrollTop = 0; return; }
+    const nav = e.target.closest('[data-act="nav"]');
+    if(nav){
+      const days = dayList(); const st = days[dayIndex].steps[+nav.dataset.step];
+      askNav(st, stepLabel(st, +nav.dataset.step));
+      return;
+    }
     const btn = e.target.closest('[data-act="rename"]'); if(!btn) return;
     const days = dayList(); const st = days[dayIndex].steps[+btn.dataset.step];
     const suggestion = stepLabel(st, +btn.dataset.step);

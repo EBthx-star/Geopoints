@@ -242,6 +242,26 @@ sans toucher aux notes saisies.
 
 ---
 
+## Ajouts du 25 septembre 2026 — navigation et belles routes
+
+**Y aller.** Bouton 🧭 sur chaque lieu (préparation et road book) : il demande
+Plan ou Waze et lance la navigation. L'éditeur d'étape propose les trois liens
+(Plan, Waze, Google). Le bouton 🧭 de la carte ouvre **tout l'itinéraire** dans
+Google Maps, seule app à accepter des étapes dans un lien (23 au maximum).
+Une PWA installée ne peut pas ouvrir de fenêtre par script : on pose un lien
+dans la page et on le clique.
+
+**Passage sur la route.** Case à cocher dans l'éditeur. Un lieu coché entre
+dans le tracé du voyage même s'il n'est ni étape ni hôtel. C'est ce qui permet
+d'imposer une belle route plutôt que la plus rapide — le tracé OSRM passe par
+les points dans l'ordre.
+
+Première application : la route Bloubergstrand → Stellenbosch du 26 sept.
+(Durbanville Hills, Babylonstoren, Boschendal, col de Helshoogte, Tokara) au
+lieu de la N1.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :

@@ -35,6 +35,7 @@
       <button class="map-btn" id="btnTilePrep" title="Passer au satellite">🛰️</button>
       <button class="map-btn" id="btnFitPrep" title="Tout voir">⤢</button>
       <button class="map-btn" id="btnRoutePrep" title="Tracer la route">🛣️</button>
+      <button class="map-btn" id="btnNavPrep" title="Ouvrir l'itinéraire dans Google Maps">🧭</button>
     </div>
     <div class="route-info" id="routeInfoPrep" hidden></div>
   </div>
@@ -181,6 +182,14 @@
   </div>
   <div class="menu-row"><label>Date</label><input type="date" id="eDate"></div>
   <div class="menu-row"><label>Heure</label><input type="time" id="eTime"></div>
+  <label class="check-row"><input type="checkbox" id="eVia">
+    <span>Passage sur la route — le tracé du voyage passe par ici</span></label>
+  <div class="nav-row" id="editNav" hidden>
+    <span>Y aller :</span>
+    <a id="navPlan" target="_blank" rel="noopener">Plan</a>
+    <a id="navWaze" target="_blank" rel="noopener">Waze</a>
+    <a id="navGoogle" target="_blank" rel="noopener">Google</a>
+  </div>
   <div class="menu-row"><label>Lat</label><input type="number" step="0.000001" id="eLat" placeholder="-33.9249"></div>
   <div class="menu-row"><label>Lon</label><input type="number" step="0.000001" id="eLon" placeholder="18.4241"></div>
   <textarea id="eNotes" class="notes-area" placeholder="Notes libres — adresse, téléphone, ce qu'il faut réserver, ce qu'on a aimé. Collez ce que vous voulez."></textarea>

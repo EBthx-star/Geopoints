@@ -28,11 +28,11 @@ const CAPE_TRIP = {
       notes:"Oranjezicht City Farm Market le samedi matin (V&A).\nSturk's Tobacconists — la référence historique en ville." },
     { name:"Bonne Esperance Guest House — Stellenbosch", kind:"hotel", lat:-33.93210, lon:18.86020, date:"2026-09-26", time:"15:00",
       notes:"+27 21 887 0225\nDorp Street à deux pas, Stellenbosch Tobacconist dans la rue." },
-    { name:"Tokara", kind:"table", lat:-33.91790, lon:18.92030, date:"2026-09-26", time:"12:30",
+    { name:"Tokara", kind:"table", lat:-33.91807, lon:18.92092, date:"2026-09-26", time:"12:30", via:true,
       notes:"Winelands. Vue sur la vallée, cuisine sud-africaine. Réserver." },
     { name:"Overture", kind:"table", lat:-33.96860, lon:18.85240, date:"2026-09-27", time:"12:30",
       notes:"Hidden Valley. Table de référence des Winelands. Réserver largement à l'avance." },
-    { name:"Babylonstoren — Simondium", kind:"site", lat:-33.82670, lon:18.92670, date:"2026-09-26", time:"10:00",
+    { name:"Babylonstoren — Simondium", kind:"site", lat:-33.82394, lon:18.92635, date:"2026-09-26", time:"10:00", via:true,
       notes:"Jardin potager historique, ferme et cave. Repéré via l'email Air France." },
     { name:"Simon's Town Quayside Hotel", kind:"hotel", lat:-34.19280, lon:18.43260, date:"2026-09-27", time:"17:00",
       notes:"+27 21 786 3838\nSur le port. Manchots de Boulders à côté, Cap de Bonne-Espérance au sud." },
@@ -48,6 +48,16 @@ const CAPE_TRIP = {
       notes:"+27 60 980 0664\nLe port aux raies. Cap Agulhas à 5 min : le vrai point le plus austral de l'Afrique." },
     { name:"Cap Agulhas", kind:"site", lat:-34.83330, lon:20.00000, date:"2026-10-01",
       notes:"Pointe sud de l'Afrique, séparation des deux océans. Phare de 1848." },
+
+    // ---- La belle route Bloubergstrand → Stellenbosch (26 sept.) ----
+    // Ces trois points sont cochés « passage sur la route » : le tracé du
+    // voyage emprunte donc les vallées viticoles au lieu de la N1.
+    { name:"Durbanville Hills — belvédère", kind:"vin", lat:-33.82493, lon:18.56581, date:"2026-09-26", time:"09:30", via:true,
+      notes:"Tygerberg Valley Rd · +27 21 558 1300 · cave ouverte à partir de 11h (sam. 11h–16h30)\nPremier point de vue en quittant la côte : la baie derrière, les vignes devant.\nOn y arrive par la M14 puis la M13, jamais par la N1." },
+    { name:"Boschendal — allée de chênes", kind:"vin", lat:-33.87679, lon:18.97434, date:"2026-09-26", time:"12:00", via:true,
+      notes:"R45 entre Simondium et Franschhoek · +27 21 870 4279\nLa plus belle ligne droite des Winelands, chênes et montagnes des deux côtés.\nDe là, on remonte le col de Helshoogte (R310) vers Tokara." },
+    { name:"Col de Helshoogte (R310)", kind:"site", lat:-33.91000, lon:18.94000, date:"2026-09-26", time:"12:15",
+      notes:"Route de montagne goudronnée entre Banhoek et Stellenbosch. Vue plongeante sur la vallée.\nLa plus belle arrivée sur Stellenbosch — magnifique en fin d'après-midi.\n📍 Position approximative." },
 
     // ---- Tables ajoutées le 23 sept. (conversation « Voyage personnel au Cap ») ----
     { name:"Ons Huisie — Bloubergstrand", kind:"table", lat:-33.79958, lon:18.45893, date:"2026-09-22", time:"19:30",
