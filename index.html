@@ -340,6 +340,40 @@ body{
 .menu-btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
 .menu-btn.primary.danger{background:#b3261e;border-color:#b3261e;color:#fff}
 
+/* ---------- Navigation et passages sur la route ---------- */
+.via{color:var(--ocre);font-weight:600}
+.check-row{display:flex;align-items:flex-start;gap:10px;margin:10px 0;font-size:13px;color:var(--ink)}
+.check-row input{width:20px;height:20px;flex-shrink:0;accent-color:var(--teal)}
+.nav-row{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:13px;color:var(--ink-soft)}
+.nav-row a{
+  flex:1;text-align:center;text-decoration:none;color:var(--teal);font-weight:600;
+  border:1px solid var(--line);border-radius:11px;padding:9px 0;background:#fff;
+}
+
+/* ---------- Dépôt de fichiers ---------- */
+.dropzone{
+  position:fixed;inset:0;z-index:960;background:rgba(29,78,95,.82);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  pointer-events:none;
+}
+/* display:flex l'emporte sur l'attribut hidden : sans cette ligne, la zone
+   masquée continue d'intercepter tous les clics (même piège que la
+   visionneuse photo). */
+.dropzone[hidden]{display:none}
+.dropzone-box{
+  border:3px dashed rgba(255,255,255,.85);border-radius:22px;padding:36px 28px;
+  text-align:center;color:#fff;max-width:420px;
+}
+.dropzone-icon{font-size:52px;margin-bottom:10px}
+.dropzone p{font-size:17px;font-weight:650;margin:0 0 6px}
+.dropzone small{font-size:13px;opacity:.85}
+.thumb-vid{position:relative;flex-shrink:0;display:inline-flex}
+.thumb-vid span{
+  position:absolute;right:5px;bottom:5px;background:rgba(0,0,0,.6);color:#fff;
+  border-radius:50%;width:20px;height:20px;display:flex;align-items:center;
+  justify-content:center;font-size:10px;padding-left:2px;
+}
+
 </style>
 </head>
 <body>
@@ -360,6 +394,7 @@ body{
       <button class="map-btn" id="btnTilePrep" title="Passer au satellite">🛰️</button>
       <button class="map-btn" id="btnFitPrep" title="Tout voir">⤢</button>
       <button class="map-btn" id="btnRoutePrep" title="Tracer la route">🛣️</button>
+      <button class="map-btn" id="btnNavPrep" title="Ouvrir l'itinéraire dans Google Maps">🧭</button>
     </div>
     <div class="route-info" id="routeInfoPrep" hidden></div>
   </div>
@@ -414,7 +449,7 @@ body{
         <button class="mini-btn primary" id="btnImport">📷 Importer</button>
       </div>
     </div>
-    <input type="file" id="photoInput" accept="image/*,.heic,.HEIC" multiple hidden>
+    <input type="file" id="photoInput" accept="image/*,video/*,.heic,.HEIC,.mov,.MOV" multiple hidden>
     <textarea id="dayNote" class="day-note" placeholder="Note de la journée — collez ici ce que vous voulez, elle part dans le road book."></textarea>
     <div id="stepList" class="list"></div>
   </div>
@@ -506,6 +541,14 @@ body{
   </div>
   <div class="menu-row"><label>Date</label><input type="date" id="eDate"></div>
   <div class="menu-row"><label>Heure</label><input type="time" id="eTime"></div>
+  <label class="check-row"><input type="checkbox" id="eVia">
+    <span>Passage sur la route — le tracé du voyage passe par ici</span></label>
+  <div class="nav-row" id="editNav" hidden>
+    <span>Y aller :</span>
+    <a id="navPlan" target="_blank" rel="noopener">Plan</a>
+    <a id="navWaze" target="_blank" rel="noopener">Waze</a>
+    <a id="navGoogle" target="_blank" rel="noopener">Google</a>
+  </div>
   <div class="menu-row"><label>Lat</label><input type="number" step="0.000001" id="eLat" placeholder="-33.9249"></div>
   <div class="menu-row"><label>Lon</label><input type="number" step="0.000001" id="eLon" placeholder="18.4241"></div>
   <textarea id="eNotes" class="notes-area" placeholder="Notes libres — adresse, téléphone, ce qu'il faut réserver, ce qu'on a aimé. Collez ce que vous voulez."></textarea>
@@ -536,6 +579,14 @@ body{
   <button class="viewer-close" id="viewerClose">✕</button>
   <img id="viewerImg" alt="">
   <div class="viewer-cap" id="viewerCap"></div>
+</div>
+
+<div class="dropzone" id="dropzone" hidden>
+  <div class="dropzone-box">
+    <div class="dropzone-icon">📥</div>
+    <p>Lâchez vos photos et vidéos ici</p>
+    <small>Elles rejoignent le road book à leur date et à leur position</small>
+  </div>
 </div>
 
 <div id="printRoot"></div>
@@ -798,13 +849,80 @@ const Exif = (() => {
     return null;
   }
 
+  /* ---------- Vidéos (MOV / MP4) ----------
+     Une vidéo ne porte pas d'Exif : la position vit dans le conteneur
+     ISOBMFF, soit dans la boîte « ©xyz » de 'udta' (ISO 6709), soit dans
+     les métadonnées Apple « com.apple.quicktime.location.ISO6709 ».
+     Le 'moov' des iPhone est souvent en fin de fichier : on lit donc aussi
+     la queue du fichier, et on tolère un balayage brut plutôt qu'un
+     parcours de boîtes, plus fragile ici. */
+  function fromVideo(buf){
+    const r = new Reader(buf);
+    let txt = '';
+    const bytes = new Uint8Array(buf);
+    for(let i=0;i<bytes.length;i++) txt += String.fromCharCode(bytes[i]);
+
+    const out = { lat:null, lon:null, date:null };
+
+    // ISO 6709 : « +34.4187-019.2345+012.345/ » ou « -33.92+018.42/ »
+    const iso = /([+-]\d{1,3}(?:\.\d+)?)([+-]\d{1,3}(?:\.\d+)?)(?:[+-]\d+(?:\.\d+)?)?\//;
+    let m = null;
+    const xyz = txt.indexOf('\xA9xyz');
+    if(xyz >= 0) m = iso.exec(txt.slice(xyz, xyz + 80));
+    if(!m){
+      const k = txt.indexOf('location.ISO6709');
+      if(k >= 0) m = iso.exec(txt.slice(k, k + 200));
+    }
+    if(!m) m = iso.exec(txt);
+    if(!m){
+      // Certains encodeurs écrivent la chaîne en UTF-16 : on retire les octets nuls.
+      let flat = '';
+      for(let i=0;i<bytes.length;i++) if(bytes[i]) flat += String.fromCharCode(bytes[i]);
+      m = iso.exec(flat);
+    }
+    if(m){
+      const la = parseFloat(m[1]), lo = parseFloat(m[2]);
+      if(Math.abs(la) <= 90 && Math.abs(lo) <= 180 && (la || lo)){ out.lat = la; out.lon = lo; }
+    }
+
+    // Date : métadonnée Apple en clair, sinon 'mvhd' (secondes depuis 1904).
+    const d = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(txt);
+    if(d){
+      out.date = new Date(+d[1], +d[2]-1, +d[3], +d[4], +d[5], +d[6]);
+    } else {
+      const mv = txt.indexOf('mvhd');
+      if(mv > 0){
+        const at = mv + 4;
+        const ver = r.u8(at);
+        const secs = ver === 1 ? (r.u32(at+4) * 4294967296 + r.u32(at+8)) : r.u32(at+4);
+        // 2 082 844 800 = secondes entre 1904 et 1970
+        if(secs > 2082844800) out.date = new Date((secs - 2082844800) * 1000);
+      }
+    }
+    return (out.lat !== null || out.date) ? out : null;
+  }
+
   /* ---------- API ---------- */
   // On ne lit que le début du fichier : l'Exif y est toujours, et cela
   // évite de charger 5 Mo par photo en mémoire.
   const HEAD_BYTES = 3 * 1024 * 1024;
 
+  function isVideo(file){
+    return /^video\//.test(file.type || '') || /\.(mov|mp4|m4v|3gp|avi)$/i.test(file.name || '');
+  }
+
   async function parse(file){
     try{
+      if(isVideo(file)){
+        const head = await file.slice(0, Math.min(file.size, HEAD_BYTES)).arrayBuffer();
+        let res = fromVideo(head);
+        if((!res || res.lat === null) && file.size > HEAD_BYTES){
+          const tail = await file.slice(Math.max(0, file.size - HEAD_BYTES)).arrayBuffer();
+          const t = fromVideo(tail);
+          if(t && (t.lat !== null || !res)) res = t;
+        }
+        return res;
+      }
       const slice = file.slice(0, Math.min(file.size, HEAD_BYTES));
       const buf   = await slice.arrayBuffer();
       return fromJpeg(buf) || fromHeic(buf) || null;
@@ -814,7 +932,7 @@ const Exif = (() => {
     }
   }
 
-  return { parse };
+  return { parse, isVideo };
 })();
 
 </script>
@@ -1139,11 +1257,11 @@ const CAPE_TRIP = {
       notes:"Oranjezicht City Farm Market le samedi matin (V&A).\nSturk's Tobacconists — la référence historique en ville." },
     { name:"Bonne Esperance Guest House — Stellenbosch", kind:"hotel", lat:-33.93210, lon:18.86020, date:"2026-09-26", time:"15:00",
       notes:"+27 21 887 0225\nDorp Street à deux pas, Stellenbosch Tobacconist dans la rue." },
-    { name:"Tokara", kind:"table", lat:-33.91790, lon:18.92030, date:"2026-09-26", time:"12:30",
+    { name:"Tokara", kind:"table", lat:-33.91807, lon:18.92092, date:"2026-09-26", time:"12:30", via:true,
       notes:"Winelands. Vue sur la vallée, cuisine sud-africaine. Réserver." },
     { name:"Overture", kind:"table", lat:-33.96860, lon:18.85240, date:"2026-09-27", time:"12:30",
       notes:"Hidden Valley. Table de référence des Winelands. Réserver largement à l'avance." },
-    { name:"Babylonstoren — Simondium", kind:"site", lat:-33.82670, lon:18.92670, date:"2026-09-26", time:"10:00",
+    { name:"Babylonstoren — Simondium", kind:"site", lat:-33.82394, lon:18.92635, date:"2026-09-26", time:"10:00", via:true,
       notes:"Jardin potager historique, ferme et cave. Repéré via l'email Air France." },
     { name:"Simon's Town Quayside Hotel", kind:"hotel", lat:-34.19280, lon:18.43260, date:"2026-09-27", time:"17:00",
       notes:"+27 21 786 3838\nSur le port. Manchots de Boulders à côté, Cap de Bonne-Espérance au sud." },
@@ -1159,6 +1277,16 @@ const CAPE_TRIP = {
       notes:"+27 60 980 0664\nLe port aux raies. Cap Agulhas à 5 min : le vrai point le plus austral de l'Afrique." },
     { name:"Cap Agulhas", kind:"site", lat:-34.83330, lon:20.00000, date:"2026-10-01",
       notes:"Pointe sud de l'Afrique, séparation des deux océans. Phare de 1848." },
+
+    // ---- La belle route Bloubergstrand → Stellenbosch (26 sept.) ----
+    // Ces trois points sont cochés « passage sur la route » : le tracé du
+    // voyage emprunte donc les vallées viticoles au lieu de la N1.
+    { name:"Durbanville Hills — belvédère", kind:"vin", lat:-33.82493, lon:18.56581, date:"2026-09-26", time:"09:30", via:true,
+      notes:"Tygerberg Valley Rd · +27 21 558 1300 · cave ouverte à partir de 11h (sam. 11h–16h30)\nPremier point de vue en quittant la côte : la baie derrière, les vignes devant.\nOn y arrive par la M14 puis la M13, jamais par la N1." },
+    { name:"Boschendal — allée de chênes", kind:"vin", lat:-33.87679, lon:18.97434, date:"2026-09-26", time:"12:00", via:true,
+      notes:"R45 entre Simondium et Franschhoek · +27 21 870 4279\nLa plus belle ligne droite des Winelands, chênes et montagnes des deux côtés.\nDe là, on remonte le col de Helshoogte (R310) vers Tokara." },
+    { name:"Col de Helshoogte (R310)", kind:"site", lat:-33.91000, lon:18.94000, date:"2026-09-26", time:"12:15",
+      notes:"Route de montagne goudronnée entre Banhoek et Stellenbosch. Vue plongeante sur la vallée.\nLa plus belle arrivée sur Stellenbosch — magnifique en fin d'après-midi.\n📍 Position approximative." },
 
     // ---- Tables ajoutées le 23 sept. (conversation « Voyage personnel au Cap ») ----
     { name:"Ons Huisie — Bloubergstrand", kind:"table", lat:-33.79958, lon:18.45893, date:"2026-09-22", time:"19:30",
@@ -1739,12 +1867,13 @@ function renderPrep(){
           <div class="item-title">
             ${isStop?`<span class="seq">${seq}</span>`:''}${escapeHtml(s.name)}
           </div>
-          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}</div>
+          <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}${s.via?' · <span class="via">🛣️ sur la route</span>':''}</div>
           ${s.notes?`<div class="item-notes">${escapeHtml(s.notes)}</div>`:''}
         </div>
         <div class="item-actions">
           <button class="act" data-act="edit" data-id="${s.id}">✏️</button>
           <button class="act" data-act="go"   data-id="${s.id}">🔍</button>
+          ${s.lat!=null?`<button class="act" data-act="nav" data-id="${s.id}">🧭</button>`:''}
         </div>
       </div>`;
     }).join('');
@@ -1759,11 +1888,47 @@ function renderPrep(){
   if(routeOn.prep) drawRoute('prep', routePoints(), $('routeInfoPrep'));
 }
 function routePoints(){
-  // L'itinéraire suit les étapes et les hôtels dans l'ordre des dates :
-  // les tables et les visites ne détournent pas le tracé.
+  // L'itinéraire suit les étapes et les hôtels dans l'ordre des dates. Les
+  // tables et les visites ne détournent pas le tracé — sauf celles cochées
+  // « passage sur la route » : c'est ce qui permet d'imposer une belle route
+  // plutôt que la plus rapide (col, route côtière, vallée viticole).
   return trip.sites
-    .filter(s=>(s.kind==='etape'||s.kind==='hotel') && s.lat!=null && s.lon!=null)
+    .filter(s=>(s.kind==='etape' || s.kind==='hotel' || s.via) && s.lat!=null && s.lon!=null)
     .sort(bySite);
+}
+
+/* ---- Navigation : ouvrir un point dans l'app de navigation ----
+   Une PWA installée ne peut pas ouvrir de fenêtre par script ; un lien
+   posé dans la page et cliqué, si. maps.apple.com lance Plan sur iPhone. */
+const NAV = {
+  plan:   p => `https://maps.apple.com/?daddr=${p.lat},${p.lon}&dirflg=d`,
+  waze:   p => `https://waze.com/ul?ll=${p.lat},${p.lon}&navigate=yes`,
+  google: p => `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}&travelmode=driving`
+};
+function openNav(url){
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+/* Tout l'itinéraire d'un coup : Google Maps est le seul à accepter des
+   étapes dans un lien (23 au maximum). */
+function routeLink(pts){
+  if(pts.length < 2) return null;
+  const o = pts[0], d = pts[pts.length-1];
+  const mid = pts.slice(1,-1).slice(0,23).map(p=>`${p.lat},${p.lon}`).join('|');
+  return `https://www.google.com/maps/dir/?api=1&origin=${o.lat},${o.lon}`
+       + `&destination=${d.lat},${d.lon}`
+       + (mid ? `&waypoints=${encodeURIComponent(mid)}` : '')
+       + `&travelmode=driving`;
+}
+async function askNav(pt, titre){
+  const v = await ask({
+    title: titre || 'Y aller',
+    msg: 'Ouvrir dans quelle application ?',
+    ok:'Plan', cancel:'Waze',
+    fields: []
+  });
+  openNav(v !== null ? NAV.plan(pt) : NAV.waze(pt));
 }
 function highlight(id){
   document.querySelectorAll('.item.active').forEach(e=>e.classList.remove('active'));
@@ -1783,6 +1948,13 @@ function stepLabel(st, i){
   const s = nearestSite(st);
   if(s) return s.name;
   return 'Étape ' + (i+1);
+}
+function countLabel(st){
+  const v = (st.videos||[]).length, ph = st.photos.length - v;
+  const parts = [];
+  if(ph) parts.push(`${ph} photo${ph>1?'s':''}`);
+  if(v)  parts.push(`${v} vidéo${v>1?'s':''}`);
+  return parts.join(' · ') || '0 photo';
 }
 function stepIcon(st){
   const s = st.name ? null : nearestSite(st);
@@ -1863,12 +2035,13 @@ async function renderBook(){
         <div class="item-badge"><span class="seq">${i+1}</span></div>
         <div class="item-body">
           <div class="item-title">${stepIcon(st)} ${escapeHtml(stepLabel(st,i))}</div>
-          <div class="item-meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${st.photos.length} photo${st.photos.length>1?'s':''}${!st.name && nearestSite(st)?' · <span class="guess">lieu proposé — ✏️ pour valider</span>':''}</div>
+          <div class="item-meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${countLabel(st)}${!st.name && nearestSite(st)?' · <span class="guess">lieu proposé — ✏️ pour valider</span>':''}</div>
           ${st.note?`<div class="item-notes">${escapeHtml(st.note)}</div>`:''}
           <div class="thumbs" id="th-${i}"></div>
         </div>
         <div class="item-actions">
           <button class="act" data-act="rename" data-step="${i}">✏️</button>
+          <button class="act" data-act="nav" data-step="${i}">🧭</button>
         </div>
       </div>`).join('');
     steps.forEach((st,i)=>loadThumbs(i, st));
@@ -1958,10 +2131,18 @@ async function loadThumbs(i, step){
       if(blob){ url = URL.createObjectURL(blob); urlCache.set(pid,url); }
     }
     if(url){
+      const isVid = (step.videos || []).includes(pid);
       const img = document.createElement('img');
       img.src = url; img.loading='lazy';
-      img.onclick = ()=>openViewer(url, `${step.name||''} · ${fmtTime(step.t)}`);
-      box.appendChild(img);
+      img.onclick = ()=>openViewer(url, `${step.name||''} · ${fmtTime(step.t)}${isVid?' · vidéo':''}`);
+      if(isVid){
+        const wrap = document.createElement('div');
+        wrap.className = 'thumb-vid';
+        wrap.appendChild(img);
+        const play = document.createElement('span'); play.textContent = '▶';
+        wrap.appendChild(play);
+        box.appendChild(wrap);
+      } else box.appendChild(img);
     } else {
       const d = document.createElement('div');
       d.className='thumb-missing'; d.textContent='📷';
@@ -1996,20 +2177,49 @@ async function importPhotos(files){
     if(!gps){ noGeo++; continue; }   // sans coordonnées, la photo ne situe rien
 
     const id = uid();
-    const thumb = await makeThumb(f);          // peut être null (HEIC non décodable ici)
+    const video = Exif.isVideo(f);
+    // Pour une vidéo on ne garde qu'une image extraite : le fichier lui-même
+    // remplirait la mémoire du navigateur en quelques minutes de tournage.
+    const thumb = video ? await makePoster(f) : await makeThumb(f);
     if(thumb) await Photos.put(id, thumb);
-    fresh.push({ id, t:+new Date(when), lat:gps.lat, lon:gps.lon, name:f.name });
+    fresh.push({ id, t:+new Date(when), lat:gps.lat, lon:gps.lon, name:f.name, video });
     ok++;
   }
 
   if(fresh.length) mergeIntoDays(fresh);
   busy(false);
 
-  let msg = `${ok} photo${ok>1?'s':''} ajoutée${ok>1?'s':''}`;
+  let msg = `${ok} élément${ok>1?'s':''} ajouté${ok>1?'s':''}`;
   if(noGeo) msg += ` · ${noGeo} sans position`;
   toast(msg, 3600);
   persist();
   if(pane==='book') renderBook();
+}
+
+/* Image extraite d'une vidéo : on saisit une frame au début du plan. */
+function makePoster(file, max=1400, q=.78){
+  return new Promise(res=>{
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.preload = 'metadata'; v.muted = true; v.playsInline = true;
+    let done = false;
+    const fin = blob => { if(done) return; done = true; URL.revokeObjectURL(url); res(blob); };
+    v.onloadeddata = ()=>{ try{ v.currentTime = Math.min(0.5, (v.duration||1)/3); }catch(e){ grab(); } };
+    v.onseeked = grab;
+    v.onerror = ()=>fin(null);
+    setTimeout(()=>fin(null), 12000);            // filet : certains codecs ne décodent pas
+    function grab(){
+      try{
+        const sc = Math.min(1, max/Math.max(v.videoWidth||1, v.videoHeight||1));
+        const c = document.createElement('canvas');
+        c.width = Math.round((v.videoWidth||640)*sc);
+        c.height = Math.round((v.videoHeight||360)*sc);
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob(b=>fin(b), 'image/jpeg', q);
+      }catch(e){ fin(null); }
+    }
+    v.src = url;
+  });
 }
 
 function makeThumb(file, max=1400, q=.78){
@@ -2062,13 +2272,15 @@ function clusterSteps(raw, previous=[]){
     const last = out[out.length-1];
     if(last && haversine(last, p) < 300 && (p.t - last.tEnd) < 3600000){
       last.photos.push(p.id);
+      if(p.video) (last.videos = last.videos || []).push(p.id);
       last.tEnd = p.t;
       last.lat = (last.lat*(last.photos.length-1) + p.lat)/last.photos.length;
       last.lon = (last.lon*(last.photos.length-1) + p.lon)/last.photos.length;
     } else {
-      out.push({ key:p.id, lat:p.lat, lon:p.lon, t:p.t, tEnd:p.t, photos:[p.id], name:'', note:'' });
+      out.push({ key:p.id, lat:p.lat, lon:p.lon, t:p.t, tEnd:p.t, photos:[p.id], videos:[], name:'', note:'' });
     }
   });
+  raw.forEach(p=>{ if(p.video){ const st = out.find(s=>s.photos.includes(p.id)); if(st && !(st.videos||[]).includes(p.id)) (st.videos = st.videos || []).push(p.id); } });
   out.forEach(s=>{ if(named[s.key]){ s.name = named[s.key].name; s.note = named[s.key].note; } });
   return out;
 }
@@ -2116,7 +2328,7 @@ async function buildBookParts(embed = true){
     for(const [si,st] of (day.steps||[]).entries()){
       if(si>0) body += `<p class="leg">↓ ${fmtLeg(legStats(day.steps[si-1], st))}</p>`;
       body += `<div class="step"><h3><span class="n">${si+1}</span> ${escapeHtml(stepLabel(st,si))}</h3>`;
-      body += `<p class="meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}</p>`;
+      body += `<p class="meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${countLabel(st)} · ${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}</p>`;
       if(st.note) body += `<p class="note">${escapeHtml(st.note).replace(/\n/g,'<br>')}</p>`;
       if(embed){
         body += `<div class="gal">`;
@@ -2197,7 +2409,7 @@ function buildMarkdown(){
     (day.steps||[]).forEach((st,si)=>{
       if(si>0) md += `↓ *${fmtLeg(legStats(day.steps[si-1], st))}*\n\n`;
       md += `### ${si+1}. ${stepLabel(st,si)}\n`;
-      md += `*${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · [${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}](https://maps.google.com/?q=${st.lat},${st.lon}) · ${st.photos.length} photo(s)*\n\n`;
+      md += `*${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · [${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}](https://maps.google.com/?q=${st.lat},${st.lon}) · ${countLabel(st)}*\n\n`;
       if(st.note) md += `${st.note}\n\n`;
     });
   });
@@ -2517,6 +2729,13 @@ function openEditor(id){
   $('eKind').value  = s?s.kind:'etape';
   $('eDate').value  = s?(s.date||''):'';
   $('eTime').value  = s?(s.time||''):'';
+  $('eVia').checked = s ? !!s.via : false;
+  $('editNav').hidden = !(s && s.lat!=null);
+  if(s && s.lat!=null){
+    $('navPlan').href   = NAV.plan(s);
+    $('navWaze').href   = NAV.waze(s);
+    $('navGoogle').href = NAV.google(s);
+  }
   $('eLat').value   = s&&s.lat!=null?s.lat:'';
   $('eLon').value   = s&&s.lon!=null?s.lon:'';
   $('eNotes').value = s?(s.notes||''):'';
@@ -2531,6 +2750,7 @@ function saveEditor(){
     kind:  $('eKind').value,
     date:  $('eDate').value || '',
     time:  $('eTime').value || '',
+    via:   $('eVia').checked,
     lat:   $('eLat').value===''?null:parseFloat($('eLat').value),
     lon:   $('eLon').value===''?null:parseFloat($('eLon').value),
     notes: $('eNotes').value
@@ -2564,6 +2784,7 @@ function wire(){
     if(btn){
       const s = trip.sites.find(x=>x.id===btn.dataset.id);
       if(btn.dataset.act==='edit') openEditor(btn.dataset.id);
+      if(btn.dataset.act==='nav' && s && s.lat!=null) askNav(s, s.name);
       if(btn.dataset.act==='go' && s && s.lat!=null && maps.prep){
         maps.prep.setView([s.lat,s.lon],14);
         maps.prep.closePopup();
@@ -2593,6 +2814,13 @@ function wire(){
   $('btnTilePrep').onclick = toggleTiles;
   $('btnTileBook').onclick = toggleTiles;
   $('btnFitPrep').onclick = ()=>fitTo('prep', trip.sites.filter(s=>s.lat!=null));
+  $('btnNavPrep').onclick = ()=>{
+    const pts = routePoints();
+    const url = routeLink(pts);
+    if(!url){ toast('Il faut au moins deux étapes situées'); return; }
+    openNav(url);
+    toast('Itinéraire complet ouvert dans Google Maps', 3200);
+  };
   $('btnRoutePrep').onclick = e=>{
     if(!maps.prep){ toast('Carte indisponible hors ligne'); return; }
     routeOn.prep = !routeOn.prep;
@@ -2622,6 +2850,12 @@ function wire(){
   $('stepList').onclick = e=>{
     const dayEl = e.target.closest('[data-day]');
     if(dayEl){ dayIndex = +dayEl.dataset.day; renderBook(); $('stepList').scrollTop = 0; return; }
+    const nav = e.target.closest('[data-act="nav"]');
+    if(nav){
+      const days = dayList(); const st = days[dayIndex].steps[+nav.dataset.step];
+      askNav(st, stepLabel(st, +nav.dataset.step));
+      return;
+    }
     const btn = e.target.closest('[data-act="rename"]'); if(!btn) return;
     const days = dayList(); const st = days[dayIndex].steps[+btn.dataset.step];
     const suggestion = stepLabel(st, +btn.dataset.step);
@@ -2647,6 +2881,37 @@ function wire(){
   };
 
   $('viewerClose').onclick = ()=>{ $('viewer').hidden = true; };
+
+  /* ---- Glisser-déposer et coller (Mac surtout) ----
+     On accepte le dépôt n'importe où dans la page : viser une zone précise
+     au trackpad avec une poignée de photos dans la main est pénible. */
+  const drop = $('dropzone');
+  let dragDepth = 0;
+  const hasFiles = e => Array.from(e.dataTransfer.types||[]).includes('Files');
+  document.addEventListener('dragenter', e=>{
+    if(!hasFiles(e)) return;
+    e.preventDefault(); dragDepth++; drop.hidden = false;
+  });
+  document.addEventListener('dragover', e=>{ if(hasFiles(e)) e.preventDefault(); });
+  document.addEventListener('dragleave', e=>{
+    if(!hasFiles(e)) return;
+    if(--dragDepth <= 0){ dragDepth = 0; drop.hidden = true; }
+  });
+  document.addEventListener('drop', e=>{
+    if(!hasFiles(e)) return;
+    e.preventDefault(); dragDepth = 0; drop.hidden = true;
+    const files = Array.from(e.dataTransfer.files || []);
+    if(!files.length) return;
+    switchPane('book');
+    importPhotos(files);
+  });
+  document.addEventListener('paste', e=>{
+    const items = Array.from((e.clipboardData||{}).files || []);
+    if(!items.length) return;
+    if(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    switchPane('book');
+    importPhotos(items);
+  });
 
   // Menu
   $('btnMenu').onclick = ()=>{
