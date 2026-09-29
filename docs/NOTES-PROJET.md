@@ -262,6 +262,30 @@ lieu de la N1.
 
 ---
 
+## Ajouts du 29 septembre 2026 — dépôt de fichiers et vidéos
+
+**Glisser-déposer.** On lâche des photos ou des vidéos n'importe où dans la
+page : un voile teal s'affiche pendant le glissé, le dépôt bascule sur le road
+book et lance l'import. Le collage (⌘V) fait la même chose. Pensé pour le Mac ;
+sur iPhone, le bouton 📷 *Importer* reste la voie normale.
+
+**Vidéos.** `js/exif.js` lit maintenant les conteneurs MOV / MP4 : position dans
+la boîte `©xyz` (ISO 6709) ou dans les métadonnées Apple, date dans `mvhd` ou
+dans la date Apple en clair. Le `moov` des iPhone étant souvent en fin de
+fichier, on lit aussi la queue du fichier.
+
+**Ce qui est conservé d'une vidéo : une image, pas le film.** Une minute de
+4K pèse plus de 300 Mo ; le quota du navigateur serait mangé en un soir. L'app
+extrait une frame du début du plan, la stocke comme une photo, marque l'étape
+« vidéo » (badge ▶ sur la vignette) et situe le plan sur la carte. Le film reste
+dans la photothèque.
+
+**Piège corrigé au passage :** `display:flex` l'emporte sur l'attribut `hidden`.
+La zone de dépôt masquée interceptait tous les clics — exactement le défaut
+qu'avait eu la visionneuse photo. Le banc de test l'a attrapé.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :

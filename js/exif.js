@@ -251,13 +251,80 @@ const Exif = (() => {
     return null;
   }
 
+  /* ---------- Vidéos (MOV / MP4) ----------
+     Une vidéo ne porte pas d'Exif : la position vit dans le conteneur
+     ISOBMFF, soit dans la boîte « ©xyz » de 'udta' (ISO 6709), soit dans
+     les métadonnées Apple « com.apple.quicktime.location.ISO6709 ».
+     Le 'moov' des iPhone est souvent en fin de fichier : on lit donc aussi
+     la queue du fichier, et on tolère un balayage brut plutôt qu'un
+     parcours de boîtes, plus fragile ici. */
+  function fromVideo(buf){
+    const r = new Reader(buf);
+    let txt = '';
+    const bytes = new Uint8Array(buf);
+    for(let i=0;i<bytes.length;i++) txt += String.fromCharCode(bytes[i]);
+
+    const out = { lat:null, lon:null, date:null };
+
+    // ISO 6709 : « +34.4187-019.2345+012.345/ » ou « -33.92+018.42/ »
+    const iso = /([+-]\d{1,3}(?:\.\d+)?)([+-]\d{1,3}(?:\.\d+)?)(?:[+-]\d+(?:\.\d+)?)?\//;
+    let m = null;
+    const xyz = txt.indexOf('\xA9xyz');
+    if(xyz >= 0) m = iso.exec(txt.slice(xyz, xyz + 80));
+    if(!m){
+      const k = txt.indexOf('location.ISO6709');
+      if(k >= 0) m = iso.exec(txt.slice(k, k + 200));
+    }
+    if(!m) m = iso.exec(txt);
+    if(!m){
+      // Certains encodeurs écrivent la chaîne en UTF-16 : on retire les octets nuls.
+      let flat = '';
+      for(let i=0;i<bytes.length;i++) if(bytes[i]) flat += String.fromCharCode(bytes[i]);
+      m = iso.exec(flat);
+    }
+    if(m){
+      const la = parseFloat(m[1]), lo = parseFloat(m[2]);
+      if(Math.abs(la) <= 90 && Math.abs(lo) <= 180 && (la || lo)){ out.lat = la; out.lon = lo; }
+    }
+
+    // Date : métadonnée Apple en clair, sinon 'mvhd' (secondes depuis 1904).
+    const d = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(txt);
+    if(d){
+      out.date = new Date(+d[1], +d[2]-1, +d[3], +d[4], +d[5], +d[6]);
+    } else {
+      const mv = txt.indexOf('mvhd');
+      if(mv > 0){
+        const at = mv + 4;
+        const ver = r.u8(at);
+        const secs = ver === 1 ? (r.u32(at+4) * 4294967296 + r.u32(at+8)) : r.u32(at+4);
+        // 2 082 844 800 = secondes entre 1904 et 1970
+        if(secs > 2082844800) out.date = new Date((secs - 2082844800) * 1000);
+      }
+    }
+    return (out.lat !== null || out.date) ? out : null;
+  }
+
   /* ---------- API ---------- */
   // On ne lit que le début du fichier : l'Exif y est toujours, et cela
   // évite de charger 5 Mo par photo en mémoire.
   const HEAD_BYTES = 3 * 1024 * 1024;
 
+  function isVideo(file){
+    return /^video\//.test(file.type || '') || /\.(mov|mp4|m4v|3gp|avi)$/i.test(file.name || '');
+  }
+
   async function parse(file){
     try{
+      if(isVideo(file)){
+        const head = await file.slice(0, Math.min(file.size, HEAD_BYTES)).arrayBuffer();
+        let res = fromVideo(head);
+        if((!res || res.lat === null) && file.size > HEAD_BYTES){
+          const tail = await file.slice(Math.max(0, file.size - HEAD_BYTES)).arrayBuffer();
+          const t = fromVideo(tail);
+          if(t && (t.lat !== null || !res)) res = t;
+        }
+        return res;
+      }
       const slice = file.slice(0, Math.min(file.size, HEAD_BYTES));
       const buf   = await slice.arrayBuffer();
       return fromJpeg(buf) || fromHeic(buf) || null;
@@ -267,5 +334,5 @@ const Exif = (() => {
     }
   }
 
-  return { parse };
+  return { parse, isVideo };
 })();

@@ -371,6 +371,13 @@ function stepLabel(st, i){
   if(s) return s.name;
   return 'Étape ' + (i+1);
 }
+function countLabel(st){
+  const v = (st.videos||[]).length, ph = st.photos.length - v;
+  const parts = [];
+  if(ph) parts.push(`${ph} photo${ph>1?'s':''}`);
+  if(v)  parts.push(`${v} vidéo${v>1?'s':''}`);
+  return parts.join(' · ') || '0 photo';
+}
 function stepIcon(st){
   const s = st.name ? null : nearestSite(st);
   if(st.kind && KIND[st.kind]) return KIND[st.kind].icon;
@@ -450,7 +457,7 @@ async function renderBook(){
         <div class="item-badge"><span class="seq">${i+1}</span></div>
         <div class="item-body">
           <div class="item-title">${stepIcon(st)} ${escapeHtml(stepLabel(st,i))}</div>
-          <div class="item-meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${st.photos.length} photo${st.photos.length>1?'s':''}${!st.name && nearestSite(st)?' · <span class="guess">lieu proposé — ✏️ pour valider</span>':''}</div>
+          <div class="item-meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${countLabel(st)}${!st.name && nearestSite(st)?' · <span class="guess">lieu proposé — ✏️ pour valider</span>':''}</div>
           ${st.note?`<div class="item-notes">${escapeHtml(st.note)}</div>`:''}
           <div class="thumbs" id="th-${i}"></div>
         </div>
@@ -546,10 +553,18 @@ async function loadThumbs(i, step){
       if(blob){ url = URL.createObjectURL(blob); urlCache.set(pid,url); }
     }
     if(url){
+      const isVid = (step.videos || []).includes(pid);
       const img = document.createElement('img');
       img.src = url; img.loading='lazy';
-      img.onclick = ()=>openViewer(url, `${step.name||''} · ${fmtTime(step.t)}`);
-      box.appendChild(img);
+      img.onclick = ()=>openViewer(url, `${step.name||''} · ${fmtTime(step.t)}${isVid?' · vidéo':''}`);
+      if(isVid){
+        const wrap = document.createElement('div');
+        wrap.className = 'thumb-vid';
+        wrap.appendChild(img);
+        const play = document.createElement('span'); play.textContent = '▶';
+        wrap.appendChild(play);
+        box.appendChild(wrap);
+      } else box.appendChild(img);
     } else {
       const d = document.createElement('div');
       d.className='thumb-missing'; d.textContent='📷';
@@ -584,20 +599,49 @@ async function importPhotos(files){
     if(!gps){ noGeo++; continue; }   // sans coordonnées, la photo ne situe rien
 
     const id = uid();
-    const thumb = await makeThumb(f);          // peut être null (HEIC non décodable ici)
+    const video = Exif.isVideo(f);
+    // Pour une vidéo on ne garde qu'une image extraite : le fichier lui-même
+    // remplirait la mémoire du navigateur en quelques minutes de tournage.
+    const thumb = video ? await makePoster(f) : await makeThumb(f);
     if(thumb) await Photos.put(id, thumb);
-    fresh.push({ id, t:+new Date(when), lat:gps.lat, lon:gps.lon, name:f.name });
+    fresh.push({ id, t:+new Date(when), lat:gps.lat, lon:gps.lon, name:f.name, video });
     ok++;
   }
 
   if(fresh.length) mergeIntoDays(fresh);
   busy(false);
 
-  let msg = `${ok} photo${ok>1?'s':''} ajoutée${ok>1?'s':''}`;
+  let msg = `${ok} élément${ok>1?'s':''} ajouté${ok>1?'s':''}`;
   if(noGeo) msg += ` · ${noGeo} sans position`;
   toast(msg, 3600);
   persist();
   if(pane==='book') renderBook();
+}
+
+/* Image extraite d'une vidéo : on saisit une frame au début du plan. */
+function makePoster(file, max=1400, q=.78){
+  return new Promise(res=>{
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.preload = 'metadata'; v.muted = true; v.playsInline = true;
+    let done = false;
+    const fin = blob => { if(done) return; done = true; URL.revokeObjectURL(url); res(blob); };
+    v.onloadeddata = ()=>{ try{ v.currentTime = Math.min(0.5, (v.duration||1)/3); }catch(e){ grab(); } };
+    v.onseeked = grab;
+    v.onerror = ()=>fin(null);
+    setTimeout(()=>fin(null), 12000);            // filet : certains codecs ne décodent pas
+    function grab(){
+      try{
+        const sc = Math.min(1, max/Math.max(v.videoWidth||1, v.videoHeight||1));
+        const c = document.createElement('canvas');
+        c.width = Math.round((v.videoWidth||640)*sc);
+        c.height = Math.round((v.videoHeight||360)*sc);
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob(b=>fin(b), 'image/jpeg', q);
+      }catch(e){ fin(null); }
+    }
+    v.src = url;
+  });
 }
 
 function makeThumb(file, max=1400, q=.78){
@@ -650,13 +694,15 @@ function clusterSteps(raw, previous=[]){
     const last = out[out.length-1];
     if(last && haversine(last, p) < 300 && (p.t - last.tEnd) < 3600000){
       last.photos.push(p.id);
+      if(p.video) (last.videos = last.videos || []).push(p.id);
       last.tEnd = p.t;
       last.lat = (last.lat*(last.photos.length-1) + p.lat)/last.photos.length;
       last.lon = (last.lon*(last.photos.length-1) + p.lon)/last.photos.length;
     } else {
-      out.push({ key:p.id, lat:p.lat, lon:p.lon, t:p.t, tEnd:p.t, photos:[p.id], name:'', note:'' });
+      out.push({ key:p.id, lat:p.lat, lon:p.lon, t:p.t, tEnd:p.t, photos:[p.id], videos:[], name:'', note:'' });
     }
   });
+  raw.forEach(p=>{ if(p.video){ const st = out.find(s=>s.photos.includes(p.id)); if(st && !(st.videos||[]).includes(p.id)) (st.videos = st.videos || []).push(p.id); } });
   out.forEach(s=>{ if(named[s.key]){ s.name = named[s.key].name; s.note = named[s.key].note; } });
   return out;
 }
@@ -704,7 +750,7 @@ async function buildBookParts(embed = true){
     for(const [si,st] of (day.steps||[]).entries()){
       if(si>0) body += `<p class="leg">↓ ${fmtLeg(legStats(day.steps[si-1], st))}</p>`;
       body += `<div class="step"><h3><span class="n">${si+1}</span> ${escapeHtml(stepLabel(st,si))}</h3>`;
-      body += `<p class="meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}</p>`;
+      body += `<p class="meta">${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · ${countLabel(st)} · ${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}</p>`;
       if(st.note) body += `<p class="note">${escapeHtml(st.note).replace(/\n/g,'<br>')}</p>`;
       if(embed){
         body += `<div class="gal">`;
@@ -785,7 +831,7 @@ function buildMarkdown(){
     (day.steps||[]).forEach((st,si)=>{
       if(si>0) md += `↓ *${fmtLeg(legStats(day.steps[si-1], st))}*\n\n`;
       md += `### ${si+1}. ${stepLabel(st,si)}\n`;
-      md += `*${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · [${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}](https://maps.google.com/?q=${st.lat},${st.lon}) · ${st.photos.length} photo(s)*\n\n`;
+      md += `*${fmtTime(st.t)}${st.tEnd&&st.tEnd!==st.t?' – '+fmtTime(st.tEnd):''} · [${st.lat.toFixed(5)}, ${st.lon.toFixed(5)}](https://maps.google.com/?q=${st.lat},${st.lon}) · ${countLabel(st)}*\n\n`;
       if(st.note) md += `${st.note}\n\n`;
     });
   });
@@ -1257,6 +1303,37 @@ function wire(){
   };
 
   $('viewerClose').onclick = ()=>{ $('viewer').hidden = true; };
+
+  /* ---- Glisser-déposer et coller (Mac surtout) ----
+     On accepte le dépôt n'importe où dans la page : viser une zone précise
+     au trackpad avec une poignée de photos dans la main est pénible. */
+  const drop = $('dropzone');
+  let dragDepth = 0;
+  const hasFiles = e => Array.from(e.dataTransfer.types||[]).includes('Files');
+  document.addEventListener('dragenter', e=>{
+    if(!hasFiles(e)) return;
+    e.preventDefault(); dragDepth++; drop.hidden = false;
+  });
+  document.addEventListener('dragover', e=>{ if(hasFiles(e)) e.preventDefault(); });
+  document.addEventListener('dragleave', e=>{
+    if(!hasFiles(e)) return;
+    if(--dragDepth <= 0){ dragDepth = 0; drop.hidden = true; }
+  });
+  document.addEventListener('drop', e=>{
+    if(!hasFiles(e)) return;
+    e.preventDefault(); dragDepth = 0; drop.hidden = true;
+    const files = Array.from(e.dataTransfer.files || []);
+    if(!files.length) return;
+    switchPane('book');
+    importPhotos(files);
+  });
+  document.addEventListener('paste', e=>{
+    const items = Array.from((e.clipboardData||{}).files || []);
+    if(!items.length) return;
+    if(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    switchPane('book');
+    importPhotos(items);
+  });
 
   // Menu
   $('btnMenu').onclick = ()=>{

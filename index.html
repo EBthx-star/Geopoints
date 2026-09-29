@@ -90,7 +90,7 @@
         <button class="mini-btn primary" id="btnImport">📷 Importer</button>
       </div>
     </div>
-    <input type="file" id="photoInput" accept="image/*,.heic,.HEIC" multiple hidden>
+    <input type="file" id="photoInput" accept="image/*,video/*,.heic,.HEIC,.mov,.MOV" multiple hidden>
     <textarea id="dayNote" class="day-note" placeholder="Note de la journée — collez ici ce que vous voulez, elle part dans le road book."></textarea>
     <div id="stepList" class="list"></div>
   </div>
@@ -220,6 +220,14 @@
   <button class="viewer-close" id="viewerClose">✕</button>
   <img id="viewerImg" alt="">
   <div class="viewer-cap" id="viewerCap"></div>
+</div>
+
+<div class="dropzone" id="dropzone" hidden>
+  <div class="dropzone-box">
+    <div class="dropzone-icon">📥</div>
+    <p>Lâchez vos photos et vidéos ici</p>
+    <small>Elles rejoignent le road book à leur date et à leur position</small>
+  </div>
 </div>
 
 <div id="printRoot"></div>

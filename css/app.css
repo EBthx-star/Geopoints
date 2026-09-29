@@ -331,3 +331,27 @@ body{
   flex:1;text-align:center;text-decoration:none;color:var(--teal);font-weight:600;
   border:1px solid var(--line);border-radius:11px;padding:9px 0;background:#fff;
 }
+
+/* ---------- Dépôt de fichiers ---------- */
+.dropzone{
+  position:fixed;inset:0;z-index:960;background:rgba(29,78,95,.82);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  pointer-events:none;
+}
+/* display:flex l'emporte sur l'attribut hidden : sans cette ligne, la zone
+   masquée continue d'intercepter tous les clics (même piège que la
+   visionneuse photo). */
+.dropzone[hidden]{display:none}
+.dropzone-box{
+  border:3px dashed rgba(255,255,255,.85);border-radius:22px;padding:36px 28px;
+  text-align:center;color:#fff;max-width:420px;
+}
+.dropzone-icon{font-size:52px;margin-bottom:10px}
+.dropzone p{font-size:17px;font-weight:650;margin:0 0 6px}
+.dropzone small{font-size:13px;opacity:.85}
+.thumb-vid{position:relative;flex-shrink:0;display:inline-flex}
+.thumb-vid span{
+  position:absolute;right:5px;bottom:5px;background:rgba(0,0,0,.6);color:#fff;
+  border-radius:50%;width:20px;height:20px;display:flex;align-items:center;
+  justify-content:center;font-size:10px;padding-left:2px;
+}
