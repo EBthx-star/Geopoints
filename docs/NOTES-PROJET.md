@@ -286,6 +286,21 @@ qu'avait eu la visionneuse photo. Le banc de test l'a attrapé.
 
 ---
 
+## Ajouts du 1er octobre 2026 — rubrique « Informations »
+
+Nouvelle catégorie **ℹ️ Information** : des fiches de connaissance attachées au
+voyage, et non des adresses. Elles ont un filtre dédié, se posent sur la carte
+là où elles s'appliquent, restent **hors du tracé** (ce ne sont pas des étapes),
+se rangent en fin de liste (pas de date) et forment leur **propre section** dans
+les exports PDF, page web et Notion, après le carnet d'adresses.
+
+Huit fiches créées à partir des questions posées en route : Hermanus, Hout Bay,
+Paarl, l'agriculture de l'Overberg, colza et canola, les loutres du Cap des
+Aiguilles, les solutions de repli pour un safari Big Five, et la belle route
+Bloubergstrand → Stellenbosch.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :

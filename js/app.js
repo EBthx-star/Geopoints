@@ -57,7 +57,8 @@ function haversine(a,b){
 const KIND = {
   etape:{icon:'📍',label:'Étape'}, hotel:{icon:'🛏️',label:'Hôtel'},
   table:{icon:'🍽️',label:'Table'}, site:{icon:'⭐',label:'À voir'},
-  vin:{icon:'🍷',label:'Domaine'},  shop:{icon:'🛍️',label:'Shopping'}
+  vin:{icon:'🍷',label:'Domaine'},  shop:{icon:'🛍️',label:'Shopping'},
+  info:{icon:'ℹ️',label:'Information'}
 };
 /* Ordre chronologique : la date, puis l'heure. Sans heure, un hôtel se range
    en fin de journée (on y arrive le soir), le reste à midi. */
@@ -766,11 +767,21 @@ async function buildBookParts(embed = true){
   }
 
   // Le carnet d'adresses en annexe : c'est ce qui sert à refaire le voyage.
-  const sites = trip.sites.slice().sort(bySite);
+  // Les fiches « Information » ont leur propre section : ce ne sont pas des
+  // adresses mais ce qu'on a appris en chemin.
+  const tous  = trip.sites.slice().sort(bySite);
+  const sites = tous.filter(s=>s.kind!=='info');
+  const infos = tous.filter(s=>s.kind==='info');
   if(sites.length){
     body += `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
       <div class="step"><h3>${KIND[s.kind].icon} ${escapeHtml(s.name)}</h3>
       <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
+      ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
+  }
+
+  if(infos.length){
+    body += `<section class="day"><h2>Informations</h2>` + infos.map(s=>`
+      <div class="step"><h3>ℹ️ ${escapeHtml(s.name)}</h3>
       ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
   }
 
@@ -836,7 +847,9 @@ function buildMarkdown(){
     });
   });
 
-  const sites = trip.sites.slice().sort(bySite);
+  const tous  = trip.sites.slice().sort(bySite);
+  const sites = tous.filter(s=>s.kind!=='info');
+  const infos = tous.filter(s=>s.kind==='info');
   if(sites.length){
     md += `\n## Carnet d'adresses\n\n`;
     sites.forEach(s=>{
@@ -844,6 +857,13 @@ function buildMarkdown(){
       md += `*${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}`;
       if(s.lat!=null) md += ` · [carte](https://maps.google.com/?q=${s.lat},${s.lon})`;
       md += `*\n\n`;
+      if(s.notes) md += `${s.notes}\n\n`;
+    });
+  }
+  if(infos.length){
+    md += `\n## Informations\n\n`;
+    infos.forEach(s=>{
+      md += `### ℹ️ ${s.name}\n\n`;
       if(s.notes) md += `${s.notes}\n\n`;
     });
   }

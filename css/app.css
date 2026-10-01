@@ -256,6 +256,7 @@ body{
 .pin-site{background:#4a7c59}
 .pin-vin{background:#7a2e3b}
 .pin-shop{background:#5b4b7a}
+.pin-info{background:#4a6572}
 .pin-photo{background:var(--teal);border-radius:50%;transform:none}
 .pin-photo > *{transform:none}
 
