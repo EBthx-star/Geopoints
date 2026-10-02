@@ -91,7 +91,9 @@ body{
 .mini-btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
 .mini-btn:active{transform:scale(.95)}
 
-.filters{display:flex;gap:7px;padding:0 16px 10px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+/* Huit filtres ne tiennent pas sur une ligne d'iPhone : ils passent à la
+   ligne plutôt que de défiler, sinon les derniers restent invisibles. */
+.filters{display:flex;flex-wrap:wrap;gap:7px;padding:0 16px 10px;flex-shrink:0}
 .filters::-webkit-scrollbar{display:none}
 .chip{
   border:1px solid var(--line);background:#fff;color:var(--ink-soft);
