@@ -274,6 +274,7 @@ body{
 .pin-site{background:#4a7c59}
 .pin-vin{background:#7a2e3b}
 .pin-shop{background:#5b4b7a}
+.pin-info{background:#4a6572}
 .pin-photo{background:var(--teal);border-radius:50%;transform:none}
 .pin-photo > *{transform:none}
 
@@ -415,6 +416,7 @@ body{
       <button class="chip" data-kind="site">À voir</button>
       <button class="chip" data-kind="vin">Domaines</button>
       <button class="chip" data-kind="shop">Shopping</button>
+      <button class="chip" data-kind="info">Infos</button>
     </div>
     <div id="siteList" class="list"></div>
   </div>
@@ -537,6 +539,7 @@ body{
       <option value="site">À voir</option>
       <option value="vin">Domaine</option>
       <option value="shop">Shopping</option>
+      <option value="info">Information</option>
     </select>
   </div>
   <div class="menu-row"><label>Date</label><input type="date" id="eDate"></div>
@@ -1278,6 +1281,31 @@ const CAPE_TRIP = {
     { name:"Cap Agulhas", kind:"site", lat:-34.83330, lon:20.00000, date:"2026-10-01",
       notes:"Pointe sud de l'Afrique, séparation des deux océans. Phare de 1848." },
 
+    // ---- Informations : réponses aux questions posées en route (1er oct. 2026) ----
+    { name:"Hermanus — que faire", kind:"info", lat:-34.41870, lon:19.23450,
+      notes:"BALEINES (pic sept.-oct.)\n• Sortie en mer : Southern Right Charters, New Harbour, +27 82 353 0550. Départs 9h / 12h / 15h, ~2h, ~R1 580. Réserver le matin même.\n• Cliff Path : 12 km le long des falaises. Le meilleur tronçon : Gearings Point → Old Harbour → Sievers Point. Baleines à 50 m du bord, tôt le matin.\n\nAUTOUR\n• Hemel-en-Aarde (15 min) : Hamilton Russell, Bouchard Finlayson, Newton Johnson, Creation.\n• Fernkloof Nature Reserve : fynbos et sentiers au-dessus de la ville, 1 à 2 h.\n• Rotary Way : route de crête, le meilleur panorama pour l'effort fourni.\n• Old Harbour et son musée de la chasse à la baleine ; le whale crier à la corne de kelp.\n• Stanford (25 min) : village d'artisans, brasserie Birkenhead.\n• Gansbaai / Kleinbaai (45 min) : cage à requins. De Kelders et les grottes de Klipgat : observation des baleines depuis la terre.\n• Balades à cheval dans le fynbos et sur la plage (Stanford, Grotto Beach), à réserver la veille.\n\nBientang's Cave ferme vers 16h en semaine, 20h ven. et sam." },
+
+    { name:"Hout Bay — que faire", kind:"info", lat:-34.04800, lon:18.34600,
+      notes:"OTARIES (otaries à fourrure du Cap)\n• Colonie de Duiker Island : bateaux depuis le port, 30-45 min, sans réservation. Nauticat, Circe Launches, Drumbeat.\n• Le matin, mer plus calme. Des otaries traînent aussi autour des bateaux de pêche, gratuit et souvent plus photogénique.\n\nMANGER\n• Fish on the Rocks — poisson-frites au bout du port, sur les rochers.\n• Mariner's Wharf — marché aux poissons et grill à l'étage.\n• Kitima at the Kronendal — asiatique dans une maison cape dutch de 1713. Réserver.\n• Chapman's Peak Hotel — calamars et terrasse face à la baie. Sundowner.\n• Dunes — les pieds dans le sable.\n\nAUTOUR\n• Bay Harbour Market : vendredi soir, samedi, dimanche. Musique live, meilleur moment de la semaine.\n• Chapman's Peak Drive : 9 km, 114 virages. Péage ~R70, ferme par grand vent.\n• East Fort : 20 min de montée, la plus belle vue du secteur.\n• Sleepy Hollow (Noordhoek) : cheval sur la plage, réserver la veille.\n\nNe rien laisser de visible dans la voiture au port et à East Fort." },
+
+    { name:"Paarl — que faire", kind:"info", lat:-33.73420, lon:18.96210,
+      notes:"• Paarl Mountain Nature Reserve : dômes de granit, montée en voiture + courte marche au Bretagne Rock.\n• Taalmonument : monument à la langue afrikaans, architecture de béton, meilleur panorama. Café sur place, superbe au lever du jour.\n• KWV : cave cathédrale et dégustation de brandy — Paarl est la capitale du brandy sud-africain. L'accord local par excellence avec un cigare.\n• Fairview : vins + fromages de chèvre, tour à chèvres. Très couru le week-end.\n• Spice Route (à côté) : grappa, bière artisanale, charcuterie, chocolat, biltong.\n• Rupert & Rothschild (Fredericksburg), sur la route de Franschhoek : grands rouges.\n• Rhebokskloof : balades à cheval dans les vignes, 1 à 2 h, réserver la veille.\n• Main Street : 10 km bordés de chênes, façades cape dutch, Paarl Museum.\n• Tables : Noop (Main Street), Bosman's au Grande Roche (manoir XVIIIe).\n• À 10 min sur la R301 : prison de Drakenstein, où Mandela est sorti libre en 1990 (statue au bord de la route) ; Drakenstein Lion Park, sanctuaire de lions sauvés de captivité.\n\nDemi-journée : Taalmonument au réveil, KWV en fin de matinée, déjeuner à Fairview, montagne en fin d'après-midi." },
+
+    { name:"Agriculture de l'Overberg (le Rûens)", kind:"info", lat:-34.47000, lon:19.89000,
+      notes:"Région à pluies d'hiver : semis en mai-juin, moisson en novembre-décembre.\n\n• BLÉ — la culture reine, avec le Swartland c'est le grenier du pays. Silos à Napier, Bredasdorp, Protem.\n• CANOLA (colza) — les champs jaune vif de fin août et septembre. Huile et tourteau.\n• ORGE BRASSICOLE — surtout vers Caledon, grande malterie.\n• AVOINE, LUPINS, TRÈFLES — maillons de la rotation, azote et fourrage.\n• MOUTONS MÉRINOS — laine et viande, pâturent chaumes et repousses. Rotation blé-canola-pâture. De plus en plus de semis direct : le chaume reste au sol contre l'érosion.\n• Près d'Agulhas : vigne d'Elim, la plus australe du continent ; cueillette de fynbos (protées, leucadendrons) pour la fleur coupée.\n\nÀ REGARDER : les grues bleues, oiseau national, se nourrissent dans les blés et les chaumes, souvent par dizaines au bord de la route. L'Overberg en abrite la plus grande population du pays. Les carrés de renosterveld (végétation d'origine) ne subsistent que sur les pentes trop raides pour la charrue." },
+
+    { name:"Colza et canola — ce qui est vrai", kind:"info", lat:-34.47000, lon:19.88000,
+      notes:"Le colza n'est PAS interdit au Canada ni aux États-Unis : le Canada en est le premier producteur mondial (~9 M ha), sa première culture en valeur. Le mot canola est canadien — CANadian Oil, Low Acid.\n\nCe qui existe, c'est une règle sur la composition de l'huile, pas sur la culture :\n• Le colza traditionnel est riche en acide érucique, mis en cause dans les années 1970 (lésions cardiaques chez l'animal de laboratoire).\n• Stefansson et Downey (Manitoba) ont sélectionné, par croisement classique et non par génie génétique, des variétés double zéro : moins de 2 % d'acide érucique, peu de glucosinolates dans le tourteau. Autorisation FDA en 1985.\n• Le colza à haute teneur en acide érucique reste cultivé sous contrat, pour l'industrie (lubrifiants, plastiques), avec des distances d'isolement.\n\nDeux idées fausses : le canola ne dérive pas du gaz moutarde, et il n'est pas interdit en Europe (mêmes limites, la France est un gros producteur). Les champs de l'Overberg sont aussi des double zéro." },
+
+    { name:"Loutres au Cap des Aiguilles", kind:"info", lat:-34.79750, lon:20.05220,
+      notes:"Loutre à joues blanches du Cap (Aonyx capensis) : sédentaire, visible toute l'année. PAS de saison — ce qui compte, c'est l'heure et la marée.\n\n• À L'AUBE et au crépuscule. La première heure après le lever du jour est la meilleure.\n• À MARÉE BASSE, quand elle fouille les cuvettes et les chenaux (crabes, poulpes).\n• PRÈS D'EAU DOUCE : elle doit rincer le sel de sa fourrure, donc jamais loin d'une embouchure ou d'un suintement.\n\nOÙ\n• De Mond Nature Reserve, embouchure de la Heuningnes (entre Struisbaai et Arniston) — le meilleur endroit du secteur.\n• Rivage rocheux Struisbaai → phare d'Agulhas, vers l'épave du Meishu Maru et Rasperpunt.\n• Port de Struisbaai à l'aube, au retour des bateaux.\n• Suiderstrand, dans le parc national.\n• Vlei de De Hoop (excursion à part entière).\n\nREPÉRER : cherche les épreintes — crottes posées bien en vue sur un rocher plat, pleines de fragments de carapaces de crabe : territoire actif, l'animal repasse. En mer, un dos sombre qui roule, sans le museau rond du phoque. Jumelles, vêtement neutre, rester assis 10 min : elle est curieuse. Par grosse houle, repérage quasi impossible." },
+
+    { name:"Safari Big Five — solutions de repli", kind:"info", lat:-33.78660, lon:20.12160,
+      notes:"Aquila (le plus proche du Cap) est le premier complet en vacances scolaires.\n\n• SANBONA WILDLIFE RESERVE — le meilleur choix. Route 62, après Montagu, 62 000 ha de Karoo, Big Five et lions blancs. 3 lodges : Dwyka Tented Lodge, Gondwana Family Lodge, Tilney Manor (demander les trois).\n  sanbona.com · +27 21 010 0028 · reservations@sanbona.com\n  ⚠️ Le « Gondwana Family Lodge » est un lodge DANS Sanbona, rien à voir avec la réserve Gondwana de Mossel Bay.\n• GONDWANA (Mossel Bay) — celui de l'itinéraire, Big Five dans le fynbos, format une nuit.\n• GARDEN ROUTE GAME LODGE (Albertinia, sur la N2) — Big Five, moins exclusif, c'est là qu'il reste le plus souvent de la place en dernière minute. Safari à la journée possible.\n• BOTLIERSKOP (Mossel Bay) — éléphants et lions, drives à la journée.\n\nÀ ÉVITER : Fairy Glen (Worcester), surface trop réduite ; Inverdoorn (Ceres), excellent pour les guépards mais sans léopards, donc pas les Big Five.\n\nTROUVER DE LA PLACE : appeler la réserve directement (les désistements ne s'affichent pas sur les sites de réservation), viser la semaine plutôt que le week-end, et demander un day safari si les chambres sont pleines." },
+
+    { name:"La belle route Bloubergstrand → Stellenbosch", kind:"info", lat:-33.82493, lon:18.56581,
+      notes:"~95 km, 2 h de volant contre 50 min par la N1. Principe : ne jamais prendre la N1, traverser trois vallées viticoles d'ouest en est, et entrer dans Stellenbosch PAR LE HAUT en descendant Helshoogte.\n\n1. Blue Peter → Durbanville par la M14 puis la M13. Belvédère de Durbanville Hills : la baie derrière, les vignes devant.\n2. Durbanville → Klapmuts par la R302 : blé et vignes, le Paarl Rock droit devant. Le tronçon que personne ne prend.\n3. Klapmuts → Simondium par la R101 puis la R45 : Babylonstoren au pied du Simonsberg.\n4. Simondium → Boschendal par la R45 : allée de chênes entre Groot Drakenstein et Simonsberg, le plus beau bitume des Winelands.\n5. Boschendal → Tokara par la R310, COL DE HELSHOOGTE : route de montagne, vue plongeante sur la vallée de Banhoek.\n6. Tokara → Stellenbosch : 10 min de descente jusqu'au centre historique.\n\nVariante rapide : M12 puis R304 par Muldersvlei, 55 km, 1 h — déjà dans les vignes. La N1 n'est pas une alternative.\nTout est goudronné. Plein à Durbanville. La lumière de fin d'après-midi sur Helshoogte est la plus belle du parcours." },
+
     // ---- La belle route Bloubergstrand → Stellenbosch (26 sept.) ----
     // Ces trois points sont cochés « passage sur la route » : le tracé du
     // voyage emprunte donc les vallées viticoles au lieu de la N1.
@@ -1635,7 +1663,8 @@ function haversine(a,b){
 const KIND = {
   etape:{icon:'📍',label:'Étape'}, hotel:{icon:'🛏️',label:'Hôtel'},
   table:{icon:'🍽️',label:'Table'}, site:{icon:'⭐',label:'À voir'},
-  vin:{icon:'🍷',label:'Domaine'},  shop:{icon:'🛍️',label:'Shopping'}
+  vin:{icon:'🍷',label:'Domaine'},  shop:{icon:'🛍️',label:'Shopping'},
+  info:{icon:'ℹ️',label:'Information'}
 };
 /* Ordre chronologique : la date, puis l'heure. Sans heure, un hôtel se range
    en fin de journée (on y arrive le soir), le reste à midi. */
@@ -2344,11 +2373,21 @@ async function buildBookParts(embed = true){
   }
 
   // Le carnet d'adresses en annexe : c'est ce qui sert à refaire le voyage.
-  const sites = trip.sites.slice().sort(bySite);
+  // Les fiches « Information » ont leur propre section : ce ne sont pas des
+  // adresses mais ce qu'on a appris en chemin.
+  const tous  = trip.sites.slice().sort(bySite);
+  const sites = tous.filter(s=>s.kind!=='info');
+  const infos = tous.filter(s=>s.kind==='info');
   if(sites.length){
     body += `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
       <div class="step"><h3>${KIND[s.kind].icon} ${escapeHtml(s.name)}</h3>
       <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
+      ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
+  }
+
+  if(infos.length){
+    body += `<section class="day"><h2>Informations</h2>` + infos.map(s=>`
+      <div class="step"><h3>ℹ️ ${escapeHtml(s.name)}</h3>
       ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
   }
 
@@ -2414,7 +2453,9 @@ function buildMarkdown(){
     });
   });
 
-  const sites = trip.sites.slice().sort(bySite);
+  const tous  = trip.sites.slice().sort(bySite);
+  const sites = tous.filter(s=>s.kind!=='info');
+  const infos = tous.filter(s=>s.kind==='info');
   if(sites.length){
     md += `\n## Carnet d'adresses\n\n`;
     sites.forEach(s=>{
@@ -2422,6 +2463,13 @@ function buildMarkdown(){
       md += `*${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}`;
       if(s.lat!=null) md += ` · [carte](https://maps.google.com/?q=${s.lat},${s.lon})`;
       md += `*\n\n`;
+      if(s.notes) md += `${s.notes}\n\n`;
+    });
+  }
+  if(infos.length){
+    md += `\n## Informations\n\n`;
+    infos.forEach(s=>{
+      md += `### ℹ️ ${s.name}\n\n`;
       if(s.notes) md += `${s.notes}\n\n`;
     });
   }
