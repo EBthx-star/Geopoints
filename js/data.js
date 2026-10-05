@@ -113,6 +113,8 @@ const CAPE_TRIP = {
       notes:"64 Marine Dr · +27 79 314 8658 · ~9h–15h\nFruits de mer, spécialiste de l'ormeau (perlemoen) et du snoek. Plutôt le midi.\n📍 Position approximative." },
     { name:"The Rock — New Harbour, Hermanus", kind:"table", lat:-34.42300, lon:19.22950, date:"2026-09-29", time:"19:00",
       notes:"New Harbour · +27 28 312 2920 · 8h30–21h\nFruits de mer et sushi, vue port, aussi le petit-déjeuner. Là où part le bateau baleines.\n📍 Position approximative." },
+    { name:"Lemonicious — Hermanus", kind:"table", lat:-34.41991, lon:19.24354, date:"2026-10-05", time:"19:30",
+      notes:"Village Square, Market Square St & Marine Dr · +27 82 334 4034 · 11h-22h tous les jours\nTesté et approuvé : poissons remarquables, thon exceptionnel. Plateaux de fruits de mer, curry de la mer, sushi.\nDemander une table côté baie. Réserver, c'est très demandé." },
     { name:"Catch Cook — port de Struisbaai", kind:"table", lat:-34.79750, lon:20.05250, date:"2026-10-01", time:"12:30",
       notes:"Sur le quai. Déjeuner de fruits de mer, là où Parrie la raie vient se faire nourrir.\n📍 Position approximative." },
 
