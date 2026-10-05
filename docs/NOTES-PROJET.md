@@ -301,6 +301,25 @@ Bloubergstrand → Stellenbosch.
 
 ---
 
+## 5 octobre 2026 — le carnet s'étoffe en route
+
+La rubrique Informations passe à **15 fiches** : s'ajoutent le choix d'un
+opérateur baleines à Hermanus, le perlemoen (abalone), les horaires de repas
+sud-africains, les réserves près de Langebaan (Buffelsfontein et West Coast),
+la population et les groupes, l'eucalyptus, et où acheter des cigarettes à
+Hout Bay. Trois fiches n'ont pas de coordonnées — connaissances générales, sans
+lieu : elles s'affichent dans la liste sans marqueur, ce que l'app gère déjà.
+
+Côté adresses : **Lemonicious** (Hermanus, testé et approuvé) et **The Sir
+David Boutique Guest House**, proposé par la direction du Blue Peter pendant
+ses travaux. L'itinéraire du Cap compte 80 entrées.
+
+Ce que ça valide, à froid : la fiche d'information attachée au voyage était la
+bonne idée. En dix jours de terrain, le carnet a accumulé plus de contenu utile
+que la préparation elle-même.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :
