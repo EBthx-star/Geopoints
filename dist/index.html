@@ -377,6 +377,10 @@ body{
   justify-content:center;font-size:10px;padding-left:2px;
 }
 
+/* Trace GPX dans la liste du road book */
+.track-item .item-badge{background:#fdecea}
+.track-item .item-title{color:#b3261e}
+
 </style>
 </head>
 <body>
@@ -451,9 +455,11 @@ body{
       <h2><span id="bookHead">Journée</span> <span class="count" id="stepCount">0</span></h2>
       <div class="list-head-actions">
         <button class="mini-btn primary" id="btnImport">📷 Importer</button>
+        <button class="mini-btn" id="btnTrack">🥾 Trace</button>
       </div>
     </div>
     <input type="file" id="photoInput" accept="image/*,video/*,.heic,.HEIC,.mov,.MOV" multiple hidden>
+    <input type="file" id="gpxInput" accept=".gpx,application/gpx+xml,application/xml" multiple hidden>
     <textarea id="dayNote" class="day-note" placeholder="Note de la journée — collez ici ce que vous voulez, elle part dans le road book."></textarea>
     <div id="stepList" class="list"></div>
   </div>
@@ -1665,7 +1671,9 @@ function busy(on, text='Traitement…'){
 function persist(){
   if(!Store.save(trip)){
     toast('⚠️ Sauvegarde impossible — mémoire pleine. Exportez puis effacez.', 5000);
+    return false;
   }
+  return true;
 }
 function fmtDate(iso){
   if(!iso) return '';
@@ -2085,15 +2093,33 @@ async function renderBook(){
       .bindPopup(`<b>${escapeHtml(stepLabel(st,i))}</b><br><small>${fmtTime(st.t)}</small>`);
     layers.book.markers.push(mk);
   });
-  fitTo('book', steps);
+  // Les traces GPX : le chemin réellement parcouru, par-dessus la carte.
+  const tracks = day.tracks || [];
+  if(m) tracks.forEach(tr=>{
+    const line = L.polyline(tr.pts, {color:'#b3261e', weight:4, opacity:.85}).addTo(m);
+    line.bindPopup(`<b>${escapeHtml(tr.name)}</b><br><small>${trackStats(tr)}</small>`);
+    layers.book.markers.push(line);
+  });
+  fitTo('book', steps.length ? steps : tracks.flatMap(t=>t.pts.map(p=>({lat:p[0], lon:p[1]}))));
 
   const list = $('stepList');
-  if(!steps.length){
+  const trackRows = tracks.map((tr,ti)=>`
+      <div class="item track-item">
+        <div class="item-badge">🥾</div>
+        <div class="item-body">
+          <div class="item-title">${escapeHtml(tr.name)}</div>
+          <div class="item-meta">${trackStats(tr)}${tr.t0?' · '+fmtTime(tr.t0):''}</div>
+        </div>
+        <div class="item-actions">
+          <button class="act" data-act="deltrack" data-track="${ti}">🗑️</button>
+        </div>
+      </div>`).join('');
+  if(!steps.length && !tracks.length){
     list.innerHTML = `<div class="empty"><div class="empty-icon">📍</div>
       <p>Aucune photo géolocalisée pour ce jour.<br>
       Vérifiez : Réglages › Confidentialité › Service de localisation › Appareil photo.</p></div>`;
   } else {
-    list.innerHTML = steps.map((st,i)=>`
+    list.innerHTML = trackRows + steps.map((st,i)=>`
       ${i>0 ? legRow('leg-'+(i-1), steps[i-1], st) : ''}
       <div class="item" data-step="${i}">
         <div class="item-badge"><span class="seq">${i+1}</span></div>
@@ -2219,6 +2245,99 @@ function openViewer(url, cap){
   $('viewerCap').textContent = cap || '';
   $('viewer').hidden = false;
 }
+
+/* ===================== Traces GPX =====================
+   Les parcours de l'app Exercice vivent dans HealthKit, inaccessible à une
+   page web. Le détour : l'export GPX (app Santé, ou HealthFit / RunGap).
+   Une trace est le vrai chemin parcouru — à pied, elle vaut mieux que
+   l'itinéraire reconstitué par le calculateur de routes. */
+function parseGpx(text, fallbackName){
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if(doc.querySelector('parsererror')) return null;
+  const nodes = doc.getElementsByTagName('trkpt').length
+              ? doc.getElementsByTagName('trkpt')
+              : doc.getElementsByTagName('rtept');
+  if(!nodes.length) return null;
+
+  const raw = [];
+  for(const n of nodes){
+    const lat = parseFloat(n.getAttribute('lat')), lon = parseFloat(n.getAttribute('lon'));
+    if(isNaN(lat) || isNaN(lon)) continue;
+    const te = n.getElementsByTagName('time')[0];
+    const ee = n.getElementsByTagName('ele')[0];
+    raw.push({ lat, lon,
+      t: te ? +new Date(te.textContent) : null,
+      ele: ee ? parseFloat(ee.textContent) : null });
+  }
+  if(raw.length < 2) return null;
+
+  // Distance et dénivelé sur TOUS les points : c'est la mesure juste.
+  let dist = 0, up = 0, lastEle = raw[0].ele;
+  for(let i=1;i<raw.length;i++){
+    dist += haversine(raw[i-1], raw[i]);
+    if(raw[i].ele != null && lastEle != null){
+      const d = raw[i].ele - lastEle;
+      if(Math.abs(d) >= 3){ if(d > 0) up += d; lastEle = raw[i].ele; }
+    } else if(raw[i].ele != null) lastEle = raw[i].ele;
+  }
+
+  // On ne garde ensuite qu'un point tous les 15 m : invisible à l'écran,
+  // et c'est ce qui permet de tenir dans la mémoire du navigateur.
+  const pts = [[raw[0].lat, raw[0].lon]];
+  let last = raw[0];
+  raw.forEach((p,i)=>{
+    if(i && (haversine(last,p) > 15 || i === raw.length-1)){
+      pts.push([+p.lat.toFixed(5), +p.lon.toFixed(5)]); last = p;
+    }
+  });
+
+  const times = raw.map(p=>p.t).filter(Boolean);
+  const nameEl = doc.getElementsByTagName('name')[0];
+  const t0 = times.length ? Math.min(...times) : null;
+  return {
+    id: uid(),
+    name: (nameEl && nameEl.textContent.trim()) || fallbackName || 'Parcours',
+    t0, t1: times.length ? Math.max(...times) : null,
+    dist, up: Math.round(up), pts
+  };
+}
+
+async function importTracks(files){
+  if(!files || !files.length) return;
+  let ok = 0, ko = 0, sansDate = 0;
+  for(const f of files){
+    busy(true, `Lecture de ${f.name}…`);
+    let tr = null;
+    try{ tr = parseGpx(await f.text(), f.name.replace(/\.gpx$/i,'')); }catch(e){ tr = null; }
+    if(!tr){ ko++; continue; }
+
+    // La trace rejoint la journée de son premier point ; sans horodatage,
+    // la journée affichée.
+    let date;
+    if(tr.t0){
+      const d = new Date(tr.t0);
+      date = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    } else {
+      const days = dayList();
+      date = (days[dayIndex] && days[dayIndex].date) || new Date().toISOString().slice(0,10);
+      sansDate++;
+    }
+    let day = trip.days.find(x=>x.date===date);
+    if(!day){ day = {date, photos:[], note:'', steps:[], raw:[], tracks:[]}; trip.days.push(day); }
+    if(!day.tracks) day.tracks = [];
+    if(!day.tracks.some(x=>x.name===tr.name && Math.abs(x.dist-tr.dist) < 50)) { day.tracks.push(tr); ok++; }
+  }
+  busy(false);
+  if(!persist()) return;
+  toast(`${ok} trace${ok>1?'s':''} ajoutée${ok>1?'s':''}${ko?` · ${ko} illisible${ko>1?'s':''}`:''}${sansDate?' · sans date, placée sur le jour affiché':''}`, 4200);
+  if(ok) renderBook();
+}
+
+function trackStats(tr){
+  const dur = tr.t0 && tr.t1 ? (tr.t1 - tr.t0)/1000 : 0;
+  return `${km(tr.dist)}${dur?' · '+dur2(dur):''}${tr.up?' · +'+tr.up+' m':''}`;
+}
+function dur2(sec){ return dur(sec); }
 
 /* ===================== Import des photos ===================== */
 async function importPhotos(files){
@@ -2390,6 +2509,9 @@ async function buildBookParts(embed = true){
     body += `<section class="day"><h2>Jour ${di+1} — ${fmtDate(day.date)}</h2>`;
     const tDay = sumLegs(day.steps||[]);
     if(tDay.distance) body += `<p class="meta">🛣️ ${fmtTotal(tDay)}</p>`;
+    (day.tracks||[]).forEach(tr=>{
+      body += `<p class="meta">🥾 ${escapeHtml(tr.name)} — ${trackStats(tr)}</p>`;
+    });
     if(day.note) body += `<p class="daynote">${escapeHtml(day.note).replace(/\n/g,'<br>')}</p>`;
     for(const [si,st] of (day.steps||[]).entries()){
       if(si>0) body += `<p class="leg">↓ ${fmtLeg(legStats(day.steps[si-1], st))}</p>`;
@@ -2487,6 +2609,7 @@ function buildMarkdown(){
     md += `## Jour ${di+1} — ${fmtDate(day.date)}\n\n`;
     const tDay = sumLegs(day.steps||[]);
     if(tDay.distance) md += `🛣️ ${fmtTotal(tDay)}\n\n`;
+    (day.tracks||[]).forEach(tr=>{ md += `🥾 **${tr.name}** — ${trackStats(tr)}\n\n`; });
     if(day.note) md += `${day.note}\n\n`;
     (day.steps||[]).forEach((st,si)=>{
       if(si>0) md += `↓ *${fmtLeg(legStats(day.steps[si-1], st))}*\n\n`;
@@ -2654,6 +2777,10 @@ function mergeTrips(into, from){
     (fd.raw||[]).forEach(p=>{ if(!raw.some(x=>x.id===p.id)) raw.push(p); });
     (fd.photos||[]).forEach(p=>{ if(!d.photos.includes(p)) d.photos.push(p); });
     if(fd.note && !(d.note||'').includes(fd.note)) d.note = d.note ? d.note + '\n\n' + fd.note : fd.note;
+    (fd.tracks||[]).forEach(tr=>{
+      d.tracks = d.tracks || [];
+      if(!d.tracks.some(x=>x.name===tr.name && Math.abs(x.dist-tr.dist) < 50)) d.tracks.push(tr);
+    });
     raw.sort((a,b)=>a.t-b.t);
     d.steps = clusterSteps(raw, (d.steps||[]).concat(fd.steps||[]));
     days++;
@@ -2936,6 +3063,8 @@ function wire(){
   };
   $('btnImport').onclick  = ()=>$('photoInput').click();
   $('photoInput').onchange = e=>{ importPhotos(Array.from(e.target.files)); e.target.value=''; };
+  $('btnTrack').onclick = ()=>$('gpxInput').click();
+  $('gpxInput').onchange = e=>{ importTracks(Array.from(e.target.files)); e.target.value=''; };
 
   $('dayNote').oninput = ()=>{
     const days = dayList(); if(!days.length || dayIndex<0) return;
@@ -2947,6 +3076,16 @@ function wire(){
   $('stepList').onclick = e=>{
     const dayEl = e.target.closest('[data-day]');
     if(dayEl){ dayIndex = +dayEl.dataset.day; renderBook(); $('stepList').scrollTop = 0; return; }
+    const del = e.target.closest('[data-act="deltrack"]');
+    if(del){
+      const days = dayList(); const day = days[dayIndex];
+      askYes('Supprimer cette trace ?', day.tracks[+del.dataset.track].name, 'Supprimer', true).then(ok=>{
+        if(!ok) return;
+        day.tracks.splice(+del.dataset.track, 1);
+        persist(); renderBook();
+      });
+      return;
+    }
     const nav = e.target.closest('[data-act="nav"]');
     if(nav){
       const days = dayList(); const st = days[dayIndex].steps[+nav.dataset.step];
@@ -3000,7 +3139,10 @@ function wire(){
     const files = Array.from(e.dataTransfer.files || []);
     if(!files.length) return;
     switchPane('book');
-    importPhotos(files);
+    const gpx = files.filter(f=>/\.gpx$/i.test(f.name));
+    const media = files.filter(f=>!/\.gpx$/i.test(f.name));
+    if(gpx.length) importTracks(gpx);
+    if(media.length) importPhotos(media);
   });
   document.addEventListener('paste', e=>{
     const items = Array.from((e.clipboardData||{}).files || []);

@@ -89,9 +89,11 @@
       <h2><span id="bookHead">Journée</span> <span class="count" id="stepCount">0</span></h2>
       <div class="list-head-actions">
         <button class="mini-btn primary" id="btnImport">📷 Importer</button>
+        <button class="mini-btn" id="btnTrack">🥾 Trace</button>
       </div>
     </div>
     <input type="file" id="photoInput" accept="image/*,video/*,.heic,.HEIC,.mov,.MOV" multiple hidden>
+    <input type="file" id="gpxInput" accept=".gpx,application/gpx+xml,application/xml" multiple hidden>
     <textarea id="dayNote" class="day-note" placeholder="Note de la journée — collez ici ce que vous voulez, elle part dans le road book."></textarea>
     <div id="stepList" class="list"></div>
   </div>

@@ -320,6 +320,31 @@ que la préparation elle-même.
 
 ---
 
+## 6 octobre 2026 — légendes de photos et traces GPX
+
+**Légendes.** Chaque photo du road book exporté porte sa légende : date avec
+l'année, **heure propre à cette photo** (prise dans `day.raw`, donc deux photos
+d'une même étape ont des heures différentes) et nom du lieu. Rien à saisir :
+nommer l'étape légende d'un coup toutes ses photos.
+
+**Traces GPX — bouton 🥾 Trace.** L'app Exercice garde ses parcours dans
+HealthKit, inaccessible à une page web ; le détour est l'export GPX (app Santé,
+ou HealthFit / RunGap). L'app lit le fichier, place la trace dans la journée de
+son premier point, l'affiche en rouge sur la carte du road book, et calcule
+distance, durée et dénivelé positif (seuil de 3 m contre le bruit altimétrique).
+
+Deux choix à retenir : distance et dénivelé sont calculés sur **tous** les
+points, mais on n'en **stocke qu'un tous les 15 m** — un GPX Apple de 84 Ko
+tombe à 4 Ko, ce qui compte avec les 5 Mo du navigateur. Et un même fichier
+réimporté ne crée pas de doublon (même nom, distance à 50 m près).
+
+La trace est le chemin réellement parcouru : pour une rando sur le Cliff Path
+ou Robberg, elle vaut mieux que l'itinéraire reconstitué par OSRM.
+
+Cible native : HealthKit en direct, sans aucun export.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :
