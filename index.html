@@ -1693,9 +1693,10 @@ function fmtDateY(iso){
   if(isNaN(d)) return iso;
   return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
 }
+/* Heure à la française : 15h00, et non 15:00. */
 function fmtTime(ts){
   if(!ts) return '';
-  return new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  return new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h');
 }
 function km(m){ return m>=1000 ? (m/1000).toFixed(m>=10000?0:1)+' km' : Math.round(m)+' m'; }
 function dur(s){
@@ -1722,7 +1723,7 @@ function siteKey(s){
 }
 const bySite = (a,b)=>siteKey(a).localeCompare(siteKey(b));
 function fmtWhen(s){
-  return s.date ? fmtDate(s.date) + (s.time ? ' · ' + s.time.replace(':','h') : '') : '';
+  return s.date ? fmtDate(s.date) + (s.time ? ' - ' + s.time.replace(':','h') : '') : '';
 }
 function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -2538,7 +2539,7 @@ async function buildBookParts(embed = true){
           // dans `raw`), la date du jour et le lieu de l'étape.
           const raw = (day.raw||[]).find(x=>x.id===pid);
           const vid = (st.videos||[]).includes(pid);
-          const cap = `${fmtDateY(day.date)}${raw?' · '+fmtTime(raw.t):''} · ${escapeHtml(stepLabel(st,si))}${vid?' · vidéo':''}`;
+          const cap = `${fmtDateY(day.date)}${raw?' - '+fmtTime(raw.t):''} · ${escapeHtml(stepLabel(st,si))}${vid?' · vidéo':''}`;
           body += `<figure><img src="${await blobToDataUrl(blob)}" alt="${cap}"><figcaption>${cap}</figcaption></figure>`;
         }
         body += `</div>`;
@@ -2632,7 +2633,7 @@ function buildMarkdown(){
       st.photos.forEach(pid=>{
         const raw = (day.raw||[]).find(x=>x.id===pid);
         const vid = (st.videos||[]).includes(pid);
-        md += `- ${vid?'🎬':'📷'} ${fmtDateY(day.date)}${raw?' · '+fmtTime(raw.t):''} · ${stepLabel(st,si)}\n`;
+        md += `- ${vid?'🎬':'📷'} ${fmtDateY(day.date)}${raw?' - '+fmtTime(raw.t):''} · ${stepLabel(st,si)}\n`;
       });
       if(st.photos.length) md += `\n`;
     });
