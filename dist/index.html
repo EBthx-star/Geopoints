@@ -2114,7 +2114,7 @@ async function renderBook(){
         <div class="item-badge">🥾</div>
         <div class="item-body">
           <div class="item-title">${escapeHtml(tr.name)}</div>
-          <div class="item-meta">${trackStats(tr)}${tr.t0?' · '+fmtTime(tr.t0):''}</div>
+          <div class="item-meta">${trackStats(tr)}</div>
         </div>
         <div class="item-actions">
           <button class="act" data-act="deltrack" data-track="${ti}">🗑️</button>
@@ -2257,6 +2257,30 @@ function openViewer(url, cap){
    page web. Le détour : l'export GPX (app Santé, ou HealthFit / RunGap).
    Une trace est le vrai chemin parcouru — à pied, elle vaut mieux que
    l'itinéraire reconstitué par le calculateur de routes. */
+/* L'app Santé nomme ses traces « Route 2026-09-23 11:26am ».
+   On le réécrit en français — et on rattrape au passage les traces déjà
+   importées, pour ne pas laisser deux conventions cohabiter. */
+function frenchTrackName(name, t0){
+  let m = /^Route\s+(\d{4})-(\d{2})-(\d{2})/i.exec(name || '');
+  if(!m && /^Parcours du .+[^0-9h]$/.test(name||'') && t0){
+    // Trace renommée par une version précédente, sans l'heure de départ.
+    return `${name} - ${fmtTime(t0)}`;
+  }
+  if(!m) return name || 'Parcours';
+  const iso = `${m[1]}-${m[2]}-${m[3]}`;
+  // L'heure de départ distingue deux sorties du même jour.
+  return `Parcours du ${fmtDateY(iso)}${t0?' - '+fmtTime(t0):''}`;
+}
+function migrateTrackNames(){
+  let n = 0;
+  (trip.days||[]).forEach(d=>(d.tracks||[]).forEach(t=>{
+    const v = frenchTrackName(t.name, t.t0);
+    if(v !== t.name){ t.name = v; n++; }
+  }));
+  if(n) persist();
+  return n;
+}
+
 function parseGpx(text, fallbackName){
   const doc = new DOMParser().parseFromString(text, 'application/xml');
   if(doc.querySelector('parsererror')) return null;
@@ -2302,7 +2326,7 @@ function parseGpx(text, fallbackName){
   const t0 = times.length ? Math.min(...times) : null;
   return {
     id: uid(),
-    name: (nameEl && nameEl.textContent.trim()) || fallbackName || 'Parcours',
+    name: frenchTrackName((nameEl && nameEl.textContent.trim()) || fallbackName, t0),
     t0, t1: times.length ? Math.max(...times) : null,
     dist, up: Math.round(up), pts
   };
@@ -2340,10 +2364,10 @@ async function importTracks(files){
 }
 
 function trackStats(tr){
-  const dur = tr.t0 && tr.t1 ? (tr.t1 - tr.t0)/1000 : 0;
-  return `${km(tr.dist)}${dur?' · '+dur2(dur):''}${tr.up?' · +'+tr.up+' m':''}`;
+  const d = tr.t0 && tr.t1 ? (tr.t1 - tr.t0)/1000 : 0;
+  const fin = tr.t1 ? `jusqu'à ${fmtTime(tr.t1)}` : '';
+  return `${km(tr.dist)}${d?' · '+dur(d):''}${tr.up?' · +'+tr.up+' m':''}${fin?' · '+fin:''}`;
 }
-function dur2(sec){ return dur(sec); }
 
 /* ===================== Import des photos ===================== */
 async function importPhotos(files){
@@ -3267,6 +3291,7 @@ async function showStorage(){
 
 /* ===================== Démarrage ===================== */
 wire();
+migrateTrackNames();
 refreshHeader();
 switchPane('prep');
 
