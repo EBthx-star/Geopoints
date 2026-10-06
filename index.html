@@ -2477,7 +2477,10 @@ function clusterSteps(raw, previous=[]){
 function nearestSite(pt, maxM=800){
   let best=null, bd=maxM;
   trip.sites.forEach(s=>{
-    if(s.lat==null) return;
+    // Une fiche « Information » est posée sur la carte pour s'y retrouver,
+    // mais ce n'est pas un lieu où l'on va : elle ne doit jamais servir à
+    // nommer une étape du road book.
+    if(s.lat==null || s.kind==='info') return;
     const d = haversine(s,pt);
     if(d<bd){ bd=d; best=s; }
   });
