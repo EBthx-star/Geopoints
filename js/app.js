@@ -844,6 +844,9 @@ function bookTitle(){ return trip.name || 'Road book'; }
 
 const BOOK_CSS = `
 body{font-family:-apple-system,BlinkMacSystemFont,Georgia,serif;max-width:800px;margin:0 auto;padding:28px 20px;color:#1b1b1b;background:#faf8f4;line-height:1.55}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.brand img{width:40px;height:40px;border-radius:10px}
+.brand span{font-size:13px;letter-spacing:1.6px;text-transform:uppercase;color:#1d4e5f;font-weight:700}
 h1{color:#1d4e5f;font-size:30px;border-bottom:3px solid #c2853a;padding-bottom:10px;margin-bottom:4px}
 .sub{color:#6b6b6b;font-size:14px;margin-bottom:28px}
 h2{color:#1d4e5f;font-size:21px;margin:34px 0 12px;padding-top:18px;border-top:1px solid #e2ddd4}
@@ -916,7 +919,9 @@ async function buildBookParts(embed = true){
       ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
   }
 
-  const header = `<h1>${escapeHtml(bookTitle())}</h1>
+  const icon = ($('appIcon') || {}).src || '';
+  const header = `<div class="brand">${icon?`<img src="${icon}" alt="">`:''}<span>BTHX Travel</span></div>
+<h1>${escapeHtml(bookTitle())}</h1>
 <div class="sub">${trip.start?fmtDate(trip.start):''}${trip.end?' → '+fmtDate(trip.end):''} · ${days.length} journée${days.length>1?'s':''}${(()=>{ const t=sumLegs(allSteps(days)); return t.distance?' · '+fmtTotal(t):''; })()}</div>`;
 
   return { header, body };
@@ -962,7 +967,7 @@ async function shareFile(filename, content, mime, title){
 
 function buildMarkdown(){
   const days = dayList();
-  let md = `# ${bookTitle()}\n\n`;
+  let md = `*BTHX Travel*\n\n# ${bookTitle()}\n\n`;
   if(trip.start) md += `${fmtDate(trip.start)}${trip.end?' → '+fmtDate(trip.end):''}\n\n`;
 
   days.forEach((day,di)=>{

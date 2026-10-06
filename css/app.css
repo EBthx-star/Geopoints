@@ -362,3 +362,7 @@ body{
 /* Trace GPX dans la liste du road book */
 .track-item .item-badge{background:#fdecea}
 .track-item .item-title{color:#b3261e}
+
+/* Marque dans la barre de titre */
+#appIcon{width:34px;height:34px;border-radius:9px;flex-shrink:0;margin-right:10px;
+  box-shadow:0 1px 4px rgba(0,0,0,.3)}

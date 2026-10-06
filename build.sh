@@ -22,6 +22,8 @@ html = html.replace(
   '\n'.join(f'<script>\n{p}\n</script>' for p in parts))
 html = html.replace('<link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">',
                     f'<link rel="apple-touch-icon" sizes="180x180" href="{uri}">')
+html = html.replace('<img id="appIcon" src="./icon-180.png" alt="">',
+                    f'<img id="appIcon" src="{uri}" alt="">')
 html = html.replace('<link rel="icon" type="image/svg+xml" href="./icon.svg">',
                     f'<link rel="icon" type="image/svg+xml" href="{svg}">')
 assert './css/' not in html and './js/' not in html \
