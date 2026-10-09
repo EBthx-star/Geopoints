@@ -102,6 +102,11 @@ body{
   font-size:13px;color:#444;margin-top:6px;white-space:pre-wrap;word-break:break-word;
   border-left:3px solid var(--line);padding-left:9px;
 }
+/* Illustration d'une fiche Information : dessin original, pas une photo. */
+.item-illus{
+  display:block;width:100%;max-width:300px;margin:8px 0 2px;
+  border:1px solid var(--line);border-radius:10px;
+}
 .item-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
 .act{background:none;border:none;font-size:17px;padding:3px;opacity:.65}
 .act:active{opacity:1}

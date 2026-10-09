@@ -83,6 +83,16 @@ function fmtWhen(s){
 function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+/* Illustration d'une fiche : le lieu ne stocke qu'une clé courte, l'image
+   elle-même est dans le code (js/illus.js). Rien ne part dans localStorage,
+   et le road book exporté reste autonome puisque ce sont des data URI. */
+function illusSrc(s){
+  return (s && s.illus && typeof ILLUS !== 'undefined') ? (ILLUS[s.illus] || '') : '';
+}
+function illusTag(s, cls){
+  const src = illusSrc(s);
+  return src ? `<img class="${cls||'item-illus'}" src="${src}" alt="${escapeHtml(s.name)}">` : '';
+}
 
 /* ===================== Cartes ===================== */
 /* Deux fonds : le plan pour lire les routes et les noms de lieux,
@@ -301,6 +311,7 @@ function renderPrep(){
             ${isStop?`<span class="seq">${seq}</span>`:''}${escapeHtml(s.name)}
           </div>
           <div class="item-meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}${s.via?' · <span class="via">🛣️ sur la route</span>':''}</div>
+          ${illusTag(s)}
           ${s.notes?`<div class="item-notes">${escapeHtml(s.notes)}</div>`:''}
         </div>
         <div class="item-actions">
@@ -887,6 +898,7 @@ h3{font-size:16px;margin:18px 0 4px;color:#143a47}
 .gal figure{margin:0;width:170px}
 .gal img{width:170px;height:170px;object-fit:cover;border-radius:7px;display:block}
 .gal figcaption{font-size:10.5px;color:#6b6b6b;margin-top:4px;line-height:1.35}
+.illus{display:block;width:100%;max-width:340px;border:1px solid #e2ddd4;border-radius:9px;margin:8px 0}
 @media print{body{background:#fff;padding:0}.day{page-break-inside:avoid}}
 `;
 
@@ -938,12 +950,14 @@ async function buildBookParts(embed = true){
     body += `<section class="day"><h2>Carnet d'adresses</h2>` + sites.map(s=>`
       <div class="step"><h3>${KIND[s.kind].icon} ${escapeHtml(s.name)}</h3>
       <p class="meta">${KIND[s.kind].label}${s.date?' · '+fmtWhen(s):''}${s.lat!=null?` · ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`:''}</p>
+      ${illusTag(s,'illus')}
       ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
   }
 
   if(infos.length){
     body += `<section class="day"><h2>Informations</h2>` + infos.map(s=>`
       <div class="step"><h3>ℹ️ ${escapeHtml(s.name)}</h3>
+      ${illusTag(s,'illus')}
       ${s.notes?`<p class="note">${escapeHtml(s.notes).replace(/\n/g,'<br>')}</p>`:''}</div>`).join('') + `</section>`;
   }
 
@@ -1137,6 +1151,7 @@ function topUpCape(t){
     if(f && x.date === f.from){ x.date = f.to; fixed++; }
     const src = CAPE_TRIP.sites.find(c=>c.name===x.name);
     if(src && src.time && !x.time) x.time = src.time;
+    if(src && src.illus && !x.illus) x.illus = src.illus;
   });
   return {added, fixed};
 }

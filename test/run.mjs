@@ -54,6 +54,19 @@ r['étapes affichées'] = await p.evaluate(()=> document.querySelectorAll('#site
 // 3 — filtres
 await p.click('#siteFilters .chip[data-kind="hotel"]'); await p.waitForTimeout(200);
 r['filtre hôtels'] = await p.evaluate(()=> document.querySelectorAll('#siteList .item').length);
+// 3 bis — fiches Information illustrées : l'image est dans le code, pas dans
+// le stockage, et elle doit se retrouver dans le road book exporté.
+await p.click('#siteFilters .chip[data-kind="info"]'); await p.waitForTimeout(200);
+r['fiches illustrées'] = await p.evaluate(async ()=>{
+  const imgs = [...document.querySelectorAll('#siteList .item-illus')];
+  const book = await buildBookParts(false);
+  return {
+    nombre: imgs.length,
+    dataURI: imgs.every(i=>i.src.startsWith('data:image/svg+xml')),
+    imageHorsStockage: !JSON.stringify(trip).includes('data:image'),
+    dansLeRoadBook: book.body.includes(ILLUS['ibis-sacre'].slice(0,80))
+  };
+});
 await p.click('#siteFilters .chip[data-kind="all"]'); await p.waitForTimeout(200);
 
 // 4 — ajout d'une étape

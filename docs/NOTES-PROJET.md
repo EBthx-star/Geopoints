@@ -345,6 +345,32 @@ Cible native : HealthKit en direct, sans aucun export.
 
 ---
 
+## 9 octobre 2026 — fiches Information illustrées
+
+Deux fiches nées d'une question du matin : l'**ibis sacré** (les formations en V
+au-dessus du Cap, qui paraissent grises à contre-jour) et le **leucospermum**,
+la protée « pelote d'épingles ». Toutes deux avec une image.
+
+**Pourquoi un dessin et pas une photo.** Les photos d'oiseaux et de fleurs
+trouvées sur le web appartiennent à leurs auteurs ; les deux illustrations sont
+donc des SVG originaux, dessinés pour l'app (`assets/`, générés par
+`tools/gen_illus.py`). Elles mettent en avant les critères d'identification :
+bec en faucille, tête et cou noirs, bout d'aile noir pour l'ibis ; styles et
+pointes colorées pour le leucospermum.
+
+**Où vit l'image.** Pas dans `localStorage` : une fiche ne stocke qu'une clé
+courte (`illus:'ibis-sacre'`), et les data URI sont dans le code
+(`js/illus.js`, intégré par `build.sh`). Le stockage du voyage ne grossit pas
+d'un octet — la leçon de la panne de quota du 23 septembre — et le road book
+exporté reste autonome, puisqu'un SVG en data URI voyage avec le fichier.
+Le banc de test vérifie les trois points : image affichée, absente du stockage,
+présente dans l'export.
+
+**Poids.** 2,5 Ko pour l'ibis, 15 Ko pour la fleur. À comparer aux 4 Ko d'une
+trace GPX.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :

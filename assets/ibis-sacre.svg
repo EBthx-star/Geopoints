@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Ibis sacre en vol">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#cadff0"/><stop offset=".62" stop-color="#e6e9e4"/><stop offset="1" stop-color="#f2dfc3"/>
+</linearGradient></defs>
+<rect width="400" height="260" fill="url(#sky)"/>
+<g fill="none" stroke="#6f8292" stroke-width="2.1" stroke-linecap="round" opacity=".5"><path d="M345 30Q352 27 359 30"/><path d="M318 37Q326 34 334 37"/><path d="M320 24Q328 20 336 24"/><path d="M293 44Q300 40 307 44"/><path d="M297 18Q304 14 311 18"/><path d="M267 51Q274 48 281 51"/><path d="M273 12Q280 8 287 12"/><path d="M241 58Q248 55 255 58"/><path d="M248 6Q256 1 264 6"/></g>
+<g stroke="#232a30" stroke-linejoin="round">
+<path d="M188 148C214 170 236 194 231 207 215 200 192 176 178 155Z" fill="#c9d6df" stroke-width="2"/>
+<path d="M243 139 286 149 245 157Z" fill="#eef3f6" stroke-width="2"/>
+<path d="M249 151 317 169" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+<path d="M317 169 330 172M317 169 328 164" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+<path d="M150 136C170 123 214 121 245 135 263 144 258 158 236 160 205 163 167 154 150 144Z" fill="#fbfdfe" stroke-width="2"/>
+<path d="M151 138C129 132 111 124 100 115" stroke="#1b2126" stroke-width="13.5" stroke-linecap="round" fill="none"/>
+<circle cx="95" cy="112" r="10.5" fill="#1b2126" stroke="none"/>
+<path d="M88 115C70 120 55 130 43 148" stroke="#1b2126" stroke-width="5.6" stroke-linecap="round" fill="none"/>
+<path d="M190 131C213 95 247 61 285 43 299 55 285 91 255 125 231 139 204 141 190 131Z" fill="#fdfefe" stroke-width="2"/>
+<path d="M285 43C299 55 291 77 275 97 266 84 271 60 285 43Z" fill="#1b2126" stroke-width="1.6"/>
+</g>
+<g font-family="Georgia,serif" font-size="12.5" fill="#4a5a66">
+<text x="14" y="246">Ibis sacré — Threskiornis aethiopicus</text>
+</g>
+</svg>
