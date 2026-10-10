@@ -98,6 +98,49 @@ def leucospermum():
 </svg>'''
 
 
+# ------------------------------------------------- pluie au Cap, par mois
+def pluie():
+    """Jours de pluie moyens par mois. Une seule série, donc une seule teinte
+    (le bleu de l'app) et pas de légende : le titre nomme la donnée."""
+    mois = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"]
+    val = [3, 3, 3, 6, 8, 11, 9, 10, 8, 5, 5, 3]
+    x0, x1 = 44, 386
+    base, top = 196, 52
+    vmax = 12
+    slot = (x1 - x0) / 12
+    w = slot - 7                     # 7 px de fond entre deux barres
+    r = 4                            # extrémité arrondie côté donnée
+
+    grid, bars, labels, axis = [], [], [], []
+    for g in (5, 10):
+        y = base - (base - top) * g / vmax
+        grid.append(f'<line x1="{x0}" y1="{y:.1f}" x2="{x1}" y2="{y:.1f}"/>')
+        axis.append(f'<text x="{x0 - 10}" y="{y + 4:.1f}" text-anchor="end">{g}</text>')
+    for i, (m, v) in enumerate(zip(mois, val)):
+        h = (base - top) * v / vmax
+        x = x0 + i * slot + 3.5
+        y = base - h
+        bars.append(
+            f'<path d="M{x:.1f} {base}v{-(h - r):.1f}a{r} {r} 0 0 1 {r} {-r}'
+            f'h{w - 2 * r:.1f}a{r} {r} 0 0 1 {r} {r}v{h - r:.1f}Z"/>'
+        )
+        labels.append(f'<text x="{x + w / 2:.1f}" y="{y - 7:.1f}">{v}</text>')
+        axis.append(f'<text x="{x + w / 2:.1f}" y="{base + 17}" text-anchor="middle">{m}</text>')
+
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" role="img" aria-label="Jours de pluie par mois au Cap">
+<rect width="400" height="240" fill="#faf8f4"/>
+<g font-family="-apple-system,Helvetica,sans-serif">
+<text x="20" y="26" font-size="14" font-weight="700" fill="#1b1b1b">Jours de pluie par mois au Cap</text>
+<text x="20" y="42" font-size="11" fill="#6b6b6b">moyenne annuelle : 75 jours, 505 mm</text>
+<g stroke="#e2ddd4" stroke-width="1">{''.join(grid)}</g>
+<line x1="{x0}" y1="{base}" x2="{x1}" y2="{base}" stroke="#c9c2b6" stroke-width="1"/>
+<g fill="#1d4e5f">{''.join(bars)}</g>
+<g font-size="10" fill="#6b6b6b" text-anchor="middle">{''.join(labels)}</g>
+<g font-size="10.5" fill="#6b6b6b">{''.join(axis)}</g>
+</g>
+</svg>'''
+
+
 def put(name, svg):
     os.makedirs(SVGDIR, exist_ok=True)
     p = os.path.join(SVGDIR, name + ".svg")
@@ -110,6 +153,7 @@ def put(name, svg):
 
 a = put("ibis-sacre", ibis())
 b = put("leucospermum", leucospermum())
+c = put("pluie-le-cap", pluie())
 
 js = f'''/* ===================== Illustrations des fiches Information ==================
    Dessins originaux (SVG) faits pour l'application : aucune image tierce, donc
@@ -118,7 +162,8 @@ js = f'''/* ===================== Illustrations des fiches Information =========
    dans le code, et jamais dans localStorage. */
 const ILLUS = {{
   'ibis-sacre': '{a}',
-  'leucospermum': '{b}'
+  'leucospermum': '{b}',
+  'pluie-le-cap': '{c}'
 }};
 '''
 with open(OUT, "w", encoding="utf-8") as f:
