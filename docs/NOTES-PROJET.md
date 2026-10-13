@@ -371,6 +371,31 @@ trace GPX.
 
 ---
 
+## 13 octobre 2026 — l'itinéraire rattrapé par le voyage réel
+
+La deuxième semaine prévue (Garden Route : Gondwana, Knysna, Plettenberg,
+Oudtshoorn, Swartberg, Montagu, Robertson) n'a pas eu lieu — le voyage est
+resté dans la région du Cap. Ces quinze étapes gardaient leur date, donc la
+carte traçait des lignes vers Knysna et le road book affichait des journées
+fantômes.
+
+**La correction ne supprime rien.** `CAPE_PLANNED_ONLY` liste ces étapes ;
+`topUpCape()` leur retire date et heure. Les fiches restent dans le carnet
+d'adresses — ce sont des adresses repérées, utiles pour un prochain voyage —
+mais elles ne pèsent plus sur la chronologie. Opération idempotente, et le
+bandeau annonce « n étapes remises en projet ».
+
+C'est le bon réflexe pour ce genre de rattrapage : **retirer la date plutôt
+que l'entrée.** Supprimer détruirait un travail de repérage ; dater à tort
+fausse tout le reste.
+
+Le voyage réel de la deuxième semaine : Struisbaai → Hout Bay (Chapman's Peak,
+2-4 oct.), → Hermanus (11 Westcliff, 2e séjour, 4-7 oct.), → Bloubergstrand
+(The Sir David, 7-11 oct.). Le second séjour au 11 Westcliff a sa propre
+entrée : sans elle, la chronologie sautait de Hout Bay à Bloubergstrand.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :

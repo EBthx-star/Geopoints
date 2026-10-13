@@ -1142,7 +1142,7 @@ async function restore(file){
 function topUpCape(t){
   const norm = x => (x||'').toLowerCase().replace(/\s+/g,' ').trim();
   const have = new Set(t.sites.map(x=>norm(x.name)));
-  let added = 0, fixed = 0;
+  let added = 0, fixed = 0, replanned = 0;
   CAPE_TRIP.sites.forEach(src=>{
     if(!have.has(norm(src.name))){ t.sites.push(Object.assign({id:uid()}, src)); added++; }
   });
@@ -1152,8 +1152,10 @@ function topUpCape(t){
     const src = CAPE_TRIP.sites.find(c=>c.name===x.name);
     if(src && src.time && !x.time) x.time = src.time;
     if(src && src.illus && !x.illus) x.illus = src.illus;
+    // Étape prévue mais pas faite : on la garde comme adresse, sans date.
+    if(CAPE_PLANNED_ONLY.includes(x.name) && x.date){ x.date=''; x.time=''; replanned++; }
   });
-  return {added, fixed};
+  return {added, fixed, replanned};
 }
 
 /* ===================== Fusion de deux copies d'un voyage =====================
@@ -1607,7 +1609,11 @@ function wire(){
     if(trip.name === CAPE_TRIP.name && trip.sites.length){
       const n = topUpCape(trip);
       persist(); closeSheet('menu'); switchPane('prep');
-      toast(n.added || n.fixed ? `${n.added} adresse${n.added>1?'s':''} ajoutée${n.added>1?'s':''} · ${n.fixed} date${n.fixed>1?'s':''} corrigée${n.fixed>1?'s':''}` : 'Itinéraire du Cap déjà à jour', 3600);
+      const bits = [];
+      if(n.added)     bits.push(`${n.added} adresse${n.added>1?'s':''} ajoutée${n.added>1?'s':''}`);
+      if(n.fixed)     bits.push(`${n.fixed} date${n.fixed>1?'s':''} corrigée${n.fixed>1?'s':''}`);
+      if(n.replanned) bits.push(`${n.replanned} étape${n.replanned>1?'s':''} remise${n.replanned>1?'s':''} en projet`);
+      toast(bits.length ? bits.join(' · ') : 'Itinéraire du Cap déjà à jour', 4200);
       return;
     }
     // Voyage vide : on le remplit. Sinon le Cap devient un voyage à part.

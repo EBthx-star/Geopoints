@@ -152,6 +152,19 @@ r['tri date + heure'] = await p.evaluate(()=>{
   return t.sites.slice().sort(bySite).map(x=>x.name).join(' > ');
 });
 
+// 10b bis — les étapes prévues mais non faites perdent leur date, pas leur fiche
+r['étapes remises en projet'] = await p.evaluate(()=>{
+  const old = { name:CAPE_TRIP.name, sites:[
+    {id:'p1', name:'Knysna', kind:'etape', date:'2026-10-03', time:'15:00', lat:-34.0351, lon:23.0465, notes:''},
+    {id:'p2', name:'Graham Beck — Robertson', kind:'vin', date:'2026-10-10', lat:-33.8, lon:19.9, notes:''}], days:[] };
+  const n = topUpCape(old);
+  const encore = topUpCape(old);
+  const k = old.sites.find(x=>x.name==='Knysna');
+  return { remises:n.replanned, deuxièmeFois:encore.replanned, dateVidée:k.date==='' && k.time==='',
+           fichesGardées:old.sites.filter(x=>['Knysna','Graham Beck — Robertson'].includes(x.name)).length,
+           resteDaté:old.sites.filter(x=>CAPE_PLANNED_ONLY.includes(x.name) && x.date).length };
+});
+
 // 10c — mise à jour du Cap sur un voyage existant (ancien jeu de données)
 r['Cap : mise à jour'] = await p.evaluate(()=>{
   const old = { name:CAPE_TRIP.name, sites:[
@@ -159,7 +172,7 @@ r['Cap : mise à jour'] = await p.evaluate(()=>{
     {id:'o2', name:'Simon\'s Town Quayside Hotel', kind:'hotel', date:'2026-09-26', lat:-34.1928, lon:18.4326, notes:''}], days:[] };
   const n = topUpCape(old);
   const again = topUpCape(old);
-  return { ajoutées:n.added, corrigées:n.fixed, deuxièmeFois:again.added+again.fixed,
+  return { ajoutées:n.added, corrigées:n.fixed, deuxièmeFois:again.added+again.fixed+again.replanned,
            tokara:old.sites.find(x=>x.name==='Tokara').date, noteGardée:old.sites.find(x=>x.name==='Tokara').notes,
            cigares:old.sites.filter(x=>x.kind==='shop').length, domaines:old.sites.filter(x=>x.kind==='vin').length };
 });
