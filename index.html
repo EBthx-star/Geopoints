@@ -1279,6 +1279,29 @@ const CAPE_FIXES = {
   "Harbour House — Kalk Bay":                   { from:"2026-09-26", to:"2026-09-27" }
 };
 
+/* Étapes prévues qui n'ont finalement pas eu lieu : la deuxième semaine est
+   restée dans la région du Cap au lieu de descendre la Garden Route. On ne
+   les supprime pas — ce sont des adresses repérées, utiles pour un prochain
+   voyage — mais on leur retire leur date, sinon la carte trace des lignes
+   vers Knysna et le road book se retrouve avec des journées fantômes. */
+const CAPE_PLANNED_ONLY = [
+  "Gondwana Game Reserve — safari",
+  "Knysna",
+  "Plettenberg Bay",
+  "Oudtshoorn — Klein Karoo",
+  "Grottes de Cango",
+  "Calitzdorp",
+  "Col du Swartberg",
+  "Prince Albert",
+  "Montagu — Route 62",
+  "Boplaas — Calitzdorp",
+  "Die Krans — Calitzdorp",
+  "Retour Le Cap",
+  "De Wetshof — Robertson",
+  "Graham Beck — Robertson",
+  "Springfield Estate — Robertson"
+];
+
 const CAPE_TRIP = {
   name: "Le Cap & Western Cape",
   start: "2026-09-22",
@@ -1303,6 +1326,8 @@ const CAPE_TRIP = {
       notes:"Poisson, les pieds au-dessus de l'eau. Bertha's juste à côté à Simon's Town." },
     { name:"11 Westcliff — Hermanus", kind:"hotel", lat:-34.41870, lon:19.23450, date:"2026-09-28",
       notes:"11 Westcliff Rd, Westcliff · +27 82 758 6889 · 11westcliffrentals.com\nSaison des baleines : observation depuis la falaise du Cliff Path.\n\n★ TESTÉ ET APPROUVÉ — maison d'hôtes incroyable, accueil très agréable, emplacement exceptionnel.\nDeux séjours : 28-30 sept., puis RE-RÉSERVÉ du 4 au 7 oct.\nChambres occupées : 7, 10 et 6. Les trois sont très bien.\nPréférence : la 7 d'abord, puis la 10, enfin la 6." },
+    { name:"11 Westcliff — Hermanus (2e séjour)", kind:"hotel", lat:-34.41870, lon:19.23450, date:"2026-10-04", time:"15:00",
+      notes:"Retour du 4 au 7 oct., après Hout Bay. Mêmes chambres : 7, 10 et 6 — préférence la 7, puis la 10, enfin la 6.\nVoir la fiche du premier séjour pour les coordonnées." },
     { name:"Creation Wines — Hemel-en-Aarde", kind:"table", lat:-34.34280, lon:19.33360, date:"2026-09-28",
       notes:"Accords mets-vins dans la vallée Hemel-en-Aarde. Réserver." },
     { name:"Bientang's Cave — Hermanus", kind:"table", lat:-34.41940, lon:19.24040, date:"2026-09-29",
@@ -1463,37 +1488,37 @@ const CAPE_TRIP = {
       notes:"Route des vins d'Elim, la plus australe d'Afrique. Gamme First Sighting, Sauvignon Blanc et Syrah.\n📍 Position approximative." },
     { name:"Black Oystercatcher — Elim", kind:"vin", lat:-34.62600, lon:19.81500, date:"2026-10-01",
       notes:"Elim. Sauvignon Blanc de climat venté, restaurant sur le domaine.\n📍 Position approximative." },
-    { name:"Boplaas — Calitzdorp", kind:"vin", lat:-33.53300, lon:21.68700, date:"2026-10-09",
+    { name:"Boplaas — Calitzdorp", kind:"vin", lat:-33.53300, lon:21.68700,
       notes:"Capitale sud-africaine du porto. Dégustation le matin du départ vers Montagu.\n📍 Position approximative." },
-    { name:"Die Krans — Calitzdorp", kind:"vin", lat:-33.52500, lon:21.69200, date:"2026-10-09",
+    { name:"Die Krans — Calitzdorp", kind:"vin", lat:-33.52500, lon:21.69200,
       notes:"Porto de Calitzdorp, voisin de Boplaas.\n📍 Position approximative." },
-    { name:"Graham Beck — Robertson", kind:"vin", lat:-33.79900, lon:19.84600, date:"2026-10-10",
+    { name:"Graham Beck — Robertson", kind:"vin", lat:-33.79900, lon:19.84600,
       notes:"Vallée de Robertson. Les bulles MCC de référence. Dernière dégustation avant Le Cap.\n📍 Position approximative." },
-    { name:"Springfield Estate — Robertson", kind:"vin", lat:-33.83900, lon:19.91500, date:"2026-10-10",
+    { name:"Springfield Estate — Robertson", kind:"vin", lat:-33.83900, lon:19.91500,
       notes:"Vallée de Robertson.\n📍 Position approximative." },
-    { name:"De Wetshof — Robertson", kind:"vin", lat:-33.87100, lon:20.00000, date:"2026-10-10",
+    { name:"De Wetshof — Robertson", kind:"vin", lat:-33.87100, lon:20.00000,
       notes:"Vallée de Robertson, grande maison du Chardonnay.\n📍 Position approximative." },
 
     // ---- Semaine 2 — à réserver ----
-    { name:"Gondwana Game Reserve — safari", kind:"hotel", lat:-34.08042, lon:21.91110, date:"2026-10-02",
+    { name:"Gondwana Game Reserve — safari", kind:"hotel", lat:-34.08042, lon:21.91110,
       notes:"+27 44 333 0200\nUNE nuit, pas plus. Réserve privée sans paludisme, Big Five dans le fynbos.\nDrive de l'après-midi + drive du matin.\n⚠️ À RÉSERVER" },
-    { name:"Knysna", kind:"etape", lat:-34.07870, lon:23.06250, date:"2026-10-03",
+    { name:"Knysna", kind:"etape", lat:-34.07870, lon:23.06250,
       notes:"2 nuits. Lagune, les Heads, huîtres au port, Featherbed en bateau, forêt ancienne.\n⚠️ HÉBERGEMENT À RÉSERVER" },
-    { name:"Plettenberg Bay", kind:"etape", lat:-34.05940, lon:23.37830, date:"2026-10-05",
+    { name:"Plettenberg Bay", kind:"etape", lat:-34.05940, lon:23.37830,
       notes:"2 nuits. Point de demi-tour.\nRando de Robberg, plages, baleines et dauphins en bateau.\nTsitsikamma (pont de Storms River) en excursion.\n⚠️ HÉBERGEMENT À RÉSERVER" },
-    { name:"Oudtshoorn — Klein Karoo", kind:"etape", lat:-33.59060, lon:22.20140, date:"2026-10-07",
+    { name:"Oudtshoorn — Klein Karoo", kind:"etape", lat:-33.59060, lon:22.20140,
       notes:"2 nuits. Retour par l'intérieur via l'Outeniqua Pass.\nAutruches, suricates à l'aube.\n⚠️ HÉBERGEMENT À RÉSERVER" },
-    { name:"Grottes de Cango", kind:"site", lat:-33.39250, lon:22.21470, date:"2026-10-07",
+    { name:"Grottes de Cango", kind:"site", lat:-33.39250, lon:22.21470,
       notes:"À 30 min d'Oudtshoorn. Réserver le créneau de visite." },
-    { name:"Col du Swartberg", kind:"site", lat:-33.35000, lon:22.03330, date:"2026-10-08",
+    { name:"Col du Swartberg", kind:"site", lat:-33.35000, lon:22.03330,
       notes:"Col de gravier de 1583 m, un des plus beaux du monde. Praticable en voiture de tourisme par temps sec.\nDescente sur Prince Albert de l'autre côté." },
-    { name:"Prince Albert", kind:"site", lat:-33.22640, lon:22.02810, date:"2026-10-08",
+    { name:"Prince Albert", kind:"site", lat:-33.22640, lon:22.02810,
       notes:"Village du Grand Karoo au pied du Swartberg. Architecture cape dutch, figues et olives." },
-    { name:"Calitzdorp", kind:"site", lat:-33.52970, lon:21.68860, date:"2026-10-08",
+    { name:"Calitzdorp", kind:"site", lat:-33.52970, lon:21.68860,
       notes:"Capitale sud-africaine du porto. Dégustation sur la Route 62." },
-    { name:"Montagu — Route 62", kind:"etape", lat:-33.78660, lon:20.12160, date:"2026-10-09",
+    { name:"Montagu — Route 62", kind:"etape", lat:-33.78660, lon:20.12160,
       notes:"Dernière étape avant le retour au Cap. Sources chaudes, passe de Cogmanskloof.\n⚠️ HÉBERGEMENT À RÉSERVER" },
-    { name:"Retour Le Cap", kind:"etape", lat:-33.92490, lon:18.42410, date:"2026-10-10",
+    { name:"Retour Le Cap", kind:"etape", lat:-33.92490, lon:18.42410,
       notes:"Retour obligatoire au Cap (pas d'open-jaw). Restitution du véhicule Hertz." }
   ]
 };
@@ -2825,7 +2850,7 @@ async function restore(file){
 function topUpCape(t){
   const norm = x => (x||'').toLowerCase().replace(/\s+/g,' ').trim();
   const have = new Set(t.sites.map(x=>norm(x.name)));
-  let added = 0, fixed = 0;
+  let added = 0, fixed = 0, replanned = 0;
   CAPE_TRIP.sites.forEach(src=>{
     if(!have.has(norm(src.name))){ t.sites.push(Object.assign({id:uid()}, src)); added++; }
   });
@@ -2835,8 +2860,10 @@ function topUpCape(t){
     const src = CAPE_TRIP.sites.find(c=>c.name===x.name);
     if(src && src.time && !x.time) x.time = src.time;
     if(src && src.illus && !x.illus) x.illus = src.illus;
+    // Étape prévue mais pas faite : on la garde comme adresse, sans date.
+    if(CAPE_PLANNED_ONLY.includes(x.name) && x.date){ x.date=''; x.time=''; replanned++; }
   });
-  return {added, fixed};
+  return {added, fixed, replanned};
 }
 
 /* ===================== Fusion de deux copies d'un voyage =====================
@@ -3290,7 +3317,11 @@ function wire(){
     if(trip.name === CAPE_TRIP.name && trip.sites.length){
       const n = topUpCape(trip);
       persist(); closeSheet('menu'); switchPane('prep');
-      toast(n.added || n.fixed ? `${n.added} adresse${n.added>1?'s':''} ajoutée${n.added>1?'s':''} · ${n.fixed} date${n.fixed>1?'s':''} corrigée${n.fixed>1?'s':''}` : 'Itinéraire du Cap déjà à jour', 3600);
+      const bits = [];
+      if(n.added)     bits.push(`${n.added} adresse${n.added>1?'s':''} ajoutée${n.added>1?'s':''}`);
+      if(n.fixed)     bits.push(`${n.fixed} date${n.fixed>1?'s':''} corrigée${n.fixed>1?'s':''}`);
+      if(n.replanned) bits.push(`${n.replanned} étape${n.replanned>1?'s':''} remise${n.replanned>1?'s':''} en projet`);
+      toast(bits.length ? bits.join(' · ') : 'Itinéraire du Cap déjà à jour', 4200);
       return;
     }
     // Voyage vide : on le remplit. Sinon le Cap devient un voyage à part.
