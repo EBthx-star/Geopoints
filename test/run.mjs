@@ -189,6 +189,33 @@ r['fusion'] = await p.evaluate(()=>{
   return { n, deuxièmeFois:twice.added, lieux:iphone.sites.map(x=>x.name+(x.notes?' ('+x.notes+')':'')), photosDuJour:iphone.days[0].photos.length, note:iphone.days[0].note };
 });
 
+// 10d — tracé des balades dans le road book exporté
+r['tracé dans le road book'] = await p.evaluate(async ()=>{
+  // Boucle de 1 km environ autour d'Hermanus, un point tous les ~15 m.
+  const pts = [];
+  for(let i=0;i<120;i++){
+    const a = i/120*2*Math.PI;
+    pts.push([-34.4187 + 0.0020*Math.sin(a), 19.2345 + 0.0024*Math.cos(a)]);
+  }
+  const d = trip.days[0];
+  d.tracks = [{ name:'Parcours du 22 sept. 2026 - 10h16', pts, dist:1420, up:12,
+                t0: Date.parse('2026-09-22T10:16:00Z'), t1: Date.parse('2026-09-22T10:41:00Z') }];
+  const book = await buildBookParts(false);
+  const svg = book.body.match(/<svg class="trackmap"[\s\S]*?<\/svg>/);
+  const trace = svg ? (svg[0].match(/<path d="(M[^"]+)" fill="none" stroke="#c0392b"/)||[])[1] : '';
+  // Le tracé doit tenir dans la boîte, extrémités comprises.
+  const xy = trace ? [...trace.matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map(m=>[+m[1],+m[2]]) : [];
+  return {
+    svgPrésent: !!svg,
+    pointsTracés: xy.length,
+    dansLaBoîte: xy.length>0 && xy.every(([x,y])=>x>=0 && x<=520 && y>=0 && y<=320),
+    échelle: svg ? (svg[0].match(/>(\d+(?:\.\d+)? ?(?:m|km))</)||[])[1] || '' : '',
+    légende: /🥾 Parcours du 22 sept\. 2026 - 10h16 — 1\.4 km/.test(book.body),
+    // Autonome : aucune ressource distante, le xmlns ne compte pas.
+    aucunRéseau: svg ? !/(?:src|href)="https?:/.test(svg[0]) : false
+  };
+});
+
 // 11 — plusieurs voyages : créer, basculer, supprimer
 await p.click('#btnMenu'); await p.waitForTimeout(200);
 r['sélecteur de voyages'] = await p.evaluate(()=> document.querySelectorAll('#mTrip option').length);

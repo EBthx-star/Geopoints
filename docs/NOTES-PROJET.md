@@ -396,6 +396,32 @@ entrée : sans elle, la chronologie sautait de Hout Bay à Bloubergstrand.
 
 ---
 
+## 13 octobre 2026, soir — les traces dessinées dans le road book
+
+Le road book exporté ne donnait des balades que leurs chiffres. Chaque trace
+y porte maintenant **son dessin**, en SVG : tracé rouge, départ en vert,
+arrivée en noir, barre d'échelle et flèche du nord.
+
+**Pas de fond de carte, et c'est délibéré.** Les tuiles OpenStreetMap ne se
+redistribuent pas dans un document, elles pèseraient des mégaoctets par
+journée, et l'export doit rester lisible hors ligne dans dix ans. Le tracé
+vectoriel dit l'essentiel — la forme de la balade — et s'imprime net à
+n'importe quelle taille. `trackSvg()` n'émet aucune URL : le test le vérifie.
+
+Projection de Mercator, la même que la carte de l'app : une forme est donc
+identique à l'écran et sur le papier.
+
+**La hauteur de l'image suit la forme de la trace** (150 à 420 px pour
+520 px de large). Sans cela, un aller-retour rectiligne le long du Cliff
+Path laissait les deux tiers du cadre vides. Et comme un aller-retour fait
+coïncider départ et arrivée, le marqueur de départ est un gros disque vert
+et celui d'arrivée un petit point sombre : superposés, ils forment un anneau
+lisible au lieu de se masquer l'un l'autre.
+
+Vérifié sur les 28 traces réelles du voyage, de 900 m à 11 km.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :

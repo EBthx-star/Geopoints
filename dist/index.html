@@ -2437,6 +2437,55 @@ async function importTracks(files){
   if(ok) renderBook();
 }
 
+/* Dessin d'une trace pour le road book exporté.
+   Pas de fond de carte : les tuiles OpenStreetMap ne peuvent pas être
+   redistribuées dans un document, elles pèseraient des mégaoctets et
+   l'export doit rester lisible hors ligne, des années plus tard. Un tracé
+   vectoriel sur fond clair, avec départ, arrivée et échelle, dit
+   l'essentiel — la forme de la balade — et s'imprime proprement.
+   Projection de Mercator, comme la carte de l'app : les formes sont donc
+   les mêmes à l'écran et sur le papier. */
+function trackSvg(tr, W=520){
+  const pts = (tr && tr.pts) || [];
+  if(pts.length < 2) return '';
+  const mercY = lat => Math.log(Math.tan(Math.PI/4 + lat*Math.PI/360));
+  const xs = pts.map(p=>p[1]), ys = pts.map(p=>mercY(p[0]));
+  const x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys);
+  const pad = 26;
+  // La hauteur suit la forme de la balade : un aller-retour rectiligne donne
+  // un bandeau, une boucle un cadre presque carré. Sans cela, la moitié de
+  // l'image serait vide sur la page.
+  const H = Math.max(150, Math.min(420,
+    Math.round((x1-x0) > 1e-9 ? (W-2*pad) * (y1-y0)/(x1-x0) + 2*pad : 420)));
+  // Échelle unique sur les deux axes : une boucle reste une boucle.
+  const k = Math.min((W-2*pad)/Math.max(x1-x0, 1e-9), (H-2*pad)/Math.max(y1-y0, 1e-9));
+  const cx = (x0+x1)/2, cy = (y0+y1)/2;
+  const PX = x => W/2 + (x-cx)*k;
+  const PY = y => H/2 - (y-cy)*k;
+  const d = pts.map((p,i)=>`${i?'L':'M'}${PX(p[1]).toFixed(1)} ${PY(mercY(p[0])).toFixed(1)}`).join('');
+
+  // Barre d'échelle : mètres par pixel au centre de la trace.
+  const mPerDeg = 111320 * Math.cos(cy*Math.PI/180);
+  const mPerPx  = mPerDeg / k;
+  let unit = 0;
+  for(const u of [50,100,200,500,1000,2000,5000,10000]){ if(u/mPerPx >= 55){ unit = u; break; } }
+  const barW = unit ? unit/mPerPx : 0;
+  const bar = unit ? `<g stroke="#5b5b5b" stroke-width="1.5" fill="none">
+<path d="M16 ${H-18}h${barW.toFixed(1)}M16 ${H-22}v8M${(16+barW).toFixed(1)} ${H-22}v8"/></g>
+<text x="${(20+barW).toFixed(1)}" y="${H-14}" font-size="11" fill="#5b5b5b">${unit>=1000?(unit/1000)+' km':unit+' m'}</text>` : '';
+
+  const a = pts[0], b = pts[pts.length-1];
+  return `<svg class="trackmap" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tracé de ${escapeHtml(tr.name||'la balade')}">
+<rect width="${W}" height="${H}" fill="#f4f1ea"/>
+<path d="${d}" fill="none" stroke="#ffffff" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="${d}" fill="none" stroke="#c0392b" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="${PX(a[1]).toFixed(1)}" cy="${PY(mercY(a[0])).toFixed(1)}" r="6.5" fill="#2e7d32" stroke="#fff" stroke-width="2"/>
+<circle cx="${PX(b[1]).toFixed(1)}" cy="${PY(mercY(b[0])).toFixed(1)}" r="3.2" fill="#1b2126"/>
+<g font-family="-apple-system,Helvetica,sans-serif">
+<text x="${W-20}" y="26" font-size="12" fill="#5b5b5b" text-anchor="end">N ↑</text>${bar}
+</g></svg>`;
+}
+
 function trackStats(tr){
   const d = tr.t0 && tr.t1 ? (tr.t1 - tr.t0)/1000 : 0;
   const fin = tr.t1 ? `jusqu'à ${fmtTime(tr.t1)}` : '';
@@ -2607,7 +2656,10 @@ h3{font-size:16px;margin:18px 0 4px;color:#143a47}
 .gal img{width:170px;height:170px;object-fit:cover;border-radius:7px;display:block}
 .gal figcaption{font-size:10.5px;color:#6b6b6b;margin-top:4px;line-height:1.35}
 .illus{display:block;width:100%;max-width:340px;border:1px solid #e2ddd4;border-radius:9px;margin:8px 0}
-@media print{body{background:#fff;padding:0}.day{page-break-inside:avoid}}
+.track{margin:12px 0 16px}
+.track figcaption{font-size:12.5px;color:#c2853a;font-weight:600;margin-bottom:5px}
+.trackmap{display:block;width:100%;max-width:520px;border:1px solid #e2ddd4;border-radius:9px}
+@media print{.track{page-break-inside:avoid}body{background:#fff;padding:0}.day{page-break-inside:avoid}}
 `;
 
 /* Compose le corps du road book. `embed` intègre les photos en base64 :
@@ -2621,7 +2673,7 @@ async function buildBookParts(embed = true){
     const tDay = sumLegs(day.steps||[]);
     if(tDay.distance) body += `<p class="meta">🛣️ ${fmtTotal(tDay)}</p>`;
     (day.tracks||[]).forEach(tr=>{
-      body += `<p class="meta">🥾 ${escapeHtml(tr.name)} — ${trackStats(tr)}</p>`;
+      body += `<figure class="track"><figcaption>🥾 ${escapeHtml(tr.name)} — ${trackStats(tr)}</figcaption>${trackSvg(tr)}</figure>`;
     });
     if(day.note) body += `<p class="daynote">${escapeHtml(day.note).replace(/\n/g,'<br>')}</p>`;
     for(const [si,st] of (day.steps||[]).entries()){
