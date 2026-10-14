@@ -357,6 +357,12 @@ function tripPhotoIds(t){
   (t.days||[]).forEach(d=>(d.photos||[]).forEach(p=>ids.add(p)));
   return [...ids];
 }
+/* Tout ce que ce voyage occupe dans IndexedDB : les images fixes et, pour
+   une vidéo conservée, le film rangé sous « id:v ». Sert au ménage, jamais
+   à la sauvegarde — un film n'a rien à faire dans un fichier AirDrop. */
+function tripBlobIds(t){
+  return tripPhotoIds(t).flatMap(id=>[id, id+':v']);
+}
 
 /* ---- IndexedDB pour les images ---- */
 const Photos = (() => {

@@ -251,6 +251,26 @@ r['journées hors voyage'] = await p.evaluate(async ()=>{
   return {...dedans, visiblesSiDemandé: avec[0].date === '2026-08-11'};
 });
 
+// 10g — vidéos : conservées sous le seuil, image fixe seule au-dessus
+r['vidéos'] = await p.evaluate(async ()=>{
+  const faux = (nom, octets) => {
+    const f = new File([new Uint8Array(octets)], nom, {type:'video/mp4', lastModified:Date.parse('2026-09-24T09:00:00Z')});
+    return f;
+  };
+  const vrai = Exif.parse;
+  Exif.parse = async ()=>({lat:-33.9, lon:18.42, date:new Date('2026-09-24T09:00:00Z')});
+  const avant = (trip.days.find(d=>d.date==='2026-09-24')||{photos:[]}).photos.length;
+  await importPhotos([faux('petite.mp4', 1024*1024), faux('enorme.mp4', VIDEO_MAX + 1024)]);
+  Exif.parse = vrai;
+  const j = trip.days.find(d=>d.date==='2026-09-24');
+  const neufs = j.photos.slice(avant);
+  const gardés = [];
+  for(const id of neufs) gardés.push(!!(await Photos.get(vidKey(id))));
+  const st = await videoStats();
+  return { ajoutées: neufs.length, petiteGardée: gardés[0], énormeÉcartée: gardés[1] === false,
+           compte: st.n, seuilMo: VIDEO_MAX/1048576 };
+});
+
 // 11 — plusieurs voyages : créer, basculer, supprimer
 await p.click('#btnMenu'); await p.waitForTimeout(200);
 r['sélecteur de voyages'] = await p.evaluate(()=> document.querySelectorAll('#mTrip option').length);

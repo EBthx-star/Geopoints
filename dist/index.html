@@ -251,7 +251,8 @@ body{
 /* ---------- Visionneuse ---------- */
 .viewer{position:fixed;inset:0;background:#000;z-index:950;display:flex;align-items:center;justify-content:center}
 .viewer[hidden]{display:none}
-.viewer img{max-width:100%;max-height:82vh;object-fit:contain}
+.viewer img,.viewer video{max-width:100%;max-height:82vh;object-fit:contain}
+.viewer video[hidden],.viewer img[hidden]{display:none}
 .viewer-close{
   position:absolute;top:calc(var(--safe-top) + 12px);right:14px;
   width:42px;height:42px;border-radius:50%;border:none;
@@ -396,6 +397,13 @@ body{
   border-radius:50%;width:20px;height:20px;display:flex;align-items:center;
   justify-content:center;font-size:10px;padding-left:2px;
 }
+
+/* Vidéo sans image fixe : la tuile reste lisible et reste cliquable. */
+.thumb-filmonly{
+  width:64px;height:64px;border-radius:9px;background:#2a2f33;
+}
+.thumb-filmonly span{right:auto;bottom:auto;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:26px;height:26px;font-size:12px;background:rgba(255,255,255,.22)}
 
 /* Trace GPX dans la liste du road book */
 .track-item .item-badge{background:#fdecea}
@@ -545,6 +553,7 @@ body{
     <button class="menu-btn wide" id="btnLoadCape"><span>🇿🇦</span>Itinéraire Le Cap — charger ou mettre à jour</button>
   </div>
   <p class="hint" id="storageHint"></p>
+  <button class="menu-btn danger" id="btnPurgeVid" hidden></button>
   <button class="menu-close" id="btnCloseMenu">Fermer</button>
 </div>
 
@@ -618,6 +627,7 @@ body{
 <div class="viewer" id="viewer" hidden>
   <button class="viewer-close" id="viewerClose">✕</button>
   <img id="viewerImg" alt="">
+  <video id="viewerVid" controls playsinline hidden></video>
   <div class="viewer-cap" id="viewerCap"></div>
 </div>
 
@@ -1639,6 +1649,12 @@ function tripPhotoIds(t){
   (t.days||[]).forEach(d=>(d.photos||[]).forEach(p=>ids.add(p)));
   return [...ids];
 }
+/* Tout ce que ce voyage occupe dans IndexedDB : les images fixes et, pour
+   une vidéo conservée, le film rangé sous « id:v ». Sert au ménage, jamais
+   à la sauvegarde — un film n'a rien à faire dans un fichier AirDrop. */
+function tripBlobIds(t){
+  return tripPhotoIds(t).flatMap(id=>[id, id+':v']);
+}
 
 /* ---- IndexedDB pour les images ---- */
 const Photos = (() => {
@@ -2395,28 +2411,61 @@ async function loadThumbs(i, step){
     }
     if(url){
       const isVid = (step.videos || []).includes(pid);
+      // Le film est-il là, ou seulement son image fixe ?
+      const film = isVid ? await Photos.get(vidKey(pid)) : null;
+      const cap = `${step.name||''} · ${fmtTime(step.t)}${isVid?' · vidéo':''}`;
       const img = document.createElement('img');
       img.src = url; img.loading='lazy';
-      img.onclick = ()=>openViewer(url, `${step.name||''} · ${fmtTime(step.t)}${isVid?' · vidéo':''}`);
+      img.onclick = ()=>film ? openViewer(filmUrl(pid, film), cap, true) : openViewer(url, cap);
       if(isVid){
         const wrap = document.createElement('div');
         wrap.className = 'thumb-vid';
         wrap.appendChild(img);
-        const play = document.createElement('span'); play.textContent = '▶';
+        const play = document.createElement('span'); play.textContent = film ? '▶' : '🎬';
+        if(!film) play.title = 'Image fixe seule — vidéo trop lourde';
         wrap.appendChild(play);
         box.appendChild(wrap);
       } else box.appendChild(img);
     } else {
+      // Pas d'image fixe : certaines vidéos refusent de livrer une première
+      // image. Si le film est là, on offre quand même la lecture.
+      const film = (step.videos||[]).includes(pid) ? await Photos.get(vidKey(pid)) : null;
       const d = document.createElement('div');
-      d.className='thumb-missing'; d.textContent='📷';
+      if(film){
+        d.className = 'thumb-vid thumb-filmonly';
+        const play = document.createElement('span'); play.textContent = '▶';
+        d.appendChild(play);
+        d.onclick = ()=>openViewer(filmUrl(pid, film), `${step.name||''} · ${fmtTime(step.t)} · vidéo`, true);
+      } else { d.className='thumb-missing'; d.textContent='📷'; }
       box.appendChild(d);
     }
   }
 }
-function openViewer(url, cap){
-  $('viewerImg').src = url;
+function filmUrl(pid, blob){
+  const k = vidKey(pid);
+  let url = urlCache.get(k);
+  if(!url){ url = URL.createObjectURL(blob); urlCache.set(k, url); }
+  return url;
+}
+/* La visionneuse sert les deux : une image, ou un lecteur vidéo. On ne laisse
+   jamais les deux à l'écran, et on coupe le son en refermant. */
+function openViewer(url, cap, isVideo){
+  const img = $('viewerImg'), vid = $('viewerVid');
+  if(isVideo){
+    img.hidden = true; img.removeAttribute('src');
+    vid.hidden = false; vid.src = url;
+    vid.play().catch(()=>{});          // iOS peut refuser sans geste : pas grave
+  } else {
+    vid.hidden = true; vid.pause(); vid.removeAttribute('src');
+    img.hidden = false; img.src = url;
+  }
   $('viewerCap').textContent = cap || '';
   $('viewer').hidden = false;
+}
+function closeViewer(){
+  const vid = $('viewerVid');
+  if(vid){ vid.pause(); vid.removeAttribute('src'); vid.hidden = true; }
+  $('viewer').hidden = true;
 }
 
 /* ===================== Traces GPX =====================
@@ -2589,7 +2638,7 @@ function trackStats(tr){
 async function importPhotos(files){
   if(!files || !files.length) return;
   const total = files.length;
-  let ok=0, noGeo=0;
+  let ok=0, noGeo=0, tropLourd=0;
   const fresh = [];
 
   for(let i=0;i<total;i++){
@@ -2607,10 +2656,16 @@ async function importPhotos(files){
 
     const id = uid();
     const video = Exif.isVideo(f);
-    // Pour une vidéo on ne garde qu'une image extraite : le fichier lui-même
-    // remplirait la mémoire du navigateur en quelques minutes de tournage.
+    // D'une vidéo on garde toujours une image extraite : c'est elle qui tient
+    // la place sur la carte et dans le road book exporté. Le fichier lui-même
+    // n'est conservé, pour être relu dans l'app, qu'en deçà de VIDEO_MAX —
+    // une minute de 4K pèse près de 200 Mo et saturerait le navigateur.
     const thumb = video ? await makePoster(f) : await makeThumb(f);
     if(thumb) await Photos.put(id, thumb);
+    if(video){
+      if(f.size <= VIDEO_MAX){ try{ await Photos.put(vidKey(id), f); }catch(e){ tropLourd++; } }
+      else tropLourd++;
+    }
     fresh.push({ id, t:+new Date(when), lat:gps.lat, lon:gps.lon, name:f.name, video });
     ok++;
   }
@@ -2620,12 +2675,19 @@ async function importPhotos(files){
 
   let msg = `${ok} élément${ok>1?'s':''} ajouté${ok>1?'s':''}`;
   if(noGeo) msg += ` · ${noGeo} sans position`;
+  if(tropLourd) msg += ` · ${tropLourd} vidéo${tropLourd>1?'s':''} trop lourde${tropLourd>1?'s':''} : image fixe seule`;
   toast(msg, 3600);
   persist();
   if(pane==='book') renderBook();
 }
 
 /* Image extraite d'une vidéo : on saisit une frame au début du plan. */
+/* Vidéos : le fichier est rangé à côté de son image fixe, sous une clé
+   dérivée. Au-delà de 50 Mo on s'en tient à l'image — une minute de 4K
+   pèse près de 200 Mo, et le stockage du navigateur n'est pas extensible. */
+const VIDEO_MAX = 50 * 1024 * 1024;
+function vidKey(id){ return id + ':v'; }
+
 function makePoster(file, max=1400, q=.78){
   return new Promise(res=>{
     const url = URL.createObjectURL(file);
@@ -3093,8 +3155,8 @@ async function deleteTrip(){
   if(!(await askYes('Supprimer ce voyage ?', `« ${trip.name} » — étapes, journées et photos.\nFaites une sauvegarde avant.`, 'Supprimer', true))) return;
   // On garde les photos qu'un autre voyage utiliserait encore (copie restaurée).
   const used = new Set();
-  Store.list().filter(x=>x.id!==trip.id).forEach(x=>{ const o=Store.load(x.id); if(o) tripPhotoIds(o).forEach(p=>used.add(p)); });
-  for(const pid of tripPhotoIds(trip)) if(!used.has(pid)){ await Photos.del(pid); urlCache.delete(pid); }
+  Store.list().filter(x=>x.id!==trip.id).forEach(x=>{ const o=Store.load(x.id); if(o) tripBlobIds(o).forEach(p=>used.add(p)); });
+  for(const pid of tripBlobIds(trip)) if(!used.has(pid)){ await Photos.del(pid); urlCache.delete(pid); }
   Store.remove(trip.id);
   const next = Store.current();
   switchTrip(next.id);
@@ -3344,7 +3406,7 @@ function wire(){
     const n = (d.photos||[]).length;
     if(!(await askYes('Supprimer cette journée ?',
       `${fmtDate(d.date)}${n?` — ${n} photo${n>1?'s':''} seront effacées`:''}`, 'Supprimer', true))) return;
-    for(const id of (d.photos||[])) await Photos.del(id);
+    for(const id of (d.photos||[])){ await Photos.del(id); await Photos.del(vidKey(id)); urlCache.delete(id); urlCache.delete(vidKey(id)); }
     trip.days = trip.days.filter(x=>x.date!==d.date);
     persist();
     const l = dayList();
@@ -3415,7 +3477,8 @@ function wire(){
     renderBook();          // les distances restent ; seul le tracé apparaît ou disparaît
   };
 
-  $('viewerClose').onclick = ()=>{ $('viewer').hidden = true; };
+  $('viewerClose').onclick = closeViewer;
+  $('btnPurgeVid').onclick = purgeVideos;
 
   /* ---- Glisser-déposer et coller (Mac surtout) ----
      On accepte le dépôt n'importe où dans la page : viser une zone précise
@@ -3542,14 +3605,48 @@ function wire(){
   };
 }
 
+/* Les films conservés, tous voyages confondus : combien, et quel poids. */
+async function videoStats(){
+  let n = 0, size = 0;
+  for(const t of Store.list()){
+    const o = t.id === trip.id ? trip : Store.load(t.id);
+    if(!o) continue;
+    for(const id of tripPhotoIds(o)){
+      const b = await Photos.get(vidKey(id));
+      if(b){ n++; size += b.size || 0; }
+    }
+  }
+  return {n, size};
+}
+async function purgeVideos(){
+  const f = await videoStats();
+  if(!f.n) return;
+  if(!(await askYes('Effacer les films ?',
+    `${f.n} vidéo${f.n>1?'s':''} · ${(f.size/1048576).toFixed(0)} Mo.\nLes images fixes et leur place sur la carte sont conservées.`,
+    'Effacer', true))) return;
+  for(const t of Store.list()){
+    const o = t.id === trip.id ? trip : Store.load(t.id);
+    if(!o) continue;
+    for(const id of tripPhotoIds(o)){ await Photos.del(vidKey(id)); urlCache.delete(vidKey(id)); }
+  }
+  toast(`${f.n} film${f.n>1?'s':''} effacé${f.n>1?'s':''} · ${(f.size/1048576).toFixed(0)} Mo libérés`, 3600);
+  showStorage();
+  if(pane==='book') renderBook();
+}
+
 async function showStorage(){
   try{
     if(navigator.storage && navigator.storage.estimate){
       const {usage,quota} = await navigator.storage.estimate();
       const pct = quota ? Math.round(usage/quota*100) : 0;
+      const films = await videoStats();
       $('storageHint').textContent =
         `Ce voyage : ${trip.sites.length} étapes · ${trip.days.length} journées · ${tripPhotoIds(trip).length} photos. `
         + `${Store.list().length} voyage${Store.list().length>1?'s':''} — ${(usage/1048576).toFixed(0)} Mo utilisés (${pct} %)`;
+      // Les vidéos pèsent bien plus lourd que tout le reste : on les compte à part.
+      $('btnPurgeVid').hidden = !films.n;
+      if(films.n) $('btnPurgeVid').textContent =
+        `🎬 ${films.n} vidéo${films.n>1?'s':''} conservée${films.n>1?'s':''} (${(films.size/1048576).toFixed(0)} Mo) — effacer les films`;
     }
   }catch(e){}
 }

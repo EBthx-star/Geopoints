@@ -459,6 +459,35 @@ trait, pas la couleur, qui dit l'approximation.
 
 ---
 
+## 14 octobre 2026 — les vidéos se regardent dans l'app
+
+Jusqu'ici une vidéo déposée ne laissait qu'une **image extraite** : la place
+sur la carte, l'heure, les coordonnées, mais pas le film. Le film est
+désormais conservé et relu dans l'app, sous un plafond de **50 Mo par
+vidéo** — une minute de 4K pèse près de 200 Mo, et le stockage du navigateur
+n'est pas extensible. Au-delà, l'app garde l'image fixe et le dit dans le
+bandeau, plutôt que d'échouer sans explication.
+
+Le film est rangé dans IndexedDB sous une clé dérivée, `id:v`, à côté de son
+image. Trois conséquences voulues :
+
+- **Le road book exporté ne change pas.** Il montre l'image fixe. Un PDF ne
+  lit pas de vidéo, et un fichier web autonome de 300 Mo ne s'envoie pas.
+- **La sauvegarde AirDrop non plus.** Elle n'embarque que `day.photos`, donc
+  les images ; `tripBlobIds()`, qui ajoute les films, ne sert qu'au ménage.
+  Les vidéos restent sur l'appareil où elles ont été déposées.
+- **Le menu compte les films à part** et propose de les effacer d'un geste,
+  sans toucher aux images fixes ni à leur place sur la carte.
+
+Deux détails appris en testant. La visionneuse doit **vider le `src` de la
+balise `<video>` en se refermant**, sinon le son continue. Et quand
+`makePoster()` ne parvient pas à extraire une première image — le Chromium
+du banc de test n'a pas les codecs propriétaires, mais le cas existe aussi
+sur de vrais fichiers — la vignette disparaissait entièrement ; elle
+affiche maintenant une tuile sombre avec un ▶, qui lit quand même le film.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :
