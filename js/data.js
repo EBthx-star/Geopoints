@@ -42,7 +42,7 @@ const CAPE_PLANNED_ONLY = [
 const CAPE_TRIP = {
   name: "Le Cap & Western Cape",
   start: "2026-09-22",
-  end: "2026-10-10",
+  end: "2026-10-12",
   sites: [
     // ---- Semaine 1 — réservée ----
     { name:"Blue Peter Hotel — Bloubergstrand", kind:"hotel", lat:-33.80670, lon:18.46940, date:"2026-09-22",

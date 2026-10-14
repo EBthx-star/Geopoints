@@ -120,6 +120,8 @@ body{
   font-size:13px;color:#444;margin-top:6px;white-space:pre-wrap;word-break:break-word;
   border-left:3px solid var(--line);padding-left:9px;
 }
+.planned-head{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-soft);margin:4px 2px 6px}
+
 /* Illustration d'une fiche Information : dessin original, pas une photo. */
 .item-illus{
   display:block;width:100%;max-width:300px;margin:8px 0 2px;
@@ -1305,7 +1307,7 @@ const CAPE_PLANNED_ONLY = [
 const CAPE_TRIP = {
   name: "Le Cap & Western Cape",
   start: "2026-09-22",
-  end: "2026-10-10",
+  end: "2026-10-12",
   sites: [
     // ---- Semaine 1 — réservée ----
     { name:"Blue Peter Hotel — Bloubergstrand", kind:"hotel", lat:-33.80670, lon:18.46940, date:"2026-09-22",
@@ -1970,11 +1972,15 @@ async function drawRoute(which, pts, infoEl, opts={}){
     segs.push(seg);
     tot.distance += seg.distance; tot.duration += seg.duration;
     if(!seg.real) tot.approx = true;
-    if(group) L.polyline(seg.coords, {
-      color: seg.real ? '#1d4e5f' : '#c2853a',
-      weight: seg.walk ? 3 : 4, opacity: .8,
-      dashArray: seg.real && !seg.walk ? null : (seg.walk ? '2,6' : '7,7')
-    }).addTo(group);
+    if(group){
+      // Deux traits superposés : un liseré blanc dessous, la route dessus.
+      // Le bleu foncé d'origine disparaissait sur le fond satellite ; l'ambre
+      // cerné de blanc tient aussi bien sur le plan que sur la photo.
+      const w = seg.walk ? 3.5 : 5;
+      const dash = seg.real && !seg.walk ? null : (seg.walk ? '2,6' : '7,7');
+      L.polyline(seg.coords, {color:'#ffffff', weight:w+3.5, opacity:.75, lineCap:'round', lineJoin:'round'}).addTo(group);
+      L.polyline(seg.coords, {color:'#ef8a17', weight:w, opacity:.95, dashArray:dash, lineCap:'round', lineJoin:'round'}).addTo(group);
+    }
     if(opts.onSeg) opts.onSeg(i, seg);
   }
   infoEl.textContent = fmtTotal(tot, true) || km(tot.distance);
@@ -2089,8 +2095,36 @@ function highlight(id){
 }
 
 /* ===================== AXE 2 — Road book ===================== */
+/* Les journées du road book, du premier au dernier jour du voyage.
+   On ne liste pas seulement les jours qui ont des photos : un voyage se
+   raconte en continu, et une journée sans photo reste une journée — on y
+   retrouve au moins l'hôtel et la table de ce soir-là, pris dans les
+   adresses datées. Hors de l'intervalle du voyage, ou si celui-ci n'a pas
+   de dates, on s'en tient aux journées qui existent. */
 function dayList(){
-  return trip.days.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const have = new Map(trip.days.map(d=>[d.date, d]));
+  if(trip.start && trip.end && trip.end >= trip.start){
+    for(let t=new Date(trip.start+'T12:00:00'), fin=new Date(trip.end+'T12:00:00');
+        t<=fin; t.setDate(t.getDate()+1)){
+      // Date locale, jamais toISOString() : au-delà de UTC+12 il renverrait
+      // la veille, et le road book commencerait un jour trop tôt.
+      const iso = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+      if(!have.has(iso)) have.set(iso, {date:iso, photos:[], note:'', steps:[], raw:[], tracks:[], vide:true});
+    }
+  }
+  return [...have.values()].sort((a,b)=>a.date.localeCompare(b.date));
+}
+/* La journée telle qu'elle est stockée : les journées vides du road book sont
+   fabriquées à l'affichage, donc écrire dedans ne suffirait pas. */
+function realDay(date){
+  let d = trip.days.find(x=>x.date===date);
+  if(!d){ d = {date, photos:[], note:'', steps:[], raw:[], tracks:[]}; trip.days.push(d); }
+  return d;
+}
+/* Ce qui était prévu ce jour-là, quand la journée n'a ni photo ni trace. */
+function dayPlanned(date){
+  return trip.sites.filter(s=>s.date===date && s.kind!=='info')
+    .sort((a,b)=>(a.time||'12:00').localeCompare(b.time||'12:00'));
 }
 /* Nom d'une étape : celui donné par l'utilisateur, sinon le lieu préparé
    le plus proche (hôtel, table, site) — c'est ainsi que les adresses
@@ -2176,9 +2210,11 @@ async function renderBook(){
   // Les traces GPX : le chemin réellement parcouru, par-dessus la carte.
   const tracks = day.tracks || [];
   if(m) tracks.forEach(tr=>{
-    const line = L.polyline(tr.pts, {color:'#b3261e', weight:4, opacity:.85}).addTo(m);
+    // Liseré blanc dessous : sans lui le tracé se perd sur le fond satellite.
+    const halo = L.polyline(tr.pts, {color:'#ffffff', weight:7.5, opacity:.7, lineCap:'round', lineJoin:'round'}).addTo(m);
+    const line = L.polyline(tr.pts, {color:'#b3261e', weight:4, opacity:.95, lineCap:'round', lineJoin:'round'}).addTo(m);
     line.bindPopup(`<b>${escapeHtml(tr.name)}</b><br><small>${trackStats(tr)}</small>`);
-    layers.book.markers.push(line);
+    layers.book.markers.push(halo, line);
   });
   fitTo('book', steps.length ? steps : tracks.flatMap(t=>t.pts.map(p=>({lat:p[0], lon:p[1]}))));
 
@@ -2195,9 +2231,20 @@ async function renderBook(){
         </div>
       </div>`).join('');
   if(!steps.length && !tracks.length){
-    list.innerHTML = `<div class="empty"><div class="empty-icon">📍</div>
-      <p>Aucune photo géolocalisée pour ce jour.<br>
-      Vérifiez : Réglages › Confidentialité › Service de localisation › Appareil photo.</p></div>`;
+    // Journée sans photo : plutôt que du vide, ce qui était prévu ce jour-là.
+    const prev = dayPlanned(day.date);
+    list.innerHTML = prev.length
+      ? `<div class="planned-head">Au programme ce jour-là</div>` + prev.map(s=>`
+        <div class="item">
+          <div class="item-badge">${KIND[s.kind].icon}</div>
+          <div class="item-body">
+            <div class="item-title">${escapeHtml(s.name)}</div>
+            <div class="item-meta">${KIND[s.kind].label}${s.time?' · '+s.time.replace(':','h'):''}</div>
+          </div>
+        </div>`).join('') + `<div class="empty"><p>Aucune photo ni trace pour ce jour.</p></div>`
+      : `<div class="empty"><div class="empty-icon">📍</div>
+        <p>Aucune photo géolocalisée pour ce jour.<br>
+        Vérifiez : Réglages › Confidentialité › Service de localisation › Appareil photo.</p></div>`;
   } else {
     list.innerHTML = trackRows + steps.map((st,i)=>`
       ${i>0 ? legRow('leg-'+(i-1), steps[i-1], st) : ''}
@@ -2656,6 +2703,8 @@ h3{font-size:16px;margin:18px 0 4px;color:#143a47}
 .gal img{width:170px;height:170px;object-fit:cover;border-radius:7px;display:block}
 .gal figcaption{font-size:10.5px;color:#6b6b6b;margin-top:4px;line-height:1.35}
 .illus{display:block;width:100%;max-width:340px;border:1px solid #e2ddd4;border-radius:9px;margin:8px 0}
+.planned{margin:4px 0 10px;padding-left:20px;font-size:14px}
+.planned li{margin:2px 0}
 .track{margin:12px 0 16px}
 .track figcaption{font-size:12.5px;color:#c2853a;font-weight:600;margin-bottom:5px}
 .trackmap{display:block;width:100%;max-width:520px;border:1px solid #e2ddd4;border-radius:9px}
@@ -2676,6 +2725,13 @@ async function buildBookParts(embed = true){
       body += `<figure class="track"><figcaption>🥾 ${escapeHtml(tr.name)} — ${trackStats(tr)}</figcaption>${trackSvg(tr)}</figure>`;
     });
     if(day.note) body += `<p class="daynote">${escapeHtml(day.note).replace(/\n/g,'<br>')}</p>`;
+    if(!(day.steps||[]).length && !(day.tracks||[]).length){
+      const prev = dayPlanned(day.date);
+      body += prev.length
+        ? `<p class="meta">Au programme ce jour-là</p><ul class="planned">` +
+          prev.map(s=>`<li>${KIND[s.kind].icon} ${escapeHtml(s.name)}${s.time?` — ${s.time.replace(':','h')}`:''}</li>`).join('') + `</ul>`
+        : `<p class="meta">Journée sans photo ni trace.</p>`;
+    }
     for(const [si,st] of (day.steps||[]).entries()){
       if(si>0) body += `<p class="leg">↓ ${fmtLeg(legStats(day.steps[si-1], st))}</p>`;
       body += `<div class="step"><h3><span class="n">${si+1}</span> ${escapeHtml(stepLabel(st,si))}</h3>`;
@@ -2903,6 +2959,10 @@ function topUpCape(t){
   const norm = x => (x||'').toLowerCase().replace(/\s+/g,' ').trim();
   const have = new Set(t.sites.map(x=>norm(x.name)));
   let added = 0, fixed = 0, replanned = 0;
+  // Les bornes du voyage : le road book doit couvrir l'arrivée et le départ,
+  // même les jours sans photo. On ne fait qu'élargir, jamais rétrécir.
+  if(!t.start || t.start > CAPE_TRIP.start) t.start = CAPE_TRIP.start;
+  if(!t.end   || t.end   < CAPE_TRIP.end)   t.end   = CAPE_TRIP.end;
   CAPE_TRIP.sites.forEach(src=>{
     if(!have.has(norm(src.name))){ t.sites.push(Object.assign({id:uid()}, src)); added++; }
   });
@@ -3238,7 +3298,9 @@ function wire(){
 
   $('dayNote').oninput = ()=>{
     const days = dayList(); if(!days.length || dayIndex<0) return;
-    days[dayIndex].note = $('dayNote').value;
+    // Une journée sans photo n'existe que le temps de l'affichage : dès qu'on
+    // y écrit, il faut la faire entrer pour de bon dans le voyage.
+    realDay(days[dayIndex].date).note = $('dayNote').value;
     clearTimeout(window._noteT);
     window._noteT = setTimeout(persist, 600);
   };

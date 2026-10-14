@@ -422,6 +422,33 @@ Vérifié sur les 28 traces réelles du voyage, de 900 m à 11 km.
 
 ---
 
+## 14 octobre 2026 — un road book continu, et des routes visibles
+
+**Le road book couvre tout le voyage**, du 22 septembre au 12 octobre, et non
+plus les seules journées qui portent des photos. `dayList()` parcourt
+l'intervalle `trip.start` → `trip.end` et fabrique les journées manquantes.
+
+Une journée sans photo n'est pas une page blanche : elle affiche **ce qui
+était prévu ce jour-là**, pris dans les adresses datées — l'hôtel, la table.
+C'est souvent tout ce qu'il reste d'un jour de route, et c'est déjà un
+souvenir.
+
+Deux pièges évités. La date du jour se construit à partir des champs locaux,
+jamais par `toISOString()`, qui renverrait la veille au-delà de UTC+12.
+Et comme ces journées n'existent qu'à l'affichage, écrire une note dedans se
+serait perdu au rendu suivant : `realDay()` fait entrer la journée dans
+`trip.days` dès qu'on y touche. Le banc de test vérifie les deux.
+
+`topUpCape()` élargit les bornes du voyage sans jamais les rétrécir.
+
+**Les trajets en voiture étaient illisibles** sur le fond satellite : bleu
+foncé sur image sombre. Ils sont maintenant en ambre, doublés d'un liseré
+blanc dessous — la technique des cartes routières. Même traitement pour les
+traces GPX. Les segments hors réseau routier restent en pointillé : c'est le
+trait, pas la couleur, qui dit l'approximation.
+
+---
+
 ## Voyage de test : Le Cap, 22 sept. – 10 oct. 2026
 
 L'itinéraire est pré-chargé dans `js/data.js` (menu ☰ → *Itinéraire Le Cap*) :

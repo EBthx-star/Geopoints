@@ -216,6 +216,26 @@ r['tracé dans le road book'] = await p.evaluate(async ()=>{
   };
 });
 
+// 10e — le road book couvre tout le voyage, arrivée et départ compris
+r['road book continu'] = await p.evaluate(async ()=>{
+  trip.start = '2026-09-22'; trip.end = '2026-10-12';
+  const d = dayList();
+  const book = await buildBookParts(false);
+  return {
+    journées: d.length,
+    premier: d[0].date, dernier: d[d.length-1].date,
+    sansTrou: d.every((x,i)=> i===0 || (Date.parse(x.date)-Date.parse(d[i-1].date))===864e5),
+    joursVides: d.filter(x=>x.vide).length,
+    programmeAffiché: /Au programme ce jour-là/.test(book.body),
+    // Écrire une note sur une journée vide doit la créer pour de bon.
+    noteConservée: (()=>{ realDay('2026-10-08').note = 'essai'; persist();
+      return (trip.days.find(x=>x.date==='2026-10-08')||{}).note === 'essai'
+          && dayList().find(x=>x.date==='2026-10-08').note === 'essai'; })(),
+    // Une journée vide datée d'un hôtel doit le nommer.
+    hôtelDuJour: /The Sir David/.test(book.body)
+  };
+});
+
 // 11 — plusieurs voyages : créer, basculer, supprimer
 await p.click('#btnMenu'); await p.waitForTimeout(200);
 r['sélecteur de voyages'] = await p.evaluate(()=> document.querySelectorAll('#mTrip option').length);
