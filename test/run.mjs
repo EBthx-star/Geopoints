@@ -236,6 +236,21 @@ r['road book continu'] = await p.evaluate(async ()=>{
   };
 });
 
+// 10f — une journée hors voyage ne doit plus ouvrir le road book
+r['journées hors voyage'] = await p.evaluate(async ()=>{
+  trip.start = '2026-09-22'; trip.end = '2026-10-12';
+  trip.days.push({date:'2026-08-11', photos:[], note:'capture d\'écran', steps:[], raw:[], tracks:[]});
+  showOutside = false;
+  const d = dayList();
+  const book = await buildBookParts(false);
+  const dedans = { premier:d[0].date, aoûtÉcarté: !d.some(x=>x.date.startsWith('2026-08')),
+                   exportSansAoût: !/11 août/.test(book.body), repérées:outsideDays().length };
+  showOutside = true;
+  const avec = dayList();
+  showOutside = false;
+  return {...dedans, visiblesSiDemandé: avec[0].date === '2026-08-11'};
+});
+
 // 11 — plusieurs voyages : créer, basculer, supprimer
 await p.click('#btnMenu'); await p.waitForTimeout(200);
 r['sélecteur de voyages'] = await p.evaluate(()=> document.querySelectorAll('#mTrip option').length);

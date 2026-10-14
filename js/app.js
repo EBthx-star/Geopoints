@@ -391,8 +391,21 @@ function highlight(id){
    retrouve au moins l'hôtel et la table de ce soir-là, pris dans les
    adresses datées. Hors de l'intervalle du voyage, ou si celui-ci n'a pas
    de dates, on s'en tient aux journées qui existent. */
+/* Journées enregistrées hors des dates du voyage : presque toujours des
+   photos à la mauvaise date (captures d'écran, images reçues, essais avant
+   le départ). On ne les efface pas — ce sont des fichiers de l'utilisateur —
+   mais elles ne doivent plus ouvrir le road book. */
+let showOutside = false;
+function outsideDays(){
+  if(!(trip.start && trip.end && trip.end >= trip.start)) return [];
+  return trip.days.filter(d=> d.date < trip.start || d.date > trip.end)
+                  .sort((a,b)=>a.date.localeCompare(b.date));
+}
 function dayList(){
-  const have = new Map(trip.days.map(d=>[d.date, d]));
+  const dedans = (trip.start && trip.end && trip.end >= trip.start) && !showOutside
+    ? trip.days.filter(d=> d.date >= trip.start && d.date <= trip.end)
+    : trip.days;
+  const have = new Map(dedans.map(d=>[d.date, d]));
   if(trip.start && trip.end && trip.end >= trip.start){
     for(let t=new Date(trip.start+'T12:00:00'), fin=new Date(trip.end+'T12:00:00');
         t<=fin; t.setDate(t.getDate()+1)){
@@ -462,6 +475,22 @@ async function renderBook(){
   routeGen.book++;                                   // annule un tracé en cours
   $('routeInfoBook').hidden = true;
   $('btnRouteBook').classList.toggle('on', routeOn.book);
+
+  // Bandeau des journées hors voyage, s'il y en a.
+  const hors = outsideDays();
+  const bar = $('outsideBar'), bo = $('btnOutside');
+  if(bar && bo){
+    bar.hidden = !hors.length;
+    if(hors.length){
+      const quand = hors.slice(0,3).map(d=>fmtDate(d.date)).join(', ');
+      bo.textContent = showOutside
+        ? `↩︎ Masquer les ${hors.length} journée${hors.length>1?'s':''} hors voyage`
+        : `⚠︎ ${hors.length} journée${hors.length>1?'s':''} hors voyage (${quand}${hors.length>3?'…':''}) — afficher`;
+      bar.classList.toggle('on', showOutside);
+      const cur = days[dayIndex];
+      $('btnDelDay').hidden = !(showOutside && cur && hors.some(d=>d.date===cur.date));
+    }
+  }
 
   if(!days.length){
     $('dayTitle').textContent = 'Aucune journée';
@@ -1575,6 +1604,27 @@ function wire(){
 
   // Road book
   let lastDay = 0;
+  $('btnOutside').onclick = ()=>{
+    showOutside = !showOutside;
+    // On se replace sur le premier jour du voyage pour ne pas atterrir
+    // au hasard quand la liste change de longueur.
+    const l = dayList();
+    dayIndex = Math.max(0, l.findIndex(d=> !trip.start || d.date >= trip.start));
+    renderBook();
+  };
+  $('btnDelDay').onclick = async ()=>{
+    const d = dayList()[dayIndex]; if(!d) return;
+    const n = (d.photos||[]).length;
+    if(!(await askYes('Supprimer cette journée ?',
+      `${fmtDate(d.date)}${n?` — ${n} photo${n>1?'s':''} seront effacées`:''}`, 'Supprimer', true))) return;
+    for(const id of (d.photos||[])) await Photos.del(id);
+    trip.days = trip.days.filter(x=>x.date!==d.date);
+    persist();
+    const l = dayList();
+    dayIndex = Math.min(Math.max(0, dayIndex), Math.max(0, l.length-1));
+    renderBook();
+    toast('Journée supprimée', 2600);
+  };
   $('btnPrevDay').onclick = ()=>{ dayIndex = dayIndex<0 ? dayList().length-1 : dayIndex-1; renderBook(); };
   $('btnNextDay').onclick = ()=>{ dayIndex = dayIndex<0 ? 0 : dayIndex+1; renderBook(); };
   $('btnAllDays').onclick = ()=>{

@@ -441,6 +441,16 @@ serait perdu au rendu suivant : `realDay()` fait entrer la journée dans
 
 `topUpCape()` élargit les bornes du voyage sans jamais les rétrécir.
 
+**Correctif du même jour.** Fabriquer les journées manquantes ne suffisait
+pas : le road book s'ouvrait toujours en août, sur des journées nées de
+photos mal datées (captures d'écran, images reçues, essais d'avant-départ).
+`dayList()` s'en tient maintenant à l'intervalle du voyage, et un bandeau
+annonce les journées hors bornes — « ⚠︎ 2 journées hors voyage (11 août,
+12 août) — afficher ». Rien n'est effacé sans demande : le bandeau les
+révèle, et ce n'est qu'affiché qu'apparaît un bouton de suppression, qui
+efface aussi les photos de la journée dans IndexedDB. L'export, lui, ne
+montre jamais que le voyage.
+
 **Les trajets en voiture étaient illisibles** sur le fond satellite : bleu
 foncé sur image sombre. Ils sont maintenant en ambre, doublés d'un liseré
 blanc dessous — la technique des cartes routières. Même traitement pour les
