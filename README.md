@@ -37,14 +37,16 @@ calculés apparaissent en pointillé ocre.
 ## Structure
 
 ```
-index.html            L'application
+index.html            L'application (version de dev, références séparées)
 css/app.css           Mise en page — palette teal #1d4e5f / ocre #c2853a du road book Le Cap
 js/exif.js            Lecture EXIF JPEG et HEIC, sans bibliothèque externe
 js/data.js            Itinéraire Le Cap 2026, stockage (localStorage + IndexedDB)
 js/app.js             Logique des deux axes, cartes, imports, exports
 service-worker.js     Cache applicatif pour le mode hors ligne
+build.sh              Assemble la version publiée (un seul fichier) dans docs/
 test/                 Banc de test navigateur (Leaflet remplacé par un stub)
-docs/                 Notes de projet, migrées depuis Notion
+docs/                 Version publiée par GitHub Pages (produite par build.sh)
+notes/                Notes de projet, migrées depuis Notion
 ```
 
 **Stockage.** Le dossier de voyage (texte) va dans `localStorage` ; les photos,
@@ -69,9 +71,14 @@ web après une période d'inactivité. La sauvegarde est le seul recours.
 
 ## Déploiement
 
-Le dépôt se publie tel quel sur GitHub Pages (branche `main`, dossier racine).
+GitHub Pages est configuré sur **branche `main`, dossier `/docs`**. La racine
+du dépôt contient les sources ; `build.sh` produit `docs/index.html` (le fichier
+compilé en un seul morceau, servi par Pages), `docs/manifest.json` et
+`docs/service-worker.js`.
 
 ```bash
+./build.sh                # (re)fabrique docs/
+node test/run.mjs         # banc de test — doit passer sans erreur console
 git add -A && git commit -m "…" && git push
 ```
 

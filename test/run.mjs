@@ -9,7 +9,7 @@ const html = fs.readFileSync(root + 'index.html', 'utf8')
   .replace(/<link rel="stylesheet" href="https:\/\/unpkg[^"]*">/, '');
 fs.writeFileSync(root + 'test-harness.html', html);
 
-const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium' });
+const b = await chromium.launch();
 const p = await b.newPage();
 const errs = [];
 p.on('console', m => { if(m.type()==='error') errs.push(m.text()); });

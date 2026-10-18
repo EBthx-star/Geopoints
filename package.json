@@ -1,0 +1,14 @@
+{
+  "name": "bthx-travel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Application privée de préparation de voyage et de road book (PWA).",
+  "scripts": {
+    "build": "./build.sh",
+    "test": "node test/run.mjs",
+    "serve": "python3 -m http.server 8777"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
