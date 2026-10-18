@@ -76,10 +76,24 @@ du dépôt contient les sources ; `build.sh` produit `docs/index.html` (le fichi
 compilé en un seul morceau, servi par Pages), `docs/manifest.json` et
 `docs/service-worker.js`.
 
+### Publier
+
+Une seule commande, qui refuse de pousser si les tests échouent :
+
+```bash
+./publish.sh "ton message de commit"
+```
+
+Elle construit la version compilée, lance le banc de test, et ne pousse à
+GitHub que si tout passe. La publication en ligne est automatique via GitHub
+Pages (1-2 min de délai après le push).
+
+Pour construire ou tester séparément :
+
 ```bash
 ./build.sh                # (re)fabrique docs/
-node test/run.mjs         # banc de test — doit passer sans erreur console
-git add -A && git commit -m "…" && git push
+node test/run.mjs         # banc de test (requiert un serveur HTTP local)
+python3 -m http.server 8777   # le serveur local, à lancer avant les tests
 ```
 
 Sur iPhone : ouvrir l'URL **dans Safari**, puis Partager → *Sur l'écran d'accueil*.
