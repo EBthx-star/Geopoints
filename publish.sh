@@ -10,6 +10,7 @@
 # (sans effet si GitHub est déjà à jour). Il faut être sur la branche main.
 
 set -euo pipefail
+set +m   # pas de notifications bruyantes quand on arrête le serveur HTTP
 cd "$(dirname "$0")"
 
 if [ $# -lt 1 ] || [ -z "$1" ]; then
@@ -42,6 +43,7 @@ echo "🧪 2/4 Lancement des tests (Playwright)..."
 # Serveur HTTP temporaire pour que les tests puissent charger la page.
 python3 -m http.server 8777 >/tmp/bthx-publish-server.log 2>&1 &
 SERVER_PID=$!
+disown $SERVER_PID 2>/dev/null || true
 trap 'kill $SERVER_PID 2>/dev/null; rm -f /tmp/bthx-publish-server.log' EXIT
 
 # Attendre que le serveur réponde (max 5 s)
